@@ -6,26 +6,25 @@
   text-align: left;
 }
 
-
 #facebox .popup{
   position:relative;
-  border:3px solid rgba(0,0,0,0);
-  -webkit-border-radius:5px;
-  -moz-border-radius:5px;
-  border-radius:5px;
-  -webkit-box-shadow:0 0 18px rgba(0,0,0,0.4);
-  -moz-box-shadow:0 0 18px rgba(0,0,0,0.4);
-  box-shadow:0 0 18px rgba(0,0,0,0.4);
+  border:1px solid #888;
+  -webkit-border-radius:2px;
+  -moz-border-radius:2px;
+  border-radius:2px;
+  -webkit-box-shadow:0 0 10px rgba(0,0,0,0.8), 0 2px 200px rgba(255,255,255,0.2);
+  -moz-box-shadow:0 0 10px rgba(0,0,0,0.8), 0 2px 200px rgba(255,255,255,0.2);;
+  box-shadow:0 0 10px rgba(0,0,0,0.8), 0 2px 200px rgba(255,255,255,0.2);;
 }
 
 #facebox .content {
   display:table;
   width: 370px;
-  padding: 10px;
+  padding: 20px;
   background: #fff;
-  -webkit-border-radius:4px;
-  -moz-border-radius:4px;
-  border-radius:4px;
+  -webkit-border-radius:2px;
+  -moz-border-radius:2px;
+  border-radius:2px;
 }
 
 #facebox .content > p:first-child{

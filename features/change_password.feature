@@ -9,8 +9,8 @@ Feature: Change password
     When I put in my password in "user_current_password" 
     And I fill in "user_password" with "newsecret"
     And I fill in "user_password_confirmation" with "newsecret"
-    And I press "Change Password"
-    Then I should see "Password Changed"
+    And I press "Change password"
+    Then I should see "Password changed"
     Then I should be on the new user session page
     When I sign in with password "newsecret"
     Then I should be on the aspects page
@@ -21,7 +21,7 @@ Feature: Change password
     And I fill in "Email" with "forgetful@users.net"
     And I press "Send me reset password instructions"
     Then I should see "You will receive an email with instructions"
-    And I follow the "Change my password" link from the Devise.mailer
+    And I follow the "Change my password" link from the last sent email
     Then I should see "Change your password"
     And I fill in "Password" with "supersecret"
     And I fill in "Password confirmation" with "supersecret"

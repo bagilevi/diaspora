@@ -1,4 +1,12 @@
 module YoutubeTitles
+  def self.included(model)
+    model.class_eval do
+      before_save do
+        get_youtube_title text
+      end
+    end if model.respond_to?(:before_save)
+  end
+
   def youtube_title_for video_id
     http = Net::HTTP.new('gdata.youtube.com', 80)
     path = "/feeds/api/videos/#{video_id}?v=2"
@@ -11,14 +19,28 @@ module YoutubeTitles
   end
 
   def get_youtube_title text
+    self.youtube_titles = {}
     youtube_match = text.enum_for(:scan, YOUTUBE_ID_REGEX).map { Regexp.last_match }
     return if youtube_match.empty?
 
-    self.youtube_titles ||= {}
+    matches = {}
     youtube_match.each do |match_data|
-      self.youtube_titles[match_data[1]] = CGI::escape(youtube_title_for(match_data[1]))
+      matches[match_data[1]] = CGI::escape(youtube_title_for(match_data[1]))
     end
+
+    self.youtube_titles = matches unless matches.empty?
   end
 
+  def unserialize_attribute attr_name
+    if attr_name == "youtube_titles"
+      begin
+        super
+      rescue ActiveRecord::SerializationTypeMismatch
+        {}
+      end
+    else
+      super
+    end
+  end
   YOUTUBE_ID_REGEX = /(?:https?:\/\/)(?:youtu\.be\/|(?:[a-z]{2,3}\.)?youtube\.com\/watch(?:\?|#!|.+&|.+&amp;)v=)([\w-]{11})(?:\S*(#[^ ]+)|\S+)?/im unless defined? YOUTUBE_ID_REGEX
 end

@@ -9,13 +9,13 @@ class Post < ActiveRecord::Base
   include Diaspora::Webhooks
   include Diaspora::Guid
 
+  include Diaspora::Likeable
+
   xml_attr :diaspora_handle
   xml_attr :public
   xml_attr :created_at
 
-  has_many :comments, :order => 'created_at ASC'
-  has_many :likes, :conditions => {:positive => true}, :dependent => :delete_all
-  has_many :dislikes, :conditions => {:positive => false}, :class_name => 'Like', :dependent => :delete_all
+  has_many :comments, :dependent => :destroy
 
   has_many :aspect_visibilities
   has_many :aspects, :through => :aspect_visibilities
@@ -24,10 +24,16 @@ class Post < ActiveRecord::Base
   has_many :contacts, :through => :post_visibilities
   has_many :mentions, :dependent => :destroy
 
+  has_many :reshares, :class_name => "Reshare", :foreign_key => :root_guid, :primary_key => :guid
+  has_many :resharers, :class_name => 'Person', :through => :reshares, :source => :author
+
   belongs_to :author, :class_name => 'Person'
 
-  cattr_reader :per_page
-  @@per_page = 10
+  validates_uniqueness_of :guid
+
+  def diaspora_handle
+    read_attribute(:diaspora_handle) || self.author.diaspora_handle
+  end
 
   def user_refs
     if AspectVisibility.exists?(:post_id => self.id)
@@ -51,19 +57,15 @@ class Post < ActiveRecord::Base
     new_post
   end
 
-  def as_json(opts={})
-    {
-        :post => {
-            :id     => self.guid,
-            :author => self.author.as_json,
-        }
-    }
-  end
-
+  # @return Returns true if this Post will accept updates (i.e. updates to the caption of a photo).
   def mutable?
     false
   end
 
+  # The list of people that should receive this Post.
+  #
+  # @param [User] user The context, or dispatching user.
+  # @return [Array<Person>] The list of subscribers to this post
   def subscribers(user)
     if self.public?
       user.contact_people
@@ -72,6 +74,9 @@ class Post < ActiveRecord::Base
     end
   end
 
+  # @param [User] user The user that is receiving this post.
+  # @param [Person] person The person who dispatched this post to the
+  # @return [void]
   def receive(user, person)
     #exists locally, but you dont know about it
     #does not exsist locally, and you dont know about it
@@ -81,7 +86,7 @@ class Post < ActiveRecord::Base
 
     local_post = Post.where(:guid => self.guid).first
     if local_post && local_post.author_id == self.author_id
-      known_post = user.visible_posts.where(:guid => self.guid).first
+      known_post = user.find_visible_post_by_id(self.guid, :key => :guid)
       if known_post
         if known_post.mutable?
           known_post.update_attributes(self.attributes)
@@ -110,6 +115,15 @@ class Post < ActiveRecord::Base
 
   def activity_streams?
     false
+  end
+
+  def comment_email_subject
+    I18n.t('notifier.a_post_you_shared')
+  end
+
+  # @return [Array<Comment>]
+  def last_three_comments
+    self.comments.order('created_at DESC').limit(3).includes(:author => :profile).reverse
   end
 end
 

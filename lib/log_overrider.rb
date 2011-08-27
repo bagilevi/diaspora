@@ -1,4 +1,7 @@
 class ActionView::LogSubscriber
+
+  # In order to be more friendly to Splunk, which we use for log analysis,
+  # we override a few logging methods.  There are not overriden if enable_splunk_logging is set to false in config/application.yml
   def render_template(event)
     count = event.payload[:count] || 1
     hash = {:event    => :render,
@@ -18,6 +21,8 @@ end
 module ActionDispatch
   class ShowExceptions
     private
+      # This override logs in a format Splunk can more easily understand.
+      # @see ActionView::LogSubscriber#render_template
       def log_error(exception)
         return unless logger
 
@@ -40,6 +45,8 @@ class ActionController::LogSubscriber
     #noop
   end
 
+  # This override logs in a format Splunk can more easily understand.
+  # @see ActionView::LogSubscriber#render_template
   def process_action(event)
     payload   = event.payload
     additions = ActionController::Base.log_process_action(payload)
@@ -68,36 +75,14 @@ end
 module Rails
   module Rack
     class Logger
+      # This override logs in a format Splunk can more easily understand.
+      # @see ActionView::LogSubscriber#render_template
       def before_dispatch(env)
         request = ActionDispatch::Request.new(env)
         path = request.fullpath
 
         Rails.logger.info("event=request_started verb=#{env["REQUEST_METHOD"]} path=#{path} ip=#{request.ip} ")
       end
-    end
-  end
-end
-
-module ActiveRecord
-  class LogSubscriber
-    def sql(event)
-      self.class.runtime += event.duration
-      return unless logger.info?
-
-      payload = event.payload
-      sql     = payload[:sql].squeeze(' ')
-      binds   = nil
-
-      unless (payload[:binds] || []).empty?
-        binds = "  " + payload[:binds].map { |col,v|
-          [col.name, v]
-        }.inspect
-      end
-
-      log_string = "event=sql name='#{payload[:name]}' ms=#{event.duration} query='#{sql}'"
-      log_string << "caller_hash=#{caller.hash} binds='#{binds}' caller_with_diaspora='#{caller.grep(/diaspora\/(app|lib)/).join(';')}'"
-      info log_string
-
     end
   end
 end

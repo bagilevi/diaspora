@@ -18,10 +18,25 @@ set :scm_verbose, true
 set :repository_cache, "remote_cache"
 set :deploy_via, :checkout
 
+# Bonus! Colors are pretty!
+def red(str)
+  "\e[31m#{str}\e[0m"
+end
+
+# Figure out the name of the current local branch
+def current_git_branch
+  branch = `git symbolic-ref HEAD 2> /dev/null`.strip.gsub(/^refs\/heads\//, '')
+  puts "Deploying branch #{red branch}"
+  branch
+end
+
+# Set the deploy branch to the current branch
+set :branch, current_git_branch
+
 namespace :deploy do
   task :symlink_config_files do
     run "ln -s -f #{shared_path}/config/database.yml #{current_path}/config/database.yml"
-    run "ln -s -f #{shared_path}/config/app.yml #{current_path}/config/app.yml"
+    run "ln -s -f #{shared_path}/config/application.yml #{current_path}/config/application.yml"
     run "ln -s -f #{shared_path}/config/oauth_keys.yml #{current_path}/config/oauth_keys.yml"
   end
 
@@ -66,3 +81,6 @@ namespace :deploy do
 end
 
 after "deploy:symlink", "deploy:symlink_config_files", "deploy:symlink_cookie_secret", "deploy:bundle_static_assets"
+
+        require './config/boot'
+        require 'hoptoad_notifier/capistrano'

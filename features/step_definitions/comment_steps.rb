@@ -2,12 +2,14 @@ When /^I focus the comment field$/ do
   find("a.focus_comment_textarea").click
 end
 
+When /^I open the comment box$/ do
+  page.evaluate_script('Stream.focusNewComment($(".stream_element"), {preventDefault: function(){}})')
+end
+
 Then /^the first comment field should be open/ do
-  css_query = "$('#main_stream .stream_element:first .submit_button .comment_submit.button:visible')"
-  page.evaluate_script("#{css_query}.length").should == 1
+  find("#main_stream .stream_element .new_comment").should be_visible
 end
 
 Then /^the first comment field should be closed$/ do
-  css_query = "$('#main_stream .stream_element:first .submit_button .comment_submit.button:hidden')"
-  page.evaluate_script("#{css_query}.length").should == 1
+  find("#main_stream .stream_element .new_comment").should_not be_visible
 end

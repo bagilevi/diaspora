@@ -6,15 +6,22 @@ public/images/ball.png
 # Configuration files
 config/app_config.yml
 config/app.yml
+config/application.yml
+config/script_server_config.yml
 config/fb_config.yml
 config/oauth_keys.yml
 config/initializers/secret_token.rb
 config/redis.conf
 config/deploy_config.yml
+config/newrelic.yml
 .bundle
 vendor/bundle/*
 config/database.yml
 .rvmrc_custom
+
+#Mailing list stuff
+config/email_offset
+config/mailing_list.csv
 
 # Generated files
 log/*
@@ -23,6 +30,11 @@ public/diaspora
 spec/fixtures/*.y*ml
 spec/fixtures/*.fixture.*
 coverage/*
+xml_locales/*
+
+#Documentation
+.yardoc/
+doc/
 
 # Uploaded files and local files
 public/uploads/*
@@ -30,13 +42,13 @@ public/assets/*
 public/source.tar*
 tmp/**/*
 tmp/*
-db/*.sqlite3
-.redcar
+*.sqlite3
 
 # Temporary files of every sort
 .sass-cache/*
 .DS_Store
 .idea
+.redcar
 .rvmrc
 .stgit*
 *.swap

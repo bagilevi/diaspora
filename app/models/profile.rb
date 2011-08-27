@@ -35,6 +35,7 @@ class Profile < ActiveRecord::Base
   validates_format_of :first_name, :with => /\A[^;]+\z/, :allow_blank => true
   validates_format_of :last_name, :with => /\A[^;]+\z/, :allow_blank => true
   validate :max_tags
+  validate :valid_birthday
 
   attr_accessible :first_name, :last_name, :image_url, :image_url_medium,
     :image_url_small, :birthday, :gender, :bio, :location, :searchable, :date, :tag_string
@@ -45,6 +46,7 @@ class Profile < ActiveRecord::Base
   end
   before_save do
     self.build_tags
+    self.construct_full_name
   end
 
   def subscribers(user)
@@ -104,15 +106,30 @@ class Profile < ActiveRecord::Base
   def date= params
     if ['month', 'day'].all? { |key| params[key].present?  }
       params['year'] = '1000' if params['year'].blank?
-      date = Date.new(params['year'].to_i, params['month'].to_i, params['day'].to_i)
-      self.birthday = date
+      if Date.valid_civil?(params['year'].to_i, params['month'].to_i, params['day'].to_i)
+        self.birthday = Date.new(params['year'].to_i, params['month'].to_i, params['day'].to_i)
+      else
+        @invalid_birthday_date = true
+      end
     elsif [ 'year', 'month', 'day'].all? { |key| params[key].blank? }
       self.birthday = nil
     end
   end
 
   def tag_string
-    @tag_string || self.tags.map{|t| '#' << t.to_s }.join(' ')
+    if @tag_string
+      @tag_string
+    else
+      rows = connection.select_rows( self.tags.scoped.to_sql )
+      rows.inject(""){|string, row| string << "##{row[1]} " }
+    end
+  end
+
+  # Constructs a full name by joining #first_name and #last_name
+  # @returns [String] A full name
+  def construct_full_name
+    self.full_name = [self.first_name, self.last_name].join(' ').downcase
+    self.full_name
   end
 
   protected
@@ -124,6 +141,13 @@ class Profile < ActiveRecord::Base
   def max_tags
     if self.tag_string.count('#') > 5
       errors[:base] << 'Profile cannot have more than five tags'
+    end
+  end
+
+  def valid_birthday
+    if @invalid_birthday_date
+      errors.add(:birthday)
+      @invalid_birthday_date = nil
     end
   end
 

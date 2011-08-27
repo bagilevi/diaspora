@@ -6,6 +6,7 @@ require 'spec_helper'
 
 describe StatusMessage do
   include ActionView::Helpers::UrlHelper
+  include PeopleHelper
   include Rails.application.routes.url_helpers
   def controller
     mock()
@@ -17,14 +18,17 @@ describe StatusMessage do
   end
 
   describe '.before_create' do
-    it 'calls create_mentions' do
-      status = Factory.build(:status_message)
-      status.should_receive(:create_mentions)
-      status.save
-    end
     it 'calls build_tags' do
       status = Factory.build(:status_message)
       status.should_receive(:build_tags)
+      status.save
+    end
+  end
+
+  describe '.after_create' do
+    it 'calls create_mentions' do
+      status = Factory.build(:status_message)
+      status.should_receive(:create_mentions)
       status.save
     end
   end
@@ -83,10 +87,10 @@ STR
 
     describe '#format_mentions' do
       it 'adds the links in the formated message text' do
-        @sm.format_mentions(@sm.raw_message).should == <<-STR
-#{link_to('@' << @people[0].name, person_path(@people[0]), :class => 'mention')} can mention people like Raphael #{link_to('@' << @people[1].name, person_path(@people[1]), :class => 'mention')}
-can mention people like Raphaellike Raphael #{link_to('@' << @people[2].name, person_path(@people[2]), :class => 'mention')} can mention people like Raph
-STR
+        message = @sm.format_mentions(@sm.raw_message)
+        message.should include(person_link(@people[0], :class => 'mention hovercardable'))
+        message.should include(person_link(@people[1], :class => 'mention hovercardable'))
+        message.should include(person_link(@people[2], :class => 'mention hovercardable'))
       end
 
       context 'with :plain_text option' do
@@ -239,6 +243,28 @@ STR
 
       post.save!
       Post.find(post.id).youtube_titles.should == {video_id => CGI::escape(expected_title)}
+    end
+  end
+  describe '#after_dispatch' do
+    before do
+      @photos = [alice.build_post(:photo, :pending => true, :user_file=> File.open(photo_fixture_name)),
+                 alice.build_post(:photo, :pending => true, :user_file=> File.open(photo_fixture_name))]
+
+      @photos.each(&:save!)
+
+      @status_message = alice.build_post(:status_message, :text => "the best pebble.")
+        @status_message.photos << @photos
+
+      @status_message.save!
+      alice.add_to_streams(@status_message, alice.aspects)
+    end
+    it 'sets pending to false on any attached photos' do
+      @status_message.after_dispatch(alice)
+      @photos.all?{|p| p.reload.pending}.should be_false
+    end
+    it 'dispatches any attached photos' do
+      alice.should_receive(:dispatch_post).twice
+      @status_message.after_dispatch(alice)
     end
   end
 end

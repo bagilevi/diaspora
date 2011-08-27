@@ -1,7 +1,8 @@
-
 require 'spec_helper'
 
 describe Notifier do
+  include ActionView::Helpers::TextHelper
+
   let!(:user) {alice}
   let!(:user2) {eve}
 
@@ -45,9 +46,9 @@ describe Notifier do
     end
 
     it 'has the layout' do
-      
+
       mail = Notifier.single_admin("Welcome to bureaucracy!", user)
-      mail.body.encoded.should match /manage your email settings/
+      mail.body.encoded.should match /change your notification settings/
     end
   end
 
@@ -55,10 +56,6 @@ describe Notifier do
     let!(:request_mail) {Notifier.started_sharing(user.id, person.id)}
     it 'goes to the right person' do
       request_mail.to.should == [user.email]
-    end
-
-    it 'has the receivers name in the body' do
-      request_mail.body.encoded.include?(user.person.profile.first_name).should be true
     end
 
     it 'has the name of person sending the request' do
@@ -73,139 +70,250 @@ describe Notifier do
   describe ".mentioned" do
     before do
       @user = alice
-      @sm =  Factory(:status_message)
-      @m  = Mention.create(:person => @user.person, :post=> @sm)
+      @sm = Factory(:status_message)
+      @m = Mention.create(:person => @user.person, :post=> @sm)
 
       @mail = Notifier.mentioned(@user.id, @sm.author.id, @m.id)
     end
-    it 'goes to the right person' do
+
+    it 'TO: goes to the right person' do
       @mail.to.should == [@user.email]
     end
 
-    it 'has the receivers name in the body' do
-      @mail.body.encoded.include?(@user.person.profile.first_name).should be_true
-    end
-
-    it 'has the name of person mentioning in the body' do
-      @mail.body.encoded.include?(@sm.author.name).should be_true
+    it 'SUBJECT: has the name of person mentioning in the subject' do
+      @mail.subject.should include(@sm.author.name)
     end
 
     it 'has the post text in the body' do
       @mail.body.encoded.should include(@sm.text)
     end
 
-    it 'should not include translation missing' do
-      @mail.body.encoded.should_not include("missing")
+    it 'should not include translation fallback' do
+      @mail.body.encoded.should_not include(I18n.translate 'notifier.a_post_you_shared')
     end
   end
 
   describe ".liked" do
     before do
       @sm = Factory(:status_message, :author => alice.person)
-      @like = @sm.likes.create(:author => bob.person)
+      @like = @sm.likes.create!(:author => bob.person)
       @mail = Notifier.liked(alice.id, @like.author.id, @like.id)
     end
 
-    it 'goes to the right person' do
+    it 'TO: goes to the right person' do
       @mail.to.should == [alice.email]
     end
 
-    it 'has the receivers name in the body' do
-      @mail.body.encoded.include?(alice.person.profile.first_name).should be true
+    it 'BODY: contains the truncated original post' do
+      @mail.body.encoded.should include(@sm.formatted_message)
     end
 
-    it 'has the name of person liking in the body' do
-      @mail.body.encoded.include?(@like.author.name).should be_true
+    it 'BODY: contains the name of person liking' do
+      @mail.body.encoded.should include(@like.author.name)
     end
 
-    it 'should not include translation missing' do
-      @mail.body.encoded.should_not include("missing")
+    it 'should not include translation fallback' do
+      @mail.body.encoded.should_not include(I18n.translate 'notifier.a_post_you_shared')
+    end
+
+    it 'can handle a reshare' do
+      reshare = Factory(:reshare)
+      like = reshare.likes.create!(:author => bob.person)
+      mail = Notifier.liked(alice.id, like.author.id, like.id)
+    end
+
+    it 'can handle a activity streams photo' do
+      as_photo = Factory(:activity_streams_photo)
+      like = as_photo.likes.create!(:author => bob.person)
+      mail = Notifier.liked(alice.id, like.author.id, like.id)
     end
   end
+
+  describe ".reshared" do
+    before do
+      @sm = Factory.create(:status_message, :author => alice.person, :public => true)
+      @reshare = Factory.create(:reshare, :root => @sm, :author => bob.person)
+      @mail = Notifier.reshared(alice.id, @reshare.author.id, @reshare.id)
+    end
+
+    it 'TO: goes to the right person' do
+      @mail.to.should == [alice.email]
+    end
+
+    it 'BODY: contains the truncated original post' do
+      @mail.body.encoded.should include(@sm.formatted_message)
+    end
+
+    it 'BODY: contains the name of person liking' do
+      @mail.body.encoded.should include(@reshare.author.name)
+    end
+
+    it 'should not include translation fallback' do
+      @mail.body.encoded.should_not include(I18n.translate 'notifier.a_post_you_shared')
+    end
+  end
+
 
   describe ".private_message" do
     before do
       @user2 = bob
       @participant_ids = @user2.contacts.map{|c| c.person.id} + [ @user2.person.id]
 
-      @create_hash = { :author => @user2.person, :participant_ids => @participant_ids ,
-                       :subject => "cool stuff", :text => 'hey'}
+      @create_hash = {
+        :author => @user2.person,
+        :participant_ids => @participant_ids,
+        :subject => "cool stuff",
+        :messages_attributes => [ {:author => @user2.person, :text => 'hey'} ]
+      }
 
       @cnv = Conversation.create(@create_hash)
 
       @mail = Notifier.private_message(user.id, @cnv.author.id, @cnv.messages.first.id)
     end
-    it 'goes to the right person' do
+
+    it 'TO: goes to the right person' do
       @mail.to.should == [user.email]
     end
 
-    it 'has the recipients in the body' do
-      @mail.body.encoded.include?(user.person.first_name).should be true
+    it "FROM: contains the sender's name" do
+      pending
+      @mail.from.should == "\"#{person.name} (Diaspora)\" <#{AppConfig[:smtp_sender_address]}>"
     end
 
-    it 'has the name of the sender in the body' do
-      @mail.body.encoded.include?(@cnv.author.name).should be true
+    it 'SUBJECT: has a snippet of the post contents' do
+      @mail.subject.should == @cnv.subject
     end
 
-    it 'has the conversation subject in the body' do
-      @mail.body.encoded.should include(@cnv.subject)
+    it 'SUBJECT: has "Re:" if not the first message in a conversation' do
+      @cnv.messages << Message.new(:text => 'yo', :author => eve.person)
+      @mail = Notifier.private_message(user.id, @cnv.author.id, @cnv.messages.last.id)
+
+      @mail.subject.should == "Re: #{@cnv.subject}"
     end
 
-    it 'has the post text in the body' do
+    it 'BODY: contains the message text' do
       @mail.body.encoded.should include(@cnv.messages.first.text)
     end
 
-    it 'should not include translation missing' do
-      @mail.body.encoded.should_not include("missing")
+    it 'should not include translation fallback' do
+      @mail.body.encoded.should_not include(I18n.translate 'notifier.a_post_you_shared')
     end
   end
 
   context "comments" do
-    let!(:connect) { connect_users(user, aspect, user2, aspect2)}
-    let!(:sm) {user.post(:status_message, :text => "Sunny outside", :to => :all)}
-    let!(:comment) { user2.comment("Totally is", :on => sm )}
+    let(:connect) { connect_users(user, aspect, user2, aspect2)}
+    let(:commented_post) {user.post(:status_message, :text => "It's really sunny outside today, and this is a super long status message!  #notreally", :to => :all)}
+    let(:comment) { user2.comment("Totally is", :post => commented_post)}
+
     describe ".comment_on_post" do
+      let(:comment_mail) {Notifier.comment_on_post(user.id, person.id, comment.id).deliver}
 
-      let!(:comment_mail) {Notifier.comment_on_post(user.id, person.id, comment.id).deliver}
-
-      it 'goes to the right person' do
+      it 'TO: goes to the right person' do
         comment_mail.to.should == [user.email]
       end
 
-      it 'has the receivers name in the body' do
-        comment_mail.body.encoded.include?(user.person.profile.first_name).should be true
+      it "FROM: contains the sender's name" do
+        pending
+        comment_mail.from.should == "\"#{person.name} (Diaspora)\" <#{AppConfig[:smtp_sender_address]}>"
       end
 
-      it 'has the name of person commenting' do
-        comment_mail.body.encoded.include?(person.name).should be true
+      it 'SUBJECT: has a snippet of the post contents' do
+        comment_mail.subject.should == "Re: #{truncate(commented_post.text, :length => 70)}"
       end
 
-      it 'has the post link in the body' do
-        comment_mail.body.encoded.include?("#{comment.post.id.to_s}").should be true
+      context 'BODY' do
+        it "contains the comment" do
+          comment_mail.body.encoded.should include(comment.text)
+        end
+
+        it "contains the original post's link" do
+          comment_mail.body.encoded.include?("#{comment.post.id.to_s}").should be true
+        end
+
+        it 'should not include translation fallback' do
+          comment_mail.body.encoded.should_not include(I18n.translate 'notifier.a_post_you_shared')
+        end
       end
 
+      [:reshare, :activity_streams_photo].each do |post_type|
+        context post_type.to_s do
+          let(:commented_post) { Factory(post_type, :author => user.person) }
+          it 'succeeds' do
+            proc {
+              comment_mail
+            }.should_not raise_error
+          end
+        end
+      end
     end
-    describe ".also commented" do
 
-      let!(:comment_mail) {Notifier.also_commented(user.id, person.id, comment.id)}
+    describe ".also_commented" do
+      let(:comment_mail) {Notifier.also_commented(user.id, person.id, comment.id)}
 
-      it 'goes to the right person' do
+      it 'TO: goes to the right person' do
         comment_mail.to.should == [user.email]
       end
 
-      it 'has the receivers name in the body' do
-        comment_mail.body.encoded.include?(user.person.profile.first_name).should be true
+      it 'FROM: has the name of person commenting as the sender' do
+        pending
+        comment_mail.from.should == "\"#{person.name} (Diaspora)\" <#{AppConfig[:smtp_sender_address]}>"
       end
 
-      it 'has the name of person commenting' do
-        comment_mail.body.encoded.include?(person.name).should be true
+      it 'SUBJECT: has a snippet of the post contents' do
+        comment_mail.subject.should == "Re: #{truncate(commented_post.text, :length => 70)}"
       end
 
-      it 'has the post link in the body' do
-        comment_mail.body.encoded.include?("#{comment.post.id.to_s}").should be true
-      end
+      context 'BODY' do
+        it "contains the comment" do
+          comment_mail.body.encoded.should include(comment.text)
+        end
 
+        it "contains the original post's link" do
+          comment_mail.body.encoded.include?("#{comment.post.id.to_s}").should be true
+        end
+
+        it 'should not include translation fallback' do
+          comment_mail.body.encoded.should_not include(I18n.translate 'notifier.a_post_you_shared')
+        end
+      end
+      [:reshare, :activity_streams_photo].each do |post_type|
+        context post_type.to_s do
+          let(:commented_post) { Factory(post_type, :author => user.person) }
+          it 'succeeds' do
+            proc {
+              comment_mail
+            }.should_not raise_error
+          end
+        end
+      end
     end
 
+    describe ".confirm_email" do
+      before do
+        user.update_attribute(:unconfirmed_email, "my@newemail.com")
+      end
+
+      let!(:confirm_email) { Notifier.confirm_email(user.id) }
+
+      it 'goes to the right person' do
+        confirm_email.to.should == [user.unconfirmed_email]
+      end
+
+      it 'has the unconfirmed emil in the subject' do
+        confirm_email.subject.should include(user.unconfirmed_email)
+      end
+
+      it 'has the unconfirmed emil in the body' do
+        confirm_email.body.encoded.should include(user.unconfirmed_email)
+      end
+
+      it 'has the receivers name in the body' do
+        confirm_email.body.encoded.should include(user.person.profile.first_name)
+      end
+
+      it 'has the activation link in the body' do
+        confirm_email.body.encoded.should include(confirm_email_url(:token => user.confirm_email_token))
+      end
+    end
   end
 end

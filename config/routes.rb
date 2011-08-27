@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -6,22 +6,36 @@ Diaspora::Application.routes.draw do
 
   # Posting and Reading
 
+  resources :reshares
+
   resources :aspects do
-    get 'manage'                    => :manage, :on => :collection
-    put 'toggle_contact_visibility' => :toggle_contact_visibility
+    put :toggle_contact_visibility
   end
 
-  resources :status_messages, :only => [:new, :create, :destroy, :show]
+  resources :status_messages, :only => [:new, :create]
+
+  resources :posts, :only => [:show, :destroy] do
+    resources :likes, :only => [:create, :destroy, :index]
+    resources :comments, :only => [:create, :destroy, :index]
+  end
+  get 'p/:id' => 'posts#show', :as => 'short_post'
+
+  # roll up likes into a nested resource above
+  resources :comments, :only => [:create, :destroy] do
+    resources :likes, :only => [:create, :destroy, :index]
+  end
+
+
   get 'bookmarklet' => 'status_messages#bookmarklet'
-  get 'p/:id'       => 'posts#show', :as => 'post'
 
   resources :photos, :except => [:index] do
-    put 'make_profile_photo' => :make_profile_photo
+    put :make_profile_photo
   end
 
-  resources :comments, :only => [:create, :destroy]
-
-  resources :likes, :only => [:create, :destroy]
+  # ActivityStreams routes
+  scope "/activity_streams", :module => "activity_streams", :as => "activity_streams" do
+    resources :photos, :controller => "photos", :only => [:create]
+  end
 
   resources :conversations do
     resources :messages, :only => [:create, :show]
@@ -29,11 +43,21 @@ Diaspora::Application.routes.draw do
   end
 
   resources :notifications, :only => [:index, :update] do
-    get 'read_all' => :read_all, :on => :collection
+    get :read_all, :on => :collection
   end
 
   resources :tags, :only => [:index]
+  scope "tags/:name" do
+    post   "tag_followings" => "tag_followings#create", :as => 'tag_tag_followings'
+    delete "tag_followings" => "tag_followings#destroy"
+  end
   get 'tags/:name' => 'tags#show', :as => 'tag'
+
+  resources :apps, :only => [:show]
+
+  #Cubbies info page
+  resource :token, :only => :show
+
 
   # Users and people
 
@@ -42,11 +66,11 @@ Diaspora::Application.routes.draw do
     get :export_photos
   end
 
-
   controller :users do
     get 'public/:username'          => :public,          :as => 'users_public'
     match 'getting_started'         => :getting_started, :as => 'getting_started'
     get 'getting_started_completed' => :getting_started_completed
+    get 'confirm_email/:token'      => :confirm_email,   :as => 'confirm_email'
   end
 
   # This is a hack to overide a route created by devise.
@@ -58,40 +82,37 @@ Diaspora::Application.routes.draw do
                                       :sessions      => "sessions",
                                       :invitations   => "invitations"} do
     get 'invitations/resend/:id' => 'invitations#resend', :as => 'invitation_resend'
+    get 'invitations/email' => 'invitations#email', :as => 'invite_email'
   end
-
-  # generating a new user token (for devise)
-
-  # ActivityStreams routes
-  scope "/activity_streams", :module => "activity_streams", :as => "activity_streams" do
-    resources :photos, :controller => "photos", :only => [:create, :show, :destroy]
-  end
-
-  #Temporary token_authenticable route
-  resource :token, :only => [:show, :create]
 
   get 'login' => redirect('/users/sign_in')
 
   scope 'admins', :controller => :admins do
-    match 'user_search'   => :user_search
-    get   'admin_inviter' => :admin_inviter
-    get   'add_invites'   => :add_invites, :as => 'add_invites'
+    match :user_search
+    get   :admin_inviter
+    get   :stats, :as => 'pod_stats'
   end
 
-  resource :profile
+  resource :profile, :only => [:edit, :update]
 
-  resources :contacts,           :except => [:index, :update, :create] do
+  resources :contacts,           :except => [:update, :create] do
     get :sharing, :on => :collection
   end
   resources :aspect_memberships, :only   => [:destroy, :create, :update]
   resources :post_visibilities,  :only   => [:update]
 
+  get 'featured' => "contacts#featured", :as => 'featured_users'
   resources :people, :except => [:edit, :update] do
     resources :status_messages
     resources :photos
     get  :contacts
-    post 'by_handle' => :retrieve_remote, :on => :collection, :as => 'person_by_handle'
+    get "aspect_membership_button" => :aspect_membership_dropdown, :as => "aspect_membership_button"
+    collection do
+      post 'by_handle' => :retrieve_remote, :as => 'person_by_handle'
+      get :tag_index
+    end
   end
+  get '/u/:username' => 'people#show', :as => 'user_profile'
 
 
   # Federation
@@ -107,10 +128,19 @@ Diaspora::Application.routes.draw do
 
   # External
 
+  resources :authorizations, :only => [:index, :destroy]
+  scope "/oauth", :controller => :authorizations, :as => "oauth" do
+    get "authorize" => :new
+    post "authorize" => :create
+    post :token
+  end
+
   resources :services, :only => [:index, :destroy]
   controller :services do
-    match '/auth/:provider/callback' => :create
-    match '/auth/failure'            => :failure
+    scope "/auth", :as => "auth" do
+      match ':provider/callback' => :create
+      match :failure
+    end
     scope 'services' do
       match 'inviter/:provider' => :inviter, :as => 'service_inviter'
       match 'finder/:provider'  => :finder,  :as => 'friend_finder'
@@ -118,24 +148,13 @@ Diaspora::Application.routes.draw do
   end
 
   scope 'api/v0', :controller => :apis do
-    match 'statuses/public_timeline' => :public_timeline
-    match 'statuses/home_timeline'   => :home_timeline
-    match 'statuses/show/:guid'      => :statuses
-    match 'statuses/user_timeline'   => :user_timeline
-
-    match 'users/show'               => :users
-    match 'users/search'             => :users_search
-    match 'users/profile_image'      => :users_profile_image
-
-    match 'tags_posts/:tag'          => :tag_posts
-    match 'tags_people/:tag'         => :tag_people
+    get :me
   end
 
 
   # Mobile site
 
   get 'mobile/toggle', :to => 'home#toggle_mobile', :as => 'toggle_mobile'
-
 
   # Startpage
 

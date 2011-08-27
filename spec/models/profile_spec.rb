@@ -29,6 +29,18 @@ describe Profile do
       end
     end
 
+    describe '#contruct_full_name' do
+      it 'generates a full name given first and last names' do
+        profile = Factory(:person).profile
+        profile.first_name = "casimiro"
+        profile.last_name = "grippi"
+
+        profile.full_name.should_not == "casimiro grippi"
+        profile.save
+        profile.full_name.should == "casimiro grippi"
+      end
+    end
+
     describe "of last_name" do
       it "strips leading and trailing whitespace" do
         profile = Factory.build(:profile, :last_name => "     Ohba    ")
@@ -145,7 +157,7 @@ describe Profile do
     let(:profile) { Factory.build(:profile) }
 
     it 'accepts form data' do
-      profile.birthday.should == nil
+      profile.birthday = nil
       profile.date = { 'year' => '2000', 'month' => '01', 'day' => '01' }
       profile.birthday.year.should == 2000
       profile.birthday.month.should == 1
@@ -166,10 +178,24 @@ describe Profile do
       profile.birthday.day.should == 1
     end
 
-    it 'accepts blank initial vallues' do
-      profile.birthday.should == nil
+    it 'does not accept blank initial values' do
+      profile.birthday = nil
       profile.date = { 'year' => '2001', 'month' => '', 'day' => ''}
       profile.birthday.should == nil
+    end
+
+    it 'does not accept invalid dates' do
+      profile.birthday = nil
+      profile.date = { 'year' => '2001', 'month' => '02', 'day' => '31' }
+      profile.birthday.should == nil
+    end
+
+    it 'does not change with invalid dates' do
+      profile.birthday = Date.new(2000, 1, 1)
+      profile.date = { 'year' => '2001', 'month' => '02', 'day' => '31' }
+      profile.birthday.year.should == 2000
+      profile.birthday.month.should == 1
+      profile.birthday.day.should == 1
     end
   end
 

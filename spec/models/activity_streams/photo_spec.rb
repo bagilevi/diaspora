@@ -19,10 +19,25 @@ JSON
       photo.image_height.should == @json["object"]["image"]["height"]
       photo.image_width.should == @json["object"]["image"]["width"]
       photo.object_url.should == @json["object"]["url"]
+      photo.objectId.should == @json["object"]["id"]
 
       photo.provider_display_name.should == @json["provider"]["displayName"]
       photo.actor_url.should == @json["actor"]["url"]
     end
 
+  end
+
+  describe 'serialization' do
+    before do
+      @photo = Factory(:activity_streams_photo)
+      xml = @photo.to_diaspora_xml.to_s
+      @marshalled = Diaspora::Parser.from_xml(xml)
+    end
+    it 'Diaspora::Parser should pick the right class' do
+      @marshalled.class.should == ActivityStreams::Photo
+    end
+    it 'marshals the author' do
+      @marshalled.author.should == @photo.author
+    end
   end
 end

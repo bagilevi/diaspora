@@ -40,19 +40,21 @@ DatabaseCleaner.orm = "active_record"
 Cucumber::Rails::World.use_transactional_fixtures = false
 
 require File.join(File.dirname(__FILE__), "database_cleaner_patches")
+require File.join(File.dirname(__FILE__), "integration_sessions_controller")
 
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "fake_redis")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "helper_methods")
+require File.join(File.dirname(__FILE__), "..", "..", "spec", "support","no_id_on_object")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support","user_methods")
 include HelperMethods
-
 Before do
   DatabaseCleaner.clean
   Devise.mailer.deliveries = []
 end
 
 silence_warnings do
-  SERVICES['facebook'] = {'app_id' => :fake}
+  SERVICES['facebook'] = {'app_id' => :fake, 'app_secret' => 'sdoigjosdfijg'}
+  AppConfig[:configured_services] << 'facebook'
 end
 
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "fake_resque")
@@ -71,4 +73,22 @@ end
 
 After('@localserver') do
   CapybaraSettings.instance.restore
+end
+
+class Capybara::Driver::Selenium < Capybara::Driver::Base
+  class Node < Capybara::Node
+    def [](name)
+      node.attribute(name.to_s)
+    rescue Selenium::WebDriver::Error::WebDriverError
+      nil
+    end
+
+    def select(option)
+      option_node = node.find_element(:xpath, ".//option[normalize-space(text())=#{Capybara::XPath.escape(option)}]") || node.find_element(:xpath, ".//option[contains(.,#{Capybara::XPath.escape(option)})]")
+      option_node.click
+    rescue
+      options = node.find_elements(:xpath, "//option").map { |o| "'#{o.text}'" }.join(', ')
+      raise Capybara::OptionNotFound, "No such option '#{option}' in this select box. Available options: #{options}"
+    end
+  end
 end

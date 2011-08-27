@@ -4,25 +4,29 @@
 
 module MarkdownifyHelper
   def markdownify(message, options={})
-    message = h(message).html_safe
+    message = h(message).to_str
 
     options[:newlines] = true if !options.has_key?(:newlines)
-    options[:emoticons] = true if !options.has_key?(:emoticons)
+    options[:specialchars] = true if !options.has_key?(:specialchars)
 
     message = process_links(message)
     message = process_autolinks(message)
     message = process_emphasis(message)
     message = process_youtube(message, options[:youtube_maps])
     message = process_vimeo(message, options[:vimeo_maps])
-    message = process_emoticons(message) if options[:emoticons]
+    message = process_specialchars(message) if options[:specialchars]
+    message = process_newlines(message) if options[:newlines]
 
-    message.gsub!(/\n+/, '<br />') if options[:newlines]
+    message.html_safe
+  end
 
+  def process_newlines(message)
+    message.gsub!(/\n+/, '<br />')
     message
   end
 
   def process_links(message)
-    message.gsub!(/\[([^\[]+)\]\(([^ ]+) \&quot;(([^&]|(&[^q])|(&q[^u])|(&qu[^o])|(&quo[^t])|(&quot[^;]))+)\&quot;\)/) do |m|
+    message.gsub!(/\[\s*([^\[]+?)\s*\]\(\s*([^ ]+\s*) \&quot;(([^&]|(&[^q])|(&q[^u])|(&qu[^o])|(&quo[^t])|(&quot[^;]))+)\&quot;\s*\)/) do |m|
       escape = "\\"
       link = $1
       url = $2
@@ -34,7 +38,7 @@ module MarkdownifyHelper
       res
     end
 
-    message.gsub!(/\[([^\[]+)\]\(([^ ]+)\)/) do |m|
+    message.gsub!(/\[\s*([^\[]+?)\s*\]\(\s*([^ ]+)\s*\)/) do |m|
       escape = "\\"
       link = $1
       url = $2
@@ -70,7 +74,7 @@ module MarkdownifyHelper
       captures = [$1,$2,$3]
       if !captures[0].nil?
         m
-      elsif m.match(/(youtube|vimeo)/)
+      elsif m.match(/(youtu.?be|vimeo)/)
         m.gsub(/(\*|_)/) { |m| "\\#{$1}" } #remove markers on markdown chars to not markdown inside links
       else
         res = %{<a target="_blank" href="#{captures[1]}://#{captures[2]}">#{captures[2]}</a>}
@@ -111,23 +115,20 @@ module MarkdownifyHelper
     processed_message
   end
 
-  def process_emoticons(message)
-    map = {
-      "&lt;3" => "&hearts;",
-      ":("    => "&#9785;",
-      ":-("   => "&#9785;",
-      ":)"    => "&#9786;",
-      ":-)"   => "&#9786;",
-      "-&gt;" => "&rarr;",
-      "&lt;-" => "&larr;",
-      "..."   => "&hellip;",
-      "(tm)"  => "&trade;",
-      "(r)"   => "&reg;",
-      "(c)"   => "&copy;"
-    }
+  def process_specialchars(message)
+    map = [
+      ["&lt;3", "&hearts;"],
+      ["&lt;-&gt;", "&#8596;"],
+      ["-&gt;", "&rarr;"],
+      ["&lt;-", "&larr;"],
+      ["...", "&hellip;"],
+      ["(tm)", "&trade;"],
+      ["(r)", "&reg;"],
+      ["(c)", "&copy;"]
+    ]
 
-    map.each do |search, replace|
-      message.gsub!(search, replace)
+    map.each do |mapping|
+      message.gsub!(mapping[0], mapping[1])
     end
     message
   end

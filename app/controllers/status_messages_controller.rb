@@ -7,8 +7,9 @@ class StatusMessagesController < ApplicationController
 
   respond_to :html
   respond_to :mobile
-  respond_to :json, :only => :show
 
+  # Called when a user clicks "Mention" on a profile page
+  # @option [Integer] person_id The id of the person to be mentioned
   def new
     @person = Person.find(params[:person_id])
     @aspect = :profile
@@ -35,37 +36,25 @@ class StatusMessagesController < ApplicationController
   def create
     params[:status_message][:aspect_ids] = params[:aspect_ids]
 
-    photos = Photo.where(:id => [*params[:photos]], :diaspora_handle => current_user.person.diaspora_handle)
-
-    public_flag = params[:status_message][:public]
-    public_flag.to_s.match(/(true)|(on)/) ? public_flag = true : public_flag = false
-    params[:status_message][:public] = public_flag
+    normalize_public_flag!
 
     @status_message = current_user.build_post(:status_message, params[:status_message])
-    aspects = current_user.aspects_from_ids(params[:aspect_ids])
 
-    if !photos.empty?
+    photos = Photo.where(:id => [*params[:photos]], :diaspora_handle => current_user.person.diaspora_handle)
+    unless photos.empty?
       @status_message.photos << photos
     end
+
     if @status_message.save
       Rails.logger.info("event=create type=status_message chars=#{params[:status_message][:text].length}")
 
+      aspects = current_user.aspects_from_ids(params[:aspect_ids])
       current_user.add_to_streams(@status_message, aspects)
-      receiving_services = params[:services].map{|s| current_user.services.where(
-                                  :type => "Services::"+s.titleize).first} if params[:services]
-      current_user.dispatch_post(@status_message, :url => post_url(@status_message), :services => receiving_services)
-      if !photos.empty?
-        for photo in photos
-          was_pending = photo.pending
-          if was_pending
-            current_user.add_to_streams(photo, aspects)
-            current_user.dispatch_post(photo)
-          end
-        end
-        photos.update_all(:pending => false, :public => public_flag)
-      end
+      receiving_services = current_user.services.where( :type => params[:services].map{|s| "Services::"+s.titleize}) if params[:services]
+      current_user.dispatch_post(@status_message, :url => short_post_url(@status_message.guid), :services => receiving_services)
 
-      if request.env['HTTP_REFERER'].include?("people")
+
+      if request.env['HTTP_REFERER'].include?("people") # if this is a post coming from a profile page
         flash[:notice] = t('status_messages.create.success', :names => @status_message.mentions.includes(:person => :profile).map{ |mention| mention.person.name }.join(', '))
       end
 
@@ -75,47 +64,29 @@ class StatusMessagesController < ApplicationController
         format.mobile{ redirect_to root_url}
       end
     else
-      if !photos.empty?
-        photos.update_all(:status_message_id => nil)
+      unless photos.empty?
+        photos.update_all(:status_message_guid => nil)
       end
+
       respond_to do |format|
-        format.js { render :json =>{:errors => @status_message.errors.full_messages}, :status => 422 }
+        format.js {
+          errors = @status_message.errors.full_messages.collect { |msg| msg.gsub(/^Text/, "") }
+          render :json =>{:errors => errors}, :status => 422
+        }
         format.html {redirect_to :back}
       end
     end
   end
 
-  def destroy
-    @status_message = current_user.posts.where(:id => params[:id]).first
-    if @status_message
-      current_user.retract(@status_message)
-      respond_to do |format|
-        format.js {render 'destroy'}
-        format.all {redirect_to root_url}
-      end
-    else
-      Rails.logger.info "event=post_destroy status=failure user=#{current_user.diaspora_handle} reason='User does not own post'"
-      render :nothing => true, :status => 404
-    end
+  def normalize_public_flag!
+    public_flag = params[:status_message][:public]
+    public_flag.to_s.match(/(true)|(on)/) ? public_flag = true : public_flag = false
+    params[:status_message][:public] = public_flag
+    public_flag
   end
 
-  def show
-    @status_message = current_user.find_visible_post_by_id params[:id]
-    if @status_message
-      @object_aspect_ids = @status_message.aspects.map{|a| a.id}
-
-      # mark corresponding notification as read
-      if notification = Notification.where(:recipient_id => current_user.id, :target_id => @status_message.id).first
-        notification.unread = false
-        notification.save
-      end
-
-      respond_with @status_message
-    else
-      Rails.logger.info(:event => :link_to_nonexistent_post, :ref => request.env['HTTP_REFERER'], :user_id => current_user.id, :post_id => params[:id])
-      flash[:error] = I18n.t('status_messages.show.not_found')
-      redirect_to :back
-    end
+  helper_method :comments_expanded
+  def comments_expanded
+    true
   end
-
 end

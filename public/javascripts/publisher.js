@@ -7,10 +7,12 @@
 var Publisher = {
   close: function(){
     Publisher.form().addClass('closed');
+    Publisher.form().find("#publisher_textarea_wrapper").removeClass('active');
     Publisher.form().find("textarea.ac_input").css('min-height', '');
   },
   open: function(){
     Publisher.form().removeClass('closed');
+    Publisher.form().find("#publisher_textarea_wrapper").addClass('active');
     Publisher.form().find("textarea.ac_input").css('min-height', '42px');
     Publisher.determineSubmitAvailability();
   },
@@ -252,14 +254,15 @@ var Publisher = {
         return '';
       }
     },
-    contactsJSON: function(){
-      return $.parseJSON($('#contact_json').val());
-    },
     initialize: function(){
-      Publisher.input().autocomplete(Publisher.autocompletion.contactsJSON(),
-        Publisher.autocompletion.options());
-      Publisher.input().result(Publisher.autocompletion.selectItemCallback);
-      Publisher.oldInputContent = Publisher.input().val();
+      $.getJSON($("#publisher .selected_contacts_link").attr("href"), undefined ,
+        function(data){
+          Publisher.input().autocomplete(data,
+            Publisher.autocompletion.options());
+          Publisher.input().result(Publisher.autocompletion.selectItemCallback);
+          Publisher.oldInputContent = Publisher.input().val();
+        }
+      );
     }
   },
   determineSubmitAvailability: function(){
@@ -286,9 +289,18 @@ var Publisher = {
   bindPublicIcon: function(){
     $(".public_icon").bind("click", function(evt){
       $(this).toggleClass("dim");
-      var public_field= $("#publisher #status_message_public");
+      var public_field = $("#publisher #status_message_public");
 
-      (public_field.val() == 'false') ? (public_field.val('true')) : (public_field.val('false'));
+      if (public_field.val() == 'false') {
+        public_field.val('true');
+        $(this).attr('title', Diaspora.I18n.t('publisher.public'));
+      } else {
+        public_field.val('false');
+        $(this).attr('title', Diaspora.I18n.t('publisher.limited'));
+      }
+
+      $(this).tipsy(true).fixTitle();
+      $(this).tipsy(true).show();
     });
   },
   toggleServiceField: function(service){
@@ -302,6 +314,12 @@ var Publisher = {
       $("#publisher .content_creation form").append(
       '<input id="services_" name="services[]" type="hidden" value="'+provider+'">');
     }
+  },
+  selectedAspectIds: function() {
+    var aspects = $('#publisher [name="aspect_ids[]"]');
+    var aspectIds = [];
+    aspects.each(function() { aspectIds.push( parseInt($(this).attr('value'))); });
+    return aspectIds;
   },
   toggleAspectIds: function(aspectId) {
     var hidden_field = $('#publisher [name="aspect_ids[]"][value="'+aspectId+'"]');
@@ -326,17 +344,22 @@ var Publisher = {
       $('#status_message_fake_text').charCount({allowed: min, warning: min/10 });
     }
   },
-
   bindAspectToggles: function() {
-    $('#publisher .aspect_badge').bind("click", function(){
-      var unremovedAspects = $(this).parent().children('.aspect_badge').length - $(this).parent().children(".aspect_badge.removed").length;
-      if(!$(this).hasClass('removed') && ( unremovedAspects == 1 )){
-        alert(Diaspora.widgets.i18n.t('publisher.at_least_one_aspect'));
-      }else{
-        Publisher.toggleAspectIds($(this).children('a').attr('data-guid'));
-        $(this).toggleClass("removed");
-      }
+    $('#publisher .dropdown .dropdown_list li').bind("click", function(evt){
+      var li = $(this),
+          button = li.parent('.dropdown').find('.button');
+
+      AspectsDropdown.toggleCheckbox(li);
+      AspectsDropdown.updateNumber(li.closest(".dropdown_list"), null, li.parent().find('li.selected').length, '');
+
+      Publisher.toggleAspectIds(li.attr('data-aspect_id'));
     });
+  },
+  beforeSubmit: function(){
+    if($("#publisher .content_creation form #aspect_ids_").length == 0){
+      alert(Diaspora.I18n.t('publisher.at_least_one_aspect'));
+      return false;
+    }
   },
   onSubmit: function(data, json, xhr){
     $("#photodropzone").find('li').remove();
@@ -345,13 +368,30 @@ var Publisher = {
   onFailure: function(data, json, xhr){
     json = $.parseJSON(json.responseText);
     if(json.errors.length !== 0){
-      Diaspora.widgets.alert.alert(json.errors);
+      Diaspora.Alert.show(json.errors);
     }else{
-      Diaspora.widgets.alert.alert(Diaspora.widgets.i18n.t('failed_to_post_message'));
+      Diaspora.Alert.show(Diaspora.I18n.t('failed_to_post_message'));
     }
   },
   onSuccess: function(data, json, xhr){
-    ContentUpdater.addPostToStream(json.html);
+    var isPostVisible = AspectFilters.selectedGUIDS.length == 0;
+    var postedTo = Publisher.selectedAspectIds();
+    $.each(AspectFilters.selectedGUIDS, function(index, value){
+      if(postedTo.indexOf(parseInt(value))>-1)
+        isPostVisible = true;
+    });
+
+    if(isPostVisible) {
+      ContentUpdater.addPostToStream(json.html);
+      Diaspora.page.stream.addPost($("#" + json.post_id));
+    }
+    else {
+      Diaspora.widgets.flashMessages.render({
+        success: true,
+        message: Diaspora.I18n.t('successfully_posted_message_to_an_aspects_that_is_not_visible')
+      });
+    }
+
     //collapse publisher
     Publisher.close();
     Publisher.clear();
@@ -359,6 +399,7 @@ var Publisher = {
     Stream.setUpAudioLinks();
   },
   bindAjax: function(){
+    Publisher.form().bind('submit', Publisher.beforeSubmit);
     Publisher.form().bind('ajax:loading', Publisher.onSubmit);
     Publisher.form().bind('ajax:failure', Publisher.onFailure);
     Publisher.form().bind('ajax:success', Publisher.onSuccess);
@@ -371,9 +412,13 @@ var Publisher = {
     Publisher.bindPublicIcon();
     Publisher.bindAspectToggles();
 
-    if ($("#status_message_fake_text").val() === "") {
+    /* close text area */
+    Publisher.form().delegate("#hide_publisher", "click", function(){
+      $.each(Publisher.form().find("textarea"), function(idx, element){
+        $(element).val("");
+      });
       Publisher.close();
-    }
+    });
 
     Publisher.autocompletion.initialize();
     Publisher.hiddenInput().val(Publisher.input().val());
@@ -388,5 +433,5 @@ var Publisher = {
 
 $(document).ready(function() {
   Publisher.initialize();
-  Diaspora.widgets.subscribe("stream/reloaded", Publisher.initialize);
+  Diaspora.page.subscribe("stream/reloaded", Publisher.initialize);
 });

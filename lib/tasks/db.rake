@@ -4,32 +4,21 @@
 
 namespace :db do
   desc "rebuild and prepare test db"
-  task :rebuild => [:drop, :create, :migrate, 'db:test:prepare']
+  task :rebuild => [:drop, :drop_integration, :create, :migrate, :seed, 'db:test:prepare']
 
-  desc 'Seed the current RAILS_ENV database from db/seeds.rb'
-  namespace :seed do
-    task :tom do
-      puts "Seeding the database for #{Rails.env}..."
-      require File.dirname(__FILE__) + '/../../db/seeds/tom'
+  namespace :integration do
+    # desc 'Check for pending migrations and load the integration schema'
+    task :prepare => :environment do
+      abcs = ActiveRecord::Base.configurations
+      envs = abcs.keys.select{ |k| k.include?("integration") }
+      envs.each do |env|
+        ActiveRecord::Base.establish_connection(env)
+        ActiveRecord::Base.connection.drop_database(abcs[env]["database"])
+        ActiveRecord::Base.connection.create_database(abcs[env]["database"])
+        ActiveRecord::Base.establish_connection(env)
+        ActiveRecord::Migrator.migrate("db/migrate", nil)
+      end
     end
-
-    task :dev do
-      puts "Seeding the database for #{Rails.env}..."
-      require File.dirname(__FILE__) + '/../../db/seeds/dev'
-    end
-
-    task :backer do
-      puts "Seeding the database for #{Rails.env}..."
-      require File.dirname(__FILE__) + '/../../db/seeds/backer'
-      create
-    end
-
-    task :first_user, :username, :password, :email do |t, args|
-      puts "Setting up first user in #{Rails.env} database"
-      ARGS = args
-      require File.dirname(__FILE__) + '/../../db/seeds/add_user'
-    end
-
   end
 
   desc 'Delete the collections in the current RAILS_ENV database'
@@ -52,19 +41,13 @@ namespace :db do
     puts "Success!"
   end
 
-  desc "Purge database and then add the first user"
-  task :first_user, :username, :password, :email do |t, args|
-    Rake::Task['db:purge'].invoke
-    Rake::Task['db:seed:first_user'].invoke(args[:username], args[:password], args[:email])
+  task :drop_integration do
+    ActiveRecord::Base.configurations.keys.select{ |k|
+      k.include?("integration")
+    }.each{ |k|
+      drop_database ActiveRecord::Base.configurations[k] rescue Mysql2::Error
+    }
   end
-  task :first_user => :environment
-
-  desc "Add a new user to the database"
-  task :add_user, :username, :password do |t, args|
-    ARGS = args
-    require File.dirname(__FILE__) + '/../../db/seeds/add_user'
-  end
-  task :add_user => :environment
 
   task :fix_diaspora_handle do
     puts "fixing the people in this seed"

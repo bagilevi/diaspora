@@ -13,7 +13,7 @@ describe AspectMembershipsController do
     @contact = alice.contact_for(bob.person)
     alice.getting_started = false
     alice.save
-    sign_in :user, alice 
+    sign_in :user, alice
     @controller.stub(:current_user).and_return(alice)
     request.env["HTTP_REFERER"] = 'http://' + request.host
   end
@@ -40,7 +40,6 @@ describe AspectMembershipsController do
       }.should change{
         alice.contact_for(bob.person).aspect_memberships.count
       }.by(1)
-
     end
 
     it 'creates a contact' do
@@ -60,10 +59,28 @@ describe AspectMembershipsController do
         :format => 'js',
         :person_id => @person.id,
         :aspect_id => @aspect0.id
-      flash[:error].should_not be_empty
+      flash[:error].should_not be_blank
+    end
+
+    it 'does not 500 on a duplicate key error' do
+      params = {:format => 'js', :person_id => @person.id, :aspect_id => @aspect0.id}
+      post :create, params
+      post :create, params
+      response.status.should == 400
+    end
+
+    context 'json' do
+      it 'returns a list of aspect ids for the person' do
+        post :create,
+        :format => 'json',
+        :person_id => @person.id,
+        :aspect_id => @aspect0.id
+
+        contact = @controller.current_user.contact_for(@person)
+        response.body.should == contact.aspect_memberships.first.to_json
+      end
     end
   end
-
 
   describe "#destroy" do
     it 'removes contacts from an aspect' do
@@ -73,6 +90,16 @@ describe AspectMembershipsController do
         :person_id => bob.person.id,
         :aspect_id => @aspect0.id
       response.should be_success
+      @aspect0.reload
+      @aspect0.contacts.include?(@contact).should be false
+    end
+    it 'does not 500 on an html request' do
+      alice.add_contact_to_aspect(@contact, @aspect1)
+      delete :destroy,
+        :id => 123,
+        :person_id => bob.person.id,
+        :aspect_id => @aspect0.id
+      response.should redirect_to :back
       @aspect0.reload
       @aspect0.contacts.include?(@contact).should be false
     end

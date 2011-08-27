@@ -19,13 +19,27 @@ class Contact < ActiveRecord::Base
 
   validates_uniqueness_of :person_id, :scope => :user_id
 
+  # contact.sharing is true when contact.person is sharing with contact.user
   scope :sharing, lambda {
     where(:sharing => true)
   }
 
+  # contact.receiving is true when contact.user is sharing with contact.person
   scope :receiving, lambda {
     where(:receiving => true)
   }
+
+  scope :only_sharing, lambda {
+    sharing.where(:receiving => false)
+  }
+
+  before_destroy :destroy_notifications
+  def destroy_notifications
+    Notification.where(:target_type => "Person",
+                       :target_id => person_id,
+                       :recipient_id => user_id,
+                      :type => "Notifications::StartedSharing").delete_all
+  end
 
   def dispatch_request
     request = self.generate_request
@@ -57,6 +71,16 @@ class Contact < ActiveRecord::Base
 
   def mutual?
     self.sharing && self.receiving
+  end
+
+  def in_aspect? aspect
+    if aspect_memberships.loaded?
+      aspect_memberships.detect{ |am| am.aspect_id == aspect.id }
+    elsif aspects.loaded?
+      aspects.detect{ |a| a.id == aspect.id }
+    else
+      AspectMembership.exists?(:contact_id => self.id, :aspect_id => aspect.id)
+    end
   end
 
   private

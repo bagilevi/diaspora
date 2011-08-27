@@ -9,7 +9,7 @@ class Services::Facebook < Service
     Rails.logger.debug("event=post_to_service type=facebook sender_id=#{self.user_id}")
     message = public_message(post, url)
     begin
-      RestClient.post("https://graph.facebook.com/me/feed", :message => message, :access_token => self.access_token)
+      Faraday.post("https://graph.facebook.com/me/feed", {:message => message, :access_token => self.access_token}.to_param)
     rescue Exception => e
       Rails.logger.info("#{e.message} failed to post to facebook")
     end
@@ -21,29 +21,58 @@ class Services::Facebook < Service
 
   def finder(opts = {})
     Rails.logger.debug("event=friend_finder type=facebook sender_id=#{self.user_id}")
-    if self.service_users.blank?
-      self.save_friends
-    else
-      Resque.enqueue(Job::UpdateServiceUsers, self.id)
-    end
-    person = Person.arel_table
-    service_user = ServiceUser.arel_table
-    if opts[:local]
-      ServiceUser.joins(:person).where(:service_id => self.id).where(person[:owner_id].not_eq(nil)).all
-    elsif opts[:remote]
-      ServiceUser.joins(:person).where(:service_id => self.id).where(person[:owner_id].eq(nil)).all
-    else
-      self.service_users
-    end
+    prevent_service_users_from_being_empty
+    result = if opts[:local]
+               self.service_users.with_local_people
+             elsif opts[:remote]
+               self.service_users.with_remote_people
+             else
+               self.service_users
+             end
+    result.includes(:contact => :aspects, :person => :profile).order('service_users.person_id DESC, service_users.name')
   end
 
   def save_friends
     url = "https://graph.facebook.com/me/friends?fields[]=name&fields[]=picture&access_token=#{URI.escape(self.access_token)}"
-    response = RestClient.get(url)
+    response = Faraday.get(url)
     data = JSON.parse(response.body)['data']
-    data.each{ |p|
-      ServiceUser.find_or_create_by_service_id_and_uid(:service_id => self.id, :name => p["name"],
-                         :uid => p["id"], :photo_url => p["picture"])
+    return unless data
+    data.map!{ |p|
+      su = ServiceUser.new(:service_id => self.id, :uid => p["id"], :photo_url => p["picture"], :name => p["name"], :username => p["username"])
+      su.attach_local_models
+      su
     }
+
+
+    if postgres?
+      # Take the naive approach to inserting our new visibilities for now.
+      data.each do |su|
+        if existing = ServiceUser.find_by_uid(su.uid)
+          update_hash = OVERRIDE_FIELDS_ON_FB_UPDATE.inject({}) do |acc, element|
+            acc[element] = su.send(element)
+            acc
+          end
+
+          existing.update_attributes(update_hash)
+        else
+          su.save
+        end
+      end
+    else
+      ServiceUser.import(data, :on_duplicate_key_update => OVERRIDE_FIELDS_ON_FB_UPDATE + [:updated_at])
+    end
+  end
+
+  private
+
+  OVERRIDE_FIELDS_ON_FB_UPDATE = [:contact_id, :person_id, :request_id, :invitation_id, :photo_url, :name, :username]
+
+  def prevent_service_users_from_being_empty
+    if self.service_users.blank?
+      self.save_friends
+      self.service_users.reload
+    else
+      Resque.enqueue(Job::UpdateServiceUsers, self.id)
+    end
   end
 end

@@ -11,6 +11,23 @@ And /^I expand the publisher$/ do
     ')
 end
 
+When /^I press the aspect dropdown$/ do
+  find('.dropdown .button').click
+end
+
+And /^I toggle the aspect "([^"]*)"$/ do |aspect_name|
+  aspect = @me.aspects.where(:name => aspect_name).first
+  find("li[data-aspect_id='#{aspect.id}']").click
+end
+
+Then /^the publisher should be collapsed$/ do
+	find("#publisher")["class"].should include("closed")
+end
+
+Then /^the publisher should be expanded$/ do
+	find("#publisher")["class"].should_not include("closed")
+end
+
 When /^I append "([^"]*)" to the publisher$/ do |stuff|
   # Wait for the publisher to appear and all the elements to lay out
   wait_until { evaluate_script("$('#status_message_fake_text').focus().length == 1") }
@@ -36,21 +53,24 @@ When /^I append "([^"]*)" to the publisher$/ do |stuff|
   end
 end
 
-And /^I hover over the (\w*)$/ do |element|
-  if element == 'post'
-    name = 'stream_element'
-  elsif element == 'comment'
-    name = 'comment.posted'
-  end
-  page.execute_script("$(\".#{name}\").first().mouseover()")
+And /^I hover over the "([^"]+)"$/ do |element|
+  page.execute_script("$(\"#{element}\").first().mouseover()")
 end
 
 When /^I click to delete the first post$/ do
   page.execute_script('$(".stream_element").first().find(".stream_element_delete").first().click()')
 end
 
+When /^I click to delete the ([\d])(nd|rd|st|th) post$/ do |number, stuff|
+  page.execute_script('$(".stream_element:nth-child('+ number +'").first().find(".stream_element_delete").first().click()')
+end
+
 When /^I click to delete the first comment$/ do
   page.execute_script('$(".comment.posted").first().find(".comment_delete").click()')
+end
+
+When /^I click to delete the first uploaded photo$/ do
+  page.execute_script('$("#photodropzone").find(".x").first().click()')
 end
 
 And /^I click "([^"]*)" button$/ do |arg1|
@@ -129,15 +149,6 @@ When /^I click ok in the confirm dialog to appear next$/ do
   JS
 end
 
-When /^I wait for "([^\"]*)" to load$/ do |page_name|
-  wait_until(10) do
-    uri = URI.parse(current_url)
-    current_location = uri.path
-    current_location << "?#{uri.query}" unless uri.query.blank?
-    current_location == path_to(page_name)
-  end
-end
-
 Then /^I should get download alert$/ do
   page.evaluate_script("window.alert = function() { return true; }")
 end
@@ -149,14 +160,6 @@ When /^I search for "([^\"]*)"$/ do |search_term|
     e.keyCode = 13;
     $("#q").trigger(e);
   JS
-end
-
-Then /^I should( not)? see the contact dialog$/ do |not_see|
-  if not_see
-    wait_until { !page.find("#facebox").visible? }
-  else
-    wait_until { page.find("#facebox .share_with") && page.find("#facebox .share_with").visible? }
-  end
 end
 
 Then /^I should( not)? see an add contact button$/ do |not_see|
@@ -182,7 +185,11 @@ Then /^the "([^"]*)" field(?: within "([^"]*)")? should be filled with "([^"]*)"
 end
 
 Then /^I should see (\d+) posts$/ do |n_posts|
-  evaluate_script("$('#main_stream .stream_element').length").should == n_posts.to_i
+  wait_until(10) { all("#main_stream .stream_element").length == n_posts.to_i }
+end
+
+Then /^I should see (\d+) contacts$/ do |n_posts|
+  wait_until(10) { all("#people_stream .stream_element").length == n_posts.to_i }
 end
 
 And /^I scroll down$/ do
@@ -191,6 +198,20 @@ And /^I scroll down$/ do
   wait_until(10) { evaluate_script('$("#infscr-loading:visible").length') == 0 }
 end
 
-When /^I wait for (\d+) seconds$/ do |seconds|
+When /^I wait for (\d+) seconds?$/ do |seconds|
   sleep seconds.to_i
+end
+
+When /^I click the notification badge$/ do
+  find(:css, "#notification_badge a").click
+end
+
+Then /^the notification dropdown should be visible$/ do
+  find(:css, "#notification_dropdown").should be_visible
+end
+
+When /^I resize my window to 800x600$/ do
+  page.execute_script <<-JS
+    window.resizeTo(800,600);
+  JS
 end

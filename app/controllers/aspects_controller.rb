@@ -10,37 +10,42 @@ class AspectsController < ApplicationController
   respond_to :html, :js
   respond_to :json, :only => [:show, :create]
 
+  helper_method :tags, :tag_followings
+  helper_method :all_aspects_selected?
+
   def index
     if params[:a_ids]
       @aspects = current_user.aspects.where(:id => params[:a_ids])
     else
       @aspects = current_user.aspects
-      @contacts_sharing_with = current_user.contacts.sharing
     end
 
-    #No aspect_listings on infinite scroll
-    @aspects = @aspects.includes(:contacts => {:person => :profile}) unless params[:only_posts]
+    aspect_ids = @aspects.map{|a| a.id}
 
-    # redirect to signup
-    if (current_user.getting_started == true || @aspects.blank?) && !request.format.mobile? && !request.format.js?
-      redirect_to getting_started_path
+    # redirect to aspects creation
+    if @aspects.blank?
+      redirect_to new_aspect_path
       return
     end
 
-    @selected_contacts = @aspects.map { |aspect| aspect.contacts }.flatten.uniq unless params[:only_posts]
+    unless params[:only_posts]
+      all_selected_people = Person.joins(:contacts => :aspect_memberships).
+        where(:contacts => {:user_id => current_user.id},
+              :aspect_memberships => {:aspect_id => aspect_ids})
+      @selected_people = all_selected_people.select("DISTINCT people.*").includes(:profile)
+    end
 
     @aspect_ids = @aspects.map { |a| a.id }
-    posts = current_user.visible_posts(:by_members_of => @aspect_ids,
-                                           :type => ['StatusMessage','ActivityStreams::Photo'],
+    @posts = current_user.visible_posts(:by_members_of => @aspect_ids,
+                                           :type => ['StatusMessage','Reshare', 'ActivityStreams::Photo'],
                                            :order => session[:sort_order] + ' DESC',
                                            :max_time => params[:max_time].to_i
-                          ).includes(:comments, :mentions, :likes, :dislikes)
+                          ).includes(:mentions => {:person => :profile}, :author => :profile)
 
-    @posts = PostsFake.new(posts)
     if params[:only_posts]
       render :partial => 'shared/stream', :locals => {:posts => @posts}
     else
-      @contact_count = current_user.contacts.count
+      @contact_count = @selected_people.count
 
       @aspect = :all unless params[:a_ids]
       @aspect ||= @aspects.first # used in mobile
@@ -54,7 +59,7 @@ class AspectsController < ApplicationController
       flash[:notice] = I18n.t('aspects.create.success', :name => @aspect.name)
       if current_user.getting_started
         redirect_to :back
-      elsif request.env['HTTP_REFERER'].include?("aspects/manage")
+      elsif request.env['HTTP_REFERER'].include?("contacts")
         redirect_to :back
       elsif params[:aspect][:person_id]
         @person = Person.where(:id => params[:aspect][:person_id]).first
@@ -64,11 +69,8 @@ class AspectsController < ApplicationController
         else
           @contact = current_user.share_with(@person, @aspect)
         end
-
-
-
       else
-        respond_with @aspect
+        redirect_to contacts_path(:a_id => @aspect.id)
       end
     else
       respond_to do |format|
@@ -84,7 +86,10 @@ class AspectsController < ApplicationController
   def new
     @aspect = Aspect.new
     @person_id = params[:person_id]
-    render :layout => false
+    respond_to do |format|
+      format.js { render :layout => false }
+      format.html { render '_new' }
+    end
   end
 
   def destroy
@@ -115,9 +120,9 @@ class AspectsController < ApplicationController
     @contacts_in_aspect = @aspect.contacts.includes(:aspect_memberships, :person => :profile).all.sort! { |x, y| x.person.name <=> y.person.name }
     c = Contact.arel_table
     if @contacts_in_aspect.empty?
-      @contacts_not_in_aspect = current_user.contacts.receiving.includes(:aspect_memberships, :person => :profile).all.sort! { |x, y| x.person.name <=> y.person.name }
+      @contacts_not_in_aspect = current_user.contacts.includes(:aspect_memberships, :person => :profile).all.sort! { |x, y| x.person.name <=> y.person.name }
     else
-      @contacts_not_in_aspect = current_user.contacts.receiving.where(c[:id].not_in(@contacts_in_aspect.map(&:id))).includes(:aspect_memberships, :person => :profile).all.sort! { |x, y| x.person.name <=> y.person.name }
+      @contacts_not_in_aspect = current_user.contacts.where(c[:id].not_in(@contacts_in_aspect.map(&:id))).includes(:aspect_memberships, :person => :profile).all.sort! { |x, y| x.person.name <=> y.person.name }
     end
 
     @contacts = @contacts_in_aspect + @contacts_not_in_aspect
@@ -129,12 +134,6 @@ class AspectsController < ApplicationController
       @aspect_contacts_count = @aspect.contacts.size
       render :layout => false
     end
-  end
-
-  def manage
-    @aspect = :manage
-    @contacts = current_user.contacts.includes(:person => :profile)
-    @aspects = @all_aspects.includes(:contacts => {:person => :profile})
   end
 
   def update
@@ -161,6 +160,23 @@ class AspectsController < ApplicationController
 
   def ensure_page
     params[:max_time] ||= Time.now + 1
+  end
+
+  def all_aspects_selected?
+    @aspect == :all
+  end
+
+  def tag_followings
+    if current_user
+      if @tag_followings == nil
+        @tag_followings = current_user.tag_followings
+      end
+      @tag_followings
+    end
+  end
+
+  def tags
+    @tags ||= current_user.followed_tags
   end
 
   private

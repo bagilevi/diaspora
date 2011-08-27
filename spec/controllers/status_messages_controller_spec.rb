@@ -29,43 +29,13 @@ describe StatusMessagesController do
       response.should be_success
     end
 
-    it 'generates a jasmine fixture', :fixture => 'jasmine' do
+    it 'generates a jasmine fixture', :fixture => true do
       contact = alice.contact_for(bob.person)
       aspect = alice.aspects.create(:name => 'people')
       contact.aspects << aspect
       contact.save
       get :new, :person_id => bob.person.id, :layout => true
       save_fixture(html_for("body"), "status_message_new")
-    end
-  end
-
-  describe '#show' do
-    before do
-      @message = alice.build_post :status_message, :text => "ohai", :to => @aspect1.id
-      @message.save!
-
-      alice.add_to_streams(@message, [@aspect1])
-      alice.dispatch_post @message, :to => @aspect1.id
-    end
-
-    it 'succeeds' do
-      get :show, "id" => @message.id.to_s
-      response.should be_success
-    end
-
-    it 'marks a corresponding notification as read' do
-      alice.comment("comment after me", :on => @message)
-      bob.comment("here you go", :on => @message)
-      note = Notification.where(:recipient_id => alice.id, :target_id => @message.id).first
-      lambda{
-        get :show, :id => @message.id
-        note.reload
-      }.should change(note, :unread).from(true).to(false)
-    end
-
-    it 'redirects to back if there is no status message' do
-      get :show, :id => 2345
-      response.status.should == 302
     end
   end
 
@@ -89,6 +59,13 @@ describe StatusMessagesController do
         json = JSON.parse(response.body)
         json['post_id'].should_not be_nil
         json['html'].should_not be_nil
+      end
+
+      it 'saves the html as a fixture', :fixture => true do
+        post :create, status_message_hash.merge(:format => 'js')
+        json = JSON.parse(response.body)
+        save_fixture(json['html'], "created_status_message")
+
       end
 
       it 'escapes XSS' do
@@ -136,11 +113,8 @@ describe StatusMessagesController do
 
     context 'with photos' do
       before do
-        fixture_filename  = 'button.png'
-        fixture_name      = File.join(File.dirname(__FILE__), '..', 'fixtures', fixture_filename)
-
-        @photo1 = alice.build_post(:photo, :pending => true, :user_file=> File.open(fixture_name), :to => @aspect1.id)
-        @photo2 = alice.build_post(:photo, :pending => true, :user_file=> File.open(fixture_name), :to => @aspect1.id)
+        @photo1 = alice.build_post(:photo, :pending => true, :user_file=> File.open(photo_fixture_name), :to => @aspect1.id)
+        @photo2 = alice.build_post(:photo, :pending => true, :user_file=> File.open(photo_fixture_name), :to => @aspect1.id)
 
         @photo1.save!
         @photo2.save!
@@ -153,47 +127,15 @@ describe StatusMessagesController do
         post :create, @hash
         response.should be_redirect
       end
-      it "dispatches all referenced photos" do
-        alice.should_receive(:dispatch_post).exactly(3).times
+      it "attaches all referenced photos" do
         post :create, @hash
+        assigns[:status_message].photos.map(&:id).should =~ [@photo1, @photo2].map(&:id)
       end
       it "sets the pending bit of referenced photos" do
         post :create, @hash
         @photo1.reload.pending.should be_false
         @photo2.reload.pending.should be_false
       end
-
-      it 'queues all photos to be processed' do
-        pending
-      end
-    end
-  end
-
-  describe '#destroy' do
-    before do
-      @message = alice.post(:status_message, :text => "hey", :to => @aspect1.id)
-      @message2 = bob.post(:status_message, :text => "hey", :to => @aspect2.id)
-      @message3 = eve.post(:status_message, :text => "hey", :to => eve.aspects.first.id)
-    end
-
-    it 'let a user delete his message' do
-      delete :destroy, :format => :js, :id => @message.id
-      StatusMessage.find_by_id(@message.id).should be_nil
-    end
-
-    it 'sends a retraction on delete' do
-      alice.should_receive(:retract).with(@message)
-      delete :destroy, :format => :js, :id => @message.id
-    end
-
-    it 'will not let you destroy posts visible to you' do
-      delete :destroy, :format => :js, :id => @message2.id
-      StatusMessage.find_by_id(@message2.id).should be_true
-    end
-
-    it 'will not let you destory posts you do not own' do
-      delete :destroy, :format => :js, :id => @message3.id
-      StatusMessage.find_by_id(@message3.id).should be_true
     end
   end
 end

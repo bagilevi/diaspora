@@ -45,21 +45,43 @@ describe TagsController do
       it 'displays your own post' do
         my_post = alice.post(:status_message, :text => "#what", :to => 'all')
         get :show, :name => 'what'
-        assigns(:posts).models.should == [my_post]
+        assigns(:posts).should == [my_post]
         response.status.should == 200
       end
 
       it "displays a friend's post" do
         other_post = bob.post(:status_message, :text => "#hello", :to => 'all')
         get :show, :name => 'hello'
-        assigns(:posts).models.should == [other_post]
+        assigns(:posts).should == [other_post]
         response.status.should == 200
       end
 
       it 'displays a public post' do
         other_post = eve.post(:status_message, :text => "#hello", :public => true, :to => 'all')
         get :show, :name => 'hello'
-        assigns(:posts).models.should == [other_post]
+        assigns(:posts).should == [other_post]
+        response.status.should == 200
+      end
+
+      it 'displays a public post that was sent to no one' do
+        stranger = Factory(:user_with_aspect)
+        stranger_post = stranger.post(:status_message, :text => "#hello", :public => true, :to => 'all')
+        get :show, :name => 'hello'
+        assigns(:posts).should == [stranger_post]
+      end
+
+      it 'displays a post with a comment containing the tag search' do
+        pending "toooo slow"
+        bob.post(:status_message, :text => "other post y'all", :to => 'all')
+        other_post = bob.post(:status_message, :text => "sup y'all", :to => 'all')
+        Factory(:comment, :text => "#hello", :post => other_post)
+        get :show, :name => 'hello'
+        assigns(:posts).should == [other_post]
+        response.status.should == 200
+      end
+
+      it 'succeeds without posts' do
+        get :show, :name => 'hellyes'
         response.status.should == 200
       end
     end
@@ -95,14 +117,34 @@ describe TagsController do
 
         it "assigns the right set of posts" do
           get :show, :name => 'what'
-          assigns[:posts].models.should == [@post]
+          assigns[:posts].should == [@post]
         end
 
         it 'succeeds with comments' do
-          alice.comment('what WHAT!', :on => @post)
+          alice.comment('what WHAT!', :post => @post)
           get :show, :name => 'what'
           response.should be_success
         end
+      end
+    end
+  end
+
+  context 'helper methods' do
+    describe 'tag_followed?' do
+      before do
+        sign_in bob
+        @tag = ActsAsTaggableOn::Tag.create!(:name => "partytimeexcellent")
+        @controller.stub(:current_user).and_return(bob)
+        @controller.stub(:params).and_return({:name => "partytimeexcellent"})
+      end
+
+      it 'returns true if the following already exists' do
+        TagFollowing.create!(:tag => @tag, :user => bob )
+        @controller.tag_followed?.should be_true
+      end
+
+      it 'returns false if the following does not already exist' do
+        @controller.tag_followed?.should be_false
       end
     end
   end

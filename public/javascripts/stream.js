@@ -4,170 +4,138 @@
  */
 
 var Stream = {
+  selector: "#main_stream",
+
   initialize: function() {
-    var stream_string = '#main_stream';
-    var $stream = $(stream_string);
+    Diaspora.page.timeAgo.updateTimeAgo();
+    Diaspora.page.directionDetector.updateBinds();
 
-    $(".status_message_delete").tipsy({trigger: 'hover', gravity: 'n'});
-
-    Diaspora.widgets.subscribe("stream/reloaded", Stream.initialized);
-    Diaspora.widgets.timeago.updateTimeAgo();
-    Diaspora.widgets.directionDetector.updateBinds();
-
-
-    $(stream_string + " a.show_post_comments:not(.show)").live("click", Stream.toggleComments);
-    //audio linx
+    //audio links
     Stream.setUpAudioLinks();
     //Stream.setUpImageLinks();
 
-    // comment link form focus
-    $(stream_string + " .focus_comment_textarea").live("click", function(e){
-      Stream.focusNewComment($(this), e);
+    Diaspora.page.subscribe("stream/scrolled", Stream.collapseText);
+    Stream.collapseText('eventID', $(Stream.selector)[0]);
+  },
+  collapseText: function(){
+    elements = $(Array.prototype.slice.call(arguments,1));
+    // collapse long posts
+    $(".content p", elements).expander({
+      slicePoint: 400,
+      widow: 12,
+      expandText: Diaspora.I18n.t("show_more"),
+      userCollapse: false
     });
 
-    $(stream_string + " textarea.comment_box").live("focus", function(evt) {
-      var commentBox = $(this);
-      commentBox
-        .attr('rows',2)
-        .parent().parent()
-          .addClass('open');
+    // collapse long comments
+    $(".comment .content span", elements).expander({
+      slicePoint: 200,
+      widow: 18,
+      expandText: Diaspora.I18n.t("show_more"),
+      userCollapse: false
     });
+  },
 
-    $(stream_string + " textarea.comment_box").live("blur", function(evt) {
-      var commentBox = $(this);
-      if (!commentBox.val()) {
-        commentBox
-          .attr('rows',1)
-          .css('height','1.4em')
-          .parent().parent()
-            .removeClass('open');
-      }
-    });
-
-    // like/dislike
-    $(stream_string + " a.expand_likes").live("click", function(evt) {
-      evt.preventDefault();
-      $(this).siblings('.likes_list').fadeToggle('fast');
-    });
-
-    $(stream_string + " a.expand_dislikes").live("click", function(evt) {
-      evt.preventDefault();
-      $(this).siblings('.dislikes_list').fadeToggle('fast');
-    });
-
+  initializeLives: function(){
     // reshare button action
-    $(stream_string + ' .reshare_button').live("click", function(evt) {
+    $(".reshare_button", this.selector).live("click", function(evt) {
       evt.preventDefault();
-      var button = $(this);
-      var box = button.siblings(".reshare_box");
+      var button = $(this),
+        box = button.siblings(".reshare_box");
+
       if (box.length > 0) {
         button.toggleClass("active");
         box.toggle();
       }
     });
 
-    $(stream_string + ".new_comment").live('ajax:failure', function(data, html, xhr) {
-      Diaspora.widgets.alert.alert(Diaspora.widgets.i18n.t('failed_to_post_message'));
+    // ajax-loader and hide icon visibility handling for post hide and unhide
+    $("a.stream_element_delete.vis_hide").live("click", function(evt){
+      $(this).toggleClass("hidden");
+      $(this).next("img.hide_loader").toggleClass("hidden");
+    });
+    $("a.stream_element_hide_undo").live("click", function(evt){
+      $(this).closest('.stream_element').find("img.hide_loader").toggleClass("hidden");
     });
 
-    $stream.find(".comment_delete", ".comment").live('ajax:success', function(data, html, xhr) {
-      var element = $(this),
-          target = element.parents(".comment"),
-          post = element.closest('.stream_element'),
-          toggler = post.find('.show_post_comments');
-
-      target.hide('blind', { direction: 'vertical' }, 300, function(){
-        $(this).remove();
-        toggler.html(
-          toggler.html().replace(/\d+/,$('.comments', post).find('li').length -1)
-        );
-      });
-
-    });
-
-    // collapse long comments
-    $(stream_string + " .content").find("p").expander({
-      slicePoint: 400,
-      widow: 12,
-      expandText: Diaspora.widgets.i18n.t('show_more'),
-      userCollapse: false
-    });
-  },
-  setUpLikes: function(){
-    var likes = $("#main_stream .like_it, #main_stream .dislike_it");
-
-    likes.live('ajax:loading', function(data, json, xhr) {
-      $(this).parent().fadeOut('fast');
-    });
-
-    likes.live('ajax:failure', function(data, html, xhr) {
-      Diaspora.widgets.alert.alert(Diaspora.widgets.i18n.t('failed_to_like'));
-      $(this).parent().fadeIn('fast');
-    });
+//    this.setUpComments();
   },
 
-  setUpAudioLinks: function(){
-    $(".stream a[target='_blank']").each(function(){
+  setUpComments: function(){
+    // comment link form focus
+    $(".focus_comment_textarea", this.selector).live('click', function(evt) {
+      Stream.focusNewComment($(this), evt);
+    });
+
+    $("textarea.comment_box", this.selector).live("focus", function(evt) {
+      if (this.value === undefined || this.value ===  ''){
+        var commentBox = $(this);
+        commentBox
+          .parent().parent()
+            .addClass("open");
+      }
+    });
+    $("textarea.comment_box", this.selector).live("blur", function(evt) {
+      if (this.value === undefined || this.value ===  ''){
+        var commentBox = $(this);
+        commentBox
+          .parent().parent()
+            .removeClass("open");
+      }
+    });
+
+  },
+
+  setUpAudioLinks: function() {
+    $(".stream a[target='_blank']").each(function(r){
       var link = $(this);
-      if(link.attr('href').match(/\.mp3$|\.ogg$/)) {
-        link.parent().append("<audio preload='none' src='" + this.href + "' controls='controls'>mom</audio>");
+      if(this.href.match(/\.mp3$|\.ogg$/)) {
+        $("<audio/>", {
+          preload: "none",
+          src: this.href,
+          controls: "controls"
+        }).appendTo(link.parent());
+
         link.remove();
       }
     });
   },
 
-  setUpImageLinks: function(){
-    $(".stream a[target='_blank']").each(function(){
+  setUpImageLinks: function() {
+    $(".stream a[target='_blank']").each(function() {
       var link = $(this);
-      if(link.attr('href').match(/\.gif$|\.jpg$|\.png$|\.jpeg$/)) {
-        link.parent().append("<img src='" + this.href + "'</img>");
+      if(this.href.match(/\.gif$|\.jpg$|\.png$|\.jpeg$/)) {
+        $("<img/>", {
+          src: this.href
+        }).appendTo(link.parent());
+
         link.remove();
       }
     });
-  },
-
-  toggleComments: function(evt) {
-    evt.preventDefault();
-    var $this = $(this),
-      text = $this.html(),
-      showUl = $(this).closest('li'),
-      commentBlock = $this.closest(".stream_element").find("ul.comments", ".content"),
-      commentBlockMore = $this.closest(".stream_element").find(".older_comments", ".content")
-
-    if( commentBlockMore.hasClass("inactive") ) {
-      commentBlockMore.fadeIn(150, function() {
-        commentBlockMore.removeClass("inactive");
-        commentBlockMore.removeClass("hidden");
-      });
-      $this.html(Diaspora.widgets.i18n.t('comments.hide'));
-    } else {
-      if(commentBlock.hasClass("hidden")) {
-        commentBlock.removeClass('hidden');
-        showUl.css('margin-bottom','-1em');
-        $this.html(Diaspora.widgets.i18n.t('comments.hide'));
-      }else{
-        commentBlock.addClass('hidden');
-        showUl.css('margin-bottom','1em');
-        $this.html(Diaspora.widgets.i18n.t('comments.show'));
-      }
-    }
   },
 
   focusNewComment: function(toggle, evt) {
     evt.preventDefault();
-    var commentBlock = toggle.closest(".stream_element").find("ul.comments", ".content");
+    var post = toggle.closest(".stream_element");
+    var commentBlock = post.find(".new_comment_form_wrapper");
+    var textarea = post.find(".new_comment textarea");
 
-    if(commentBlock.hasClass('hidden')) {
-      commentBlock.removeClass('hidden');
-      commentBlock.find('textarea').focus();
+    if(commentBlock.hasClass("hidden")) {
+      commentBlock.removeClass("hidden");
+      textarea.focus();
     } else {
-      if(commentBlock.children().length <= 1){
-        commentBlock.addClass('hidden');
+      if(commentBlock.children().length <= 1) {
+        commentBlock.addClass("hidden");
       } else {
-        commentBlock.find('textarea').focus();
+        textarea.focus();
       }
     }
   }
 };
 
-$(document).ready(Stream.initialize);
+$(document).ready(function() {
+  if( $(Stream.selector).length == 0 ) { return }
+  Stream.initializeLives();
+//  Diaspora.page.subscribe("stream/reloaded", Stream.initialize, Stream);
+//  Diaspora.page.publish("stream/reloaded");
+});

@@ -9,13 +9,14 @@
       DIASPORA*
 
     %meta{"http-equiv"=>"Content-Type", :content=>"text/html; charset=utf-8"}/
-
     = include_javascripts :mobile
+    %meta{'name' =>'viewport', 'content' => "width=device-width, minimum-scale=1, maximum-scale=1"}
+
     -if current_user
       :javascript
-        Diaspora.widgets.i18n.loadLocale(#{get_javascript_strings_for(current_user.language).to_json}, "#{current_user.language}");
+        Diaspora.I18n.loadLocale(#{get_javascript_strings_for(current_user.language).to_json}, "#{current_user.language}");
 
-    = stylesheet_link_tag 'vendor/jquery.mobile-1.0a4.min', 'mobile'
+    =include_stylesheets :mobile
     = csrf_meta_tag
     
     - if rtl?
@@ -55,6 +56,9 @@
             = link_to(image_tag('icons/list_white.png'), '#menu', :id => "menu_button")
             = link_to(image_tag('icons/search_white.png'), people_path)
         = link_to(image_tag('white@2x.png', :height => 22, :width => 136, :id => 'header_title'), aspects_path)
+      %p
+        - flash.each do |name, msg|
+          = content_tag :div, msg, :id => "flash_#{name}"
 
       = yield
 
@@ -81,14 +85,23 @@
               = link_to t('conversations.index.message_inbox'), conversations_path
               .ui-li-count
                 = @unread_message_count
-                
+
+
+
+          - if AppConfig[:open_invitations]
+            %h4
+              = t('shared.invitations.invite_your_friends')
+            %ul{:data => {:role => 'listview', :inset => 'true'}}
+              %li
+                = link_to t('.by_email'), new_user_invitation_path                  
+
           %h4
             = t('.your_aspects')
 
           %ul{:data => {:role => 'listview', :inset => 'true'}}
             %li
               = link_to t('all_aspects'), aspects_path
-            - for aspect in @all_aspects
+            - for aspect in all_aspects
               %li
                 = link_to aspect, aspects_path('a_ids[]' => aspect.id)
 

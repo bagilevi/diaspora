@@ -14,8 +14,8 @@ eu:
         other: "{{count}} alderdietan"
         zero: "Alderdira gehitu"
     comments: 
-      hide: "hide comments"
-      show: "show all comments"
+      hide: "iruzkinak ezkutatu"
+      show: "iruzkin guztiak erakutsi"
     confirm_dialog: "Ziur al zaude?"
     failed_to_like: "Huts gustoko egitean!"
     failed_to_post_message: "Huts egin du mezuaren bidalketak!"
@@ -23,6 +23,10 @@ eu:
       no_more: "Mezu gehiagorik ez dago."
     publisher: 
       at_least_one_aspect: "Gutxienez alderdi batean partekatu behar duzu"
+      limited: "Limited - your post will only be seen by people you are sharing with"
+      public: "Public - your post will be visible to everyone and found by search engines"
+    reshares: 
+      duplicate: "You've already reshared that post!"
     search_for: "Bilatu {{name}}"
     show_more: "erakutsi gehiago"
     timeago: 

@@ -7,7 +7,7 @@ class Notification < ActiveRecord::Base
   include Diaspora::Socketable
 
   belongs_to :recipient, :class_name => 'User'
-  has_many :notification_actors
+  has_many :notification_actors, :dependent => :destroy
   has_many :actors, :class_name => 'Person', :through => :notification_actors, :source => :person
   belongs_to :target, :polymorphic => true
 
@@ -19,7 +19,9 @@ class Notification < ActiveRecord::Base
     if target.respond_to? :notification_type
       if note_type = target.notification_type(recipient, actor)
         if(target.is_a? Comment) || (target.is_a? Like) 
-          n = note_type.concatenate_or_create(recipient, target.post, actor, note_type)
+          n = note_type.concatenate_or_create(recipient, target.parent, actor, note_type)
+        elsif(target.is_a? Reshare)
+          n = note_type.concatenate_or_create(recipient, target.root, actor, note_type)
         else
           n = note_type.make_notification(recipient, target, actor, note_type)
         end
@@ -42,13 +44,17 @@ class Notification < ActiveRecord::Base
 private
   def self.concatenate_or_create(recipient, target, actor, notification_type)
     if n = notification_type.where(:target_id => target.id,
-                              :target_type => target.class.base_class,
-                               :recipient_id => recipient.id,
-                               :unread => true).first
-      n.actors = n.actors | [actor]
+                                   :target_type => target.class.base_class,
+                                   :recipient_id => recipient.id,
+                                   :unread => true).first
 
-      n.unread = true
-      n.save!
+      begin
+        n.actors = n.actors | [actor]
+        n.unread = true
+        n.save!
+      rescue ActiveRecord::RecordNotUnique
+        nil
+      end
       n
     else
       make_notification(recipient, target, actor, notification_type)

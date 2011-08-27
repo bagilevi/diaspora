@@ -55,7 +55,7 @@ describe Notification do
       Notification.notify(@user, @sm, @person)
     end
 
-   context 'with a request' do
+    context 'with a request' do
       before do
         @request = Request.diaspora_initialize(:from => @user.person, :to => @user2.person, :into => @aspect)
       end
@@ -96,8 +96,8 @@ describe Notification do
         it 'concatinates the like notifications' do
           p = Factory(:status_message, :author => @user.person)
           person2 = Factory(:person)
-          notification = Notification.notify(@user, Factory(:like, :author => @person, :post => p), @person)
-          notification2 =  Notification.notify(@user, Factory(:like, :author => person2, :post => p), person2)
+          notification = Notification.notify(@user, Factory(:like, :author => @person, :target => p), @person)
+          notification2 =  Notification.notify(@user, Factory(:like, :author => person2, :target => p), person2)
           notification.id.should == notification2.id
         end
       end
@@ -119,8 +119,8 @@ describe Notification do
         before do
           @user3 = bob
           @sm = @user3.post(:status_message, :text => "comment!", :to => :all)
-          Postzord::Receiver.new(@user3, :person => @user2.person, :object => @user2.comment("hey", :on => @sm)).receive_object
-          Postzord::Receiver.new(@user3, :person => @user.person, :object => @user.comment("hey", :on => @sm)).receive_object
+          Postzord::Receiver.new(@user3, :person => @user2.person, :object => @user2.comment("hey", :post => @sm)).receive_object
+          Postzord::Receiver.new(@user3, :person => @user.person, :object => @user.comment("hey", :post => @sm)).receive_object
         end
 
         it "updates the notification with a more people if one already exists" do
@@ -128,7 +128,7 @@ describe Notification do
         end
 
         it 'handles double comments from the same person without raising' do
-          Postzord::Receiver.new(@user3, :person => @user2.person, :object => @user2.comment("hey", :on => @sm)).receive_object
+          Postzord::Receiver.new(@user3, :person => @user2.person, :object => @user2.comment("hey", :post => @sm)).receive_object
           Notification.where(:recipient_id => @user3.id, :target_type => @sm.class.base_class, :target_id => @sm.id).first.actors.count.should == 2
         end
 

@@ -4,7 +4,9 @@
 
 
 sl: 
+  _applications: "Applications"
   _comments: "Komentarji"
+  _contacts: "Contacts"
   _home: "Domov"
   _photos: "slike"
   _services: "Servisi"
@@ -24,6 +26,10 @@ sl:
           attributes: 
             from_id: 
               taken: "is a duplicate of a pre-existing request."
+        reshare: 
+          attributes: 
+            root_guid: 
+              taken: "You've already reshared that post!"
         user: 
           attributes: 
             email: 
@@ -31,6 +37,7 @@ sl:
             person: 
               invalid: "is invalid."
             username: 
+              invalid: "is invalid. We only allow letters, numbers, and underscores"
               taken: "is already taken."
   ago: "%{time} nazaj"
   all_aspects: "Vse skupine"
@@ -42,14 +49,6 @@ sl:
         unknown: "Neznani video naslov"
   are_you_sure: "Ste prepričani?"
   aspect_memberships: 
-    aspect_dropdown: 
-      add_to_aspect: "Add to aspect"
-      toggle: 
-        few: "In %{count} aspects"
-        many: "In %{count} aspects"
-        one: "In %{count} aspect"
-        other: "In %{count} aspects"
-        zero: "Add to aspect"
     destroy: 
       failure: "Failed to remove person from aspect"
       no_membership: "Could not find the selected person in that aspect"
@@ -60,10 +59,13 @@ sl:
       success: "Dodajanje stika v skupino je uspelo."
     aspect_contacts: 
       done_editing: "zaključi urejanje"
+    aspect_listings: 
+      add_an_aspect: "+ Add an aspect"
     aspect_stream: 
-      activity: "activity"
-      post_time: "post time"
-      sort_by: "sort by:"
+      commented_on: "commented on"
+      posted: "posted"
+      recently: "recently:"
+      stream: "Stream"
     contacts_not_visible: "Stiki v tej skupini drug drugega ne bodo videli."
     contacts_visible: "Stiki v tej skupini drug drugega lahko vidijo."
     create: 
@@ -89,17 +91,27 @@ sl:
       aspect_not_empty: "Skupina vsebuje stike"
       remove: "odstrani"
     index: 
+      cubbies: 
+        explanation: "Cubbi.es is the first Diaspora application under development."
+        heading: "Connect to Cubbi.es"
+        learn_more: "Learn more"
+      diaspora_id: 
+        content_1: "Your Diaspora ID is:"
+        content_2: "Give it to anyone and they'll be able to find you on Diaspora."
+        heading: "Diaspora ID"
+      donate: "Donate"
       handle_explanation: "To je vaš diaspora naslov. Tako kot vaš e-naslov, ga lahko uporabite kot naslov s pomočjo katerega drugi stopijo v stik z vami."
+      keep_us_running: "Keep %{pod} running fast, buy our servers their monthly coffee fix!"
       no_contacts: "Ni kontaktov"
+      no_tags: "No tags"
       people_sharing_with_you: "People sharing with you"
       post_a_message: "post a message >>"
-    manage: 
-      add_a_new_aspect: "Dodaj novo skupino"
-      add_a_new_contact: "Dodaj nov stik"
-      drag_to_add: "Za dodajanje osebe povleci"
-      manage_aspects: "Uredi skupine"
-      no_requests: "Ni novih prošenj"
-      requests: "Prošnje"
+      services: 
+        content: "You can connect the following services to Diaspora:"
+        heading: "Connect Services"
+      tags_following: "Followed Tags"
+      unfollow_tag: "Stop following #%{tag}"
+      your_aspects: "Your Aspects"
     many: "%{count} aspects"
     move_contact: 
       error: "Prestavljanje stika neuspešno: %{inspect}"
@@ -108,23 +120,38 @@ sl:
     new: 
       create: "Create"
       name: "Name"
+    no_contacts_message: 
+      featured_users: "featured users"
+      or_featured: "Or you can share with %{link}"
+      try_adding_some_more_contacts: "You can search (top) or invite (right) more contacts."
+      you_should_add_some_more_contacts: "You should add some more contacts!"
     no_posts_message: 
       start_talking: "Trenutno še brez objav. Začnite s prvo objavo!"
     one: "1 aspect"
     other: "%{count} aspects"
     seed: 
+      acquaintances: "Acquaintances"
       family: "Družina"
+      friends: "Friends"
       work: "Služba"
+    selected_contacts: 
+      manage_your_aspects: "Manage your aspects."
+      no_contacts: "You don't have any contacts here yet."
+      view_all_contacts: "View all contacts"
     show: 
       edit_aspect: "uredi skupino"
     update: 
       failure: "Skupina %{name} ima predolgo ime, zato je ni mogoče shraniti."
       success: "Vaša skupina %{name} je bila uspešno posodobljena."
     zero: "no aspects"
+  authorizations: 
+    index: 
+      revoke_access: "Revoke Access"
   back: "Nazaj"
   bookmarklet: 
     explanation: "%{link} from anywhere by bookmarking this link."
     explanation_link_text: "Post to Diaspora"
+    heading: "Diaspora Bookmarklet"
     post_something: "Post something to Diaspora"
     post_success: "Posted! Closing!"
   cancel: "Prekliči"
@@ -140,7 +167,21 @@ sl:
   contacts: 
     create: 
       failure: "Failed to create contact"
+    featured: 
+      featured_users: "Featured Users"
     few: "število stikov %{count}"
+    index: 
+      add_a_new_aspect: "Add a new aspect"
+      all_contacts: "All Contacts"
+      edit_aspect: "Edit %{name}"
+      many_people_are_you_sure: "Are you sure you want to start a private conversation with more than %{suggested_limit} contacts? Posting to this aspect may be a better way to contact them."
+      my_contacts: "My Contacts"
+      no_contacts: "No contacts."
+      only_sharing_with_me: "Only sharing with me"
+      remove_person_from_aspect: "Remove %{person_name} from \"%{aspect_name}\""
+      start_a_conversation: "Start a conversation"
+      title: "Contacts"
+      your_contacts: "Your Contacts"
     many: "%{count} contacts"
     one: "1 stik"
     other: "število stikov %{count}"
@@ -149,6 +190,7 @@ sl:
     zero: "brez stikov"
   conversations: 
     create: 
+      fail: "Invalid message"
       sent: "Message sent"
     destroy: 
       success: "Conversation successfully removed"
@@ -167,12 +209,17 @@ sl:
       no_conversation_selected: "no conversation selected"
       no_messages: "no messages"
     new: 
+      abandon_changes: "Abandon changes?"
       send: "Send"
+      sending: "Sending..."
       subject: "subject"
       to: "to"
+    new_message: 
+      fail: "Invalid message"
     show: 
       delete: "delete and block conversation"
       reply: "reply"
+      replying: "Replying..."
   date: 
     formats: 
       birthday: "%B %d"
@@ -185,6 +232,7 @@ sl:
       correct_the_following_errors_and_try_again: "Popravite naslednje napake in poskusite znova."
       invalid_fields: "Neveljavna polja"
   fill_me_out: "Izpolni me"
+  find_people: "Find people"
   hide: "Hide"
   home: 
     show: 
@@ -201,6 +249,7 @@ sl:
       tagline_first_half: "Delite kar želite,"
       tagline_second_half: "s komerkoli želite."
   invitations: 
+    a_facebook_user: "A Facebook user"
     check_token: 
       not_found: "Povabilo ni bilo najdeno"
     create: 
@@ -211,7 +260,8 @@ sl:
       rejected: "Naslednji e-naslovi imajo težave z dostavo povabila: "
       sent: "Povabila so bila poslana naslednjim: "
     edit: 
-      sign_up: "prijavi_se"
+      accept_your_invitation: "Accept your invitation"
+      your_account_awaits: "Your account awaits!"
     new: 
       already_invited: "Že povabljeni"
       aspect: "Skupina"
@@ -225,7 +275,6 @@ sl:
       to: "Za"
   layouts: 
     application: 
-      have_a_problem: "Ste naleteli na težavo? Tukaj poiščite odgovor"
       powered_by: "STRAN POGANJA DIASPORA*"
       public_feed: "Public Diaspora Feed for %{name}"
       toggle: "toggle mobile site"
@@ -238,7 +287,9 @@ sl:
       login: "prijava"
       logout: "odjavi me"
       profile: "profile"
+      recent_notifications: "Recent notifications"
       settings: "settings"
+      view_all: "View all"
   likes: 
     likes: 
       people_dislike_this: 
@@ -253,14 +304,35 @@ sl:
         one: "1 person liked this"
         other: "%{count} people liked this"
         zero: "no people liked this"
+      people_like_this_comment: 
+        few: "%{count} likes"
+        many: "%{count} likes"
+        one: "%{count} like"
+        other: "%{count} likes"
+        zero: "no likes"
+  limited: "Limited"
   more: "Več"
   next: "naslednja"
   no_results: "No Results Found"
   notifications: 
-    also_commented: "komentirano tudi na %{post_author}"
-    also_commented_deleted: "commented on a deleted post"
-    comment_on_post: "komentar na vaš"
-    deleted: "izbrisano"
+    also_commented: 
+      few: "%{actors} also commented on %{post_author}'s %{post_link}."
+      many: "%{actors} also commented on %{post_author}'s %{post_link}."
+      one: "%{actors} also commented on %{post_author}'s %{post_link}."
+      other: "%{actors} also commented on %{post_author}'s %{post_link}."
+      zero: "%{actors} also commented on %{post_author}'s %{post_link}."
+    also_commented_deleted: 
+      few: "%{actors} commented on a deleted post."
+      many: "%{actors} commented on a deleted post."
+      one: "%{actors} commented on a deleted post."
+      other: "%{actors} commented on a deleted post."
+      zero: "%{actors} commented on a deleted post."
+    comment_on_post: 
+      few: "%{actors} commented on your %{post_link}."
+      many: "%{actors} commented on your %{post_link}."
+      one: "%{actors} commented on your %{post_link}."
+      other: "%{actors} commented on your %{post_link}."
+      zero: "%{actors} commented on your %{post_link}."
     helper: 
       new_notifications: 
         few: "%{count} new notifications"
@@ -270,50 +342,78 @@ sl:
         zero: "no new notifications"
     index: 
       and: "and"
-      and_others: "and %{number} others"
+      and_others: 
+        few: "and %{count} others"
+        many: "and %{count} others"
+        one: "and one more"
+        other: "and %{count} others"
+        zero: "and nobody else"
       mark_all_as_read: "Označi vse kot prebrano"
       notifications: "Sporočila"
-    liked: "has just liked your post"
-    liked_post_deleted: "liked your deleted post."
-    mentioned: "bili ste omenjeni v objavi"
-    new_request: "nekdo želi deliti z vami."
+    liked: 
+      few: "%{actors} has just liked your %{post_link}."
+      many: "%{actors} has just liked your %{post_link}."
+      one: "%{actors} has just liked your %{post_link}."
+      other: "%{actors} has just liked your %{post_link}."
+      zero: "%{actors} has just liked your %{post_link}."
+    liked_post_deleted: 
+      few: "%{actors} liked your deleted post."
+      many: "%{actors} liked your deleted post."
+      one: "%{actors} liked your deleted post."
+      other: "%{actors} liked your deleted post."
+      zero: "%{actors} liked your deleted post."
+    mentioned: 
+      few: "%{actors} has mentioned you in a %{post_link}."
+      many: "%{actors} has mentioned you in a %{post_link}."
+      one: "%{actors} has mentioned you in a %{post_link}."
+      other: "%{actors} has mentioned you in a %{post_link}."
+      zero: "%{actors} has mentioned you in a %{post_link}."
+    mentioned_deleted: 
+      few: "%{actors} mentioned you in a deleted post."
+      many: "%{actors} mentioned you in a deleted post."
+      one: "%{actors} mentioned you in a deleted post."
+      other: "%{actors} mentioned you in a deleted post."
+      zero: "%{actors} mentioned you in a deleted post."
     post: "prispevek"
-    private_message: "sent you a message."
-    started_sharing: "started sharing with you."
+    private_message: 
+      few: "%{actors} sent you a message."
+      many: "%{actors} sent you a message."
+      one: "%{actors} sent you a message."
+      other: "%{actors} sent you a message."
+      zero: "%{actors} sent you a message."
+    started_sharing: 
+      few: "%{actors} started sharing with you."
+      many: "%{actors} started sharing with you."
+      one: "%{actors} started sharing with you."
+      other: "%{actors} started sharing with you."
+      zero: "%{actors} started sharing with you."
   notifier: 
-    also_commented: 
-      commented: "prav tako komentirano na objavo osebe %{post_author}:"
-      sign_in: "Za ogled se prijavite."
-      subject: "oseba %{name} je prav tako komentirala %{post_author}."
+    a_post_you_shared: "a post."
+    click_here: "click here"
     comment_on_post: 
-      commented: "oseba je komentirala na vašo objavo:"
-      sign_in: "Za ogled se prijavite."
-      subject: "Oseba %{name} je komentirala vašo objavo."
-    diaspora: "diaspora email robot"
+      reply: "Reply or view %{name}'s post >"
+    confirm_email: 
+      click_link: "To activate your new e-mail address %{unconfirmed_email}, please click this link:"
+      subject: "Please activate your new e-mail address %{unconfirmed_email}"
+    email_sent_by_diaspora: "This email was sent by Diaspora.  If you'd like to stop getting emails like this,"
     hello: "Pozdravljeni %{name}!"
     liked: 
       liked: "%{name} has just liked your post: "
-      sign_in: "Sign to view it"
-      subject: "%{name} has just liked your post"
-    love: "vas pozdravlja,"
-    manage_your_email_settings: "manage your email settings"
+      view_post: "View post >"
     mentioned: 
       mentioned: "mentioned you in a post:"
-      sign_in: "Sign in to view it."
       subject: "%{name} has mentioned you on Diaspora*"
     private_message: 
-      message_subject: "Subject: %{subject}"
-      private_message: "has sent you a private message:"
-      sign_in: "Sign in to view it."
-      subject: "oseba %{name} vam je poslala privatno sporočilo v Diaspori*"
+      reply_to_or_view: "Reply to or view this conversation >"
     single_admin: 
       admin: "Vaš administrator Diaspore"
       subject: "Sporočilo o vašem Diaspora računu:"
     started_sharing: 
       sharing: "has started sharing with you!"
-      sign_in: "Sign in here"
       subject: "%{name} has started sharing with you on Diaspora*"
+      view_profile: "View %{name}'s profile"
     thanks: "Hvala,"
+    to_change_your_notification_settings: "to change your notification settings"
   ok: "OK"
   or: "ali"
   password: "Geslo"
@@ -350,13 +450,11 @@ sl:
       remove_contact: "odstrani stik"
       remove_from: "Ali odstranim %{name} iz skupine %{aspect}?"
     show: 
-      add_some: "add some"
       does_not_exist: "Oseba ne obstaja!"
-      edit: "edit"
+      has_not_shared_with_you_yet: "%{name} has not shared any posts with you yet!"
       incoming_request: "%{name} želi deliti z vami."
       mention: "Mention"
       message: "Message"
-      no_posts: "ni prispevkov na ogled!"
       not_connected: "S to osebo ne delite"
       recent_posts: "Zadnje objave"
       recent_public_posts: "Zadnje javne objave"
@@ -364,11 +462,15 @@ sl:
       see_all: "See all"
       start_sharing: "začni deliti"
       to_accept_or_ignore: "sprejmite ali zavrnite."
+    sub_header: 
+      add_some: "add some"
+      edit: "edit"
       you_have_no_tags: "you have no tags!"
     webfinger: 
       fail: "Žal ni bilo mogoče najti %{handle}."
     zero: "no people"
   photos: 
+    comment_email_subject: "%{name}'s photo"
     create: 
       integrity_error: "Nalaganje slike ni uspelo. Ste prepričani, da je bila izbrana slika?"
       runtime_error: "Nalaganje slike ni uspelo. Imate pripet varnostni pas?"
@@ -396,10 +498,8 @@ sl:
       edit: "uredi"
       edit_delete_photo: "Dodaj opis slike ali izbriši sliko"
       make_profile_photo: "uporabi sliko za moj profil"
-      original_post: "Original Post"
-      permalink: "trajna povezava"
+      show_original_post: "Show original post"
       update_photo: "Posodobi sliko"
-      view: "poglej"
     update: 
       error: "Urejanje slike ni uspelo."
       notice: "Slika uspešno posodobljena."
@@ -407,7 +507,10 @@ sl:
     update: 
       post_hidden: "%{name}'s post has been hidden."
   posts: 
-    doesnt_exist: "that post does not exist!"
+    show: 
+      destroy: "Delete"
+      not_found: "Sorry, we couldn't find that post."
+      permalink: "permalink"
   previous: "prejšnja"
   profile: "Profil"
   profiles: 
@@ -430,6 +533,7 @@ sl:
     update: 
       failed: "Failed to update profile"
       updated: "Profile updated"
+  public: "Public"
   registrations: 
     closed: "Za ta 'Diaspora pod' registracije trentno niso omogočene."
     create: 
@@ -442,12 +546,13 @@ sl:
       unhappy: "Ste nezadovoljni?"
       update: "Posodobi"
     new: 
+      create_my_account: "Create my account"
       enter_email: "Vpišite e-naslov"
       enter_password: "Vpišite geslo"
       enter_password_again: "Ponovno vpišite isto geslo"
       enter_username: "Izberite uporabniško ime (samo črke, številke in podčrtaji)"
-      sign_up: "Registriraj me"
-      sign_up_for_diaspora: "Registirajte se v Diasporo"
+      join_the_movement: "Join the movement!"
+      sign_up_today: "Sign up today"
   requests: 
     create: 
       sending: "Pošiljam"
@@ -468,6 +573,21 @@ sl:
       manage_within: "Uredi stike znotraj"
     new_request_to_person: 
       sent: "poslano!"
+  reshares: 
+    comment_email_subject: "%{resharer}'s reshare of %{author}'s post"
+    create: 
+      failure: "There was an error resharing this post."
+    reshare: 
+      deleted: "Original post deleted by author."
+      reshare: 
+        few: "%{count} Reshares"
+        many: "%{count} Reshares"
+        one: "1 Reshare"
+        other: "%{count} Reshares"
+        zero: "Reshare"
+      reshare_confirmation: "Reshare %{author} - %{text}?"
+      reshare_original: "Reshare orignial"
+      show_original: "Show Original"
   search: "Najdi"
   services: 
     create: 
@@ -477,35 +597,41 @@ sl:
     failure: 
       error: "pri povezovanju s servisom je prišlo do napake"
     finder: 
-      friends: 
-        few: "%{count} prijateljev"
-        many: "%{count} friends"
-        one: "1 prijatelj"
-        other: "%{count} prijateljev"
-        zero: "brez prijateljev"
-      invite_your_friends_from: "Povabi prijatelje iz %{service}"
-      not_connected: "ni povezano"
+      no_friends: "No Facebook friends found."
+      service_friends: "%{service} Friends"
     index: 
       connect_to_facebook: "Poveži se s facebook"
+      connect_to_tumblr: "Connect to Tumblr"
       connect_to_twitter: "Poveži se s twitter"
       disconnect: "povezava prekinjena"
       edit_services: "Uredi servise"
       logged_in_as: "prijavljeni ste kot"
+      no_services: "You have not connected any services yet."
       really_disconnect: "prekinem povezavo s servisom %{service}?"
     inviter: 
       click_link_to_accept_invitation: "Kliknite na povezavo za potrditev vašega povabila"
       join_me_on_diaspora: "Pridruži se mi na DIASPORI*"
     remote_friend: 
       invite: "povabi"
+      not_on_diaspora: "Not yet on Diaspora"
       resend: "pošlji ponovno"
   settings: "Nastavitve"
   shared: 
     add_contact: 
+      add_new_contact: "Add a new contact"
       create_request: "Poišči po Diaspora imenu"
       diaspora_handle: "diaspora@handle.org"
       enter_a_diaspora_username: "Vpišite Diaspora uporabniško ime:"
       know_email: "Ali poznate njihove naslove e-naslove? Povabite jih"
       your_diaspora_username_is: "Vaše Diaspora uporabniško ime je: %{diaspora_handle}"
+    aspect_dropdown: 
+      add_to_aspect: "Add to aspect"
+      toggle: 
+        few: "In %{count} aspects"
+        many: "In %{count} aspects"
+        one: "In %{count} aspect"
+        other: "In %{count} aspects"
+        zero: "Add to aspect"
     contact_list: 
       all_contacts: "Vsi stiki"
     footer: 
@@ -528,25 +654,27 @@ sl:
       outside: "Javna sporočila bodo na ogled tudi osebam izven Diaspore."
       title: "Objavili boste javno sporočilo!"
     publisher: 
-      add_photos: "dodaj slike"
       all: "vsi"
       all_contacts: "vsi stiki"
       click_to_share_with: "Click to share with: "
+      discard_post: "Discard post"
       make_public: "objavi kot javno"
       post_a_message_to: "Objavi sporočilo v %{aspect}"
       posting: "Objavljam..."
-      public: "Public"
       publishing_to: "publishing to: "
       share: "Objavi"
       share_with: "deli s/z"
+      upload_photos: "Upload photos"
       whats_on_your_mind: "bi kaj želeli sporočiti?"
     reshare: 
       reshare: "Objavi še v"
     stream_element: 
       dislike: "I dislike this"
       like: "I like this"
+      shared_with: "Shared with: %{aspect_names}"
       unlike: "Unlike"
       via: "via %{link}"
+      viewable_to_anyone: "This post is viewable to anyone on the web"
   status_messages: 
     create: 
       success: "Successfully mentioned: %{names}"
@@ -556,10 +684,6 @@ sl:
       no_message_to_display: "Ni sporočil."
     new: 
       mentioning: "Mentioning: %{person}"
-    show: 
-      destroy: "Izbriši"
-      not_found: "Sorry, we couldn't find that post."
-      permalink: "trajna povezava"
     too_long: 
       few: "please make your status messages less than %{count} characters"
       many: "please make your status messages less than %{count} characters"
@@ -568,20 +692,46 @@ sl:
       zero: "please make your status messages less than %{count} characters"
   stream_helper: 
     hide_comments: "skrij komentarje"
-    show_comments: "prikaži vse komentarje"
+    show_more_comments: "Show %{number} more comments"
+  tag_followings: 
+    create: 
+      failure: "Failed to follow: #%{name}"
+      success: "Successfully following: #%{name}"
+    destroy: 
+      failure: "Failed to stop following: #%{name}"
+      success: "Successfully stopped following: #%{name}"
   tags: 
     show: 
+      follow: "Follow #%{tag}"
+      following: "Following #%{tag}"
       nobody_talking: "Nobody is talking about %{tag} yet."
       people_tagged_with: "People tagged with %{tag}"
       posts_tagged_with: "Posts tagged with #%{tag}"
-  the_world: "na splet"
+      stop_following: "Stop Following #%{tag}"
+  tokens: 
+    show: 
+      connect_to_cubbies: "Connect to Cubbi.es"
+      connecting_is_simple: "Connecting your Diaspora account is as simple as filling out two fields on your Cubbi.es account page."
+      daniels_account: "Daniel's Diaspora account"
+      log_in_with_diaspora_is_comming: "Pretty soon, you'll be able to connect to a new application without creating an account separate from your one on Diaspora."
+      love_to_try: "We'd love for you to try it out."
+      making_the_connection: "Making the Connection"
+      screenshot_explanation: "%{link1}.  This particular cubby is linked to %{link2}."
+      sign_up_today: "Sign up today!"
+      typical_userpage: "A typical cubbi.es userpage"
+      via: "(via %{link})"
+      what_is_cubbies: "Cubbi.es is the world's first Diaspora application.  It's also the best way to collect photos online."
   undo: "Undo?"
   username: "Uporabniško ime"
   users: 
+    confirm_email: 
+      email_confirmed: "E-Mail %{email} activated"
+      email_not_confirmed: "E-Mail could not be activated. Wrong link?"
     destroy: "Uporabniški račun je uspešno zaprt."
     edit: 
       also_commented: "...someone also comments on your contact's post?"
       change: "Spremeni"
+      change_email: "Change E-Mail"
       change_language: "Spremeni jezik"
       change_password: "Spremeni geslo"
       close_account: "Zapri uporabniški račun"
@@ -590,6 +740,7 @@ sl:
       download_photos: "prenesi slike"
       download_xml: "prenesi v xml"
       edit_account: "Uredi uporabniški račun"
+      email_awaiting_confirmation: "We have sent you an activation link to %{unconfirmed_email}. Till you follow this link and activate the new address, we will continue to use your original address %{email}."
       export_data: "Izvozi podatke"
       liked: "...someone likes your post?"
       mentioned: "...you are mentioned in a post?"
@@ -600,21 +751,32 @@ sl:
       your_email: "Vaš e-naslov"
       your_handle: "Vaš diaspora naslov"
     getting_started: 
-      connect_on_diaspora: "Connect on Diaspora"
-      connect_services: "Povežite se s servisi"
-      could_not_find_anyone: "Could not find any friends on Diaspora*. Use the friend finder to invite them."
-      edit_profile: "Uredite vaš profil"
+      bold: "aspects"
+      connect_to: "Connect to"
+      connect_to_your_other_social_networks: "Connect to your other social networks"
+      connect_with_people: "Connect with cool people"
+      connect_with_people_explanation_pt1: "Connect with people by placing them into one or more of your"
+      connect_with_people_explanation_pt2: "Aspects are an intuitive way to group new and familar faces, private to you, allowing you to filter down or share with subsets of your contacts easily."
+      featured_tags: "Featured tags"
+      featured_users: "Featured users"
+      fill_out_your_profile: "Fill out your profile"
+      find_friends: "Find friends"
+      find_friends_from_facebook: "find friends from Facebook"
       finished: "Končano!"
-      save_and_continue: "Shrani in nadaljuj"
-      signup_steps: "Zaključite vašo registracijo s pomočjo naslednjih treh korakov:"
-      skip: "preskoči čarovnika"
-      step_2: 
-        find_your_friends_on_diaspora: "Would you like to find your Facebook friends on Diaspora?"
-        skip: "Skip"
-      step_3: 
-        finish: "Finish"
-        people_already_on_diaspora: "People already on Diaspora"
+      follow_your_interests: "Follow your interests"
+      hashtag_explanation: "Hashtags allow you to talk about and follow your interests.  They're also a great way to find new people on Diaspora."
+      profile_description: "Make it easier for people to find you by filling out your profile information."
+      profile_fields: 
+        bio: "Bio"
+        birthday: "Birthday"
+        gender: "Gender"
+        location: "Location"
+        name: "Name"
+        photo: "Photo"
+        tags: "Tags"
+      see_all_featured_users: "See all featured users"
       welcome: "Dobrodošli v Diasporo!"
+      welcome_with_name: "Welcome, %{name}!"
     public: 
       does_not_exist: "Uporabnik %{username} ne obstaja!"
     update: 
@@ -623,6 +785,8 @@ sl:
       language_not_changed: "Sprememba jezika ni uspela"
       password_changed: "Geslo spremenjeno"
       password_not_changed: "Sprememba gesla ni uspela"
+      unconfirmed_email_changed: "E-Mail Changed. Needs activation."
+      unconfirmed_email_not_changed: "E-Mail Change Failed"
   webfinger: 
     fetch_failed: "'webfinger' profil ni bilo mogoče prenesti za %{profile_url}"
     hcard_fetch_failed: "prišlo je do težave pri prenosu 'hCard' kartice za %{account}"

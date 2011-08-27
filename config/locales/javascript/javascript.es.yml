@@ -14,17 +14,21 @@ es:
         other: "En {{count}} aspectos"
         zero: "Añadir al aspecto"
     comments: 
-      hide: "hide comments"
-      show: "show all comments"
+      hide: "ocultar comentarios"
+      show: "ver todos los comentarios"
     confirm_dialog: "¿Estás seguro?"
-    failed_to_like: "Failed to like!"
-    failed_to_post_message: "Failed to post message!"
+    failed_to_like: "¡Ha fallado tu aprobación!"
+    failed_to_post_message: "¡Fallo al publicar el mensaje!"
     infinite_scroll: 
       no_more: "No hay más publicaciones."
     publisher: 
       at_least_one_aspect: "Debes publicarlo en al menos un aspecto"
+      limited: "Limitado - tu publicación será visible solo para la gente con la que lo compartas"
+      public: "Público - tu publicación será visible para todos e indexado por buscadores"
+    reshares: 
+      duplicate: "¡Ya has vuelto a compartir esa publicación!"
     search_for: "Buscar a {{name}}"
-    show_more: "show more"
+    show_more: "ver más"
     timeago: 
       day: "un día"
       days: "%d días"
@@ -33,7 +37,7 @@ es:
       minute: "un minuto"
       minutes: "%d minutos"
       month: "un mes aproximadamente"
-      months: "%d meses"
+      months: "%d meses aproximadamente"
       prefixAgo: "hace"
       prefixFromNow: "desde ahora"
       seconds: "menos de un minuto"
@@ -45,4 +49,4 @@ es:
       unknown: "Tipo de video desconocido"
       watch: "Ver este video con {{provider}}"
     web_sockets: 
-      disconnected: "The websocket is closed; posts will no longer be streamed live."
+      disconnected: "El canal está cerrado; los comentarios no serán actualizados al momento."

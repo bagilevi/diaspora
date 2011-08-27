@@ -60,33 +60,6 @@ describe AdminsController do
     end
   end
 
-  describe '#add_invites' do
-    context 'admin not signed in' do
-      it 'is behind redirect_unless_admin' do
-        get :add_invites
-        response.should redirect_to root_url
-      end
-    end
-
-    context 'admin signed in' do
-      before do
-        AppConfig[:admins] = [@user.username]
-      end
-
-      it "redirects to :back with user id" do
-        get :add_invites, :user_id => @user.id
-        response.should redirect_to user_search_path(:user => { :id => @user.id })
-      end
-
-      it "increases user's invite by 10" do
-        expect {
-          get :add_invites, :user_id => @user.id
-        }.to change { @user.reload.invites }.by(10)
-        flash.notice.should include('Great Job')
-      end
-    end
-  end
-
   describe '#admin_inviter' do
     context 'admin not signed in' do
       it 'is behind redirect_unless_admin' do
@@ -100,20 +73,35 @@ describe AdminsController do
         AppConfig[:admins] = [@user.username]
       end
 
+      it 'succeeds' do
+        get :admin_inviter, :identifier => 'bob@moms.com'
+        response.should be_redirect
+      end
+
+      it 'does not die if you do it twice' do
+        get :admin_inviter, :identifier => 'bob@moms.com'
+        get :admin_inviter, :identifier => 'bob@moms.com'
+        response.should be_redirect
+      end
+
       it 'invites a new user' do
-        Invitation.should_receive(:create_invitee).with(:service => 'email', :identifier => 'bob@moms.com')
+        Invitation.should_receive(:create)
         get :admin_inviter, :identifier => 'bob@moms.com'
         response.should redirect_to user_search_path
         flash.notice.should include("invitation sent")
       end
+    end
+  end
 
-      it 'passes an existing user to create_invitee' do
-        Factory.create(:user, :email => 'bob@moms.com')
-        bob = User.where(:email => 'bob@moms.com').first
-        Invitation.should_receive(:find_existing_user).with('email', 'bob@moms.com').and_return(bob)
-        Invitation.should_receive(:create_invitee).with(:service => 'email', :identifier => 'bob@moms.com', :existing_user => bob)
-        get :admin_inviter, :identifier => 'bob@moms.com'
-      end
+  describe '#stats' do
+    before do
+      AppConfig[:admins] = [@user.username]
+    end
+
+    it 'succeeds and renders stats' do
+      get :stats
+      response.should be_success
+      response.should render_template(:stats)
     end
   end
 end

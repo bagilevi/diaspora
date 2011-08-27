@@ -17,20 +17,59 @@
 
   - elsif (current_user || !@landing_page)
     #global_search
-      = form_tag(people_path, :method => 'get', :id => "global_search_form") do
-        = text_field_tag 'q', nil, :placeholder => t('search'), :type => 'search', :results => 5
+      = form_tag(people_path, :method => 'get', :class => "search_form") do
+        = text_field_tag 'q', nil, :placeholder => t('find_people'), :type => 'search', :results => 5
 
     - if @notification_count
-      #notification_badge
-        = link_to "", notifications_path, :title => new_notification_text(@notification_count)
-        = image_tag 'icons/monotone_flag.png', :height => 20, :width => 20
-        .badge_count{:class => ("hidden" if @notification_count == 0)}
-          = @notification_count
-      #message_inbox_badge
-        = link_to "", conversations_path , :title => new_message_text(@unread_message_count)
-        = image_tag 'icons/mail_grey.png', :height => 16, :width => 16
-        .badge_count{:class => ("hidden" if @unread_message_count == 0)}
-          = @unread_message_count
+      #nav_badges
+        #home_badge.badge
+          = link_to aspects_path, :title => t('_home') do
+            = image_tag 'icons/home_grey.svg', :height => 16
+
+        #contacts_badge.badge
+          = link_to contacts_link, :title => t('_contacts') do
+            = image_tag 'icons/contacts_grey.svg', :height => 16
+
+        #notification_badge.badge
+          = link_to notifications_path, :title => new_notification_text(@notification_count) do
+            = image_tag 'icons/notifications_grey.svg', :height => 16, :id => "notification-flag"
+            .badge_count{:class => ("hidden" if @notification_count == 0)}
+              = @notification_count
+
+        #message_inbox_badge.badge
+          = link_to conversations_path , :title => new_message_text(@unread_message_count) do
+            = image_tag 'icons/mail_grey.svg', :width => 18
+            .badge_count{:class => ("hidden" if @unread_message_count == 0)}
+              = @unread_message_count
+
+      #notification_dropdown
+        .header
+          = link_to t('.view_all'), notifications_path, :id => "view_all_notifications"
+          %h4
+            = t('.recent_notifications')
+        .notifications
+          .ajax_loader
+            = image_tag("ajax-loader.gif")
+
+      #hovercard_container
+        #hovercard
+          %img.avatar
+          %h4
+            %a.person
+          #hovercard_dropdown_container
+
+          .hovercard_footer
+            .footer_container
+              .hashtags
+
+      #lightbox
+        #lightbox-content
+          = link_to "[x] close", '#', :id => 'lightbox-close-link'
+          %img#lightbox-image
+          #lightbox-imageset
+
+
+      #lightbox-backdrop
 
     %ul#user_menu.dropdown
       %li
@@ -38,7 +77,7 @@
           &#9660;
         .avatar
           = owner_image_tag(:thumb_small)
-        = link_to current_user.name, '#'
+        = link_to current_user.name, '#', :title => current_user.diaspora_handle
       %li= link_to t('.profile'), current_user.person
       %li= link_to t('.settings'), edit_user_path
       -if current_user.admin?
@@ -46,17 +85,6 @@
       %li= link_to t('.logout'), destroy_user_session_path
 
     -unless @landing_page
-      %ul#aspect_nav
-        %li{:class => ('selected' if @aspect == :all)}
-          = link_to t('all_aspects'), aspects_path, :class => 'home_selector'
-
-        - for aspect in @all_aspects
-          %li{:data=>{:guid=>aspect.id}, :class => ("selected" if @object_aspect_ids.include?(aspect.id))}
-            = link_for_aspect(aspect, :class => 'aspect_selector name', :title => t('contacts', :count => aspect.contacts.size))
-
-        %li
-          = link_to '+', '#add_aspect_pane', :class => "add_aspect_button", :title => t('aspects.manage.add_a_new_aspect'), :rel => 'facebox'
-
       .facebox_content
         #add_aspect_pane
           = render "aspects/new"

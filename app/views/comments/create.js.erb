@@ -1,5 +1,9 @@
-WebSocketReceiver.processComment(<%= @comment.post_id %>, 
-                                 <%= @comment.id %>,
-                                 "<%= escape_javascript(render(:partial => 'comments/comment', :locals => { :comment => @comment, :person => current_user.person}))%>",
-                                 false);
+ContentUpdater.addCommentToPost("<%= @comment.post.guid %>",
+   "<%= @comment.guid%>",
+   "<%= escape_javascript(render(:partial => 'comments/comment', :locals => { :comment => @comment, :person => current_user.person}))%>");
 
+Diaspora.page
+  .stream
+  .streamElements["<%= @comment.post.guid %>"]
+  .commentStream
+  .instantiateCommentWidgets();

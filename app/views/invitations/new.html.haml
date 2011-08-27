@@ -24,7 +24,7 @@
 
         %h4
           = t('.aspect')
-        = invite.select(:aspects, options_from_collection_for_select(@all_aspects, 'id', 'name'))
+        = invite.select(:aspects, options_from_collection_for_select(all_aspects, 'id', 'name'))
 
         %br
         %br
@@ -36,11 +36,14 @@
         %p
           = invite.submit t('.send_an_invitation')
 
-  - if !@sent_invitations.empty?
-    .span-6.last
+  %br
+  %br
+  - unless @sent_invitations.empty?
+    .span-6.prepend-3.last
       #already_invited_pane
         %h4
           = t('.already_invited')
         - for invitation in @sent_invitations
-          = invitation.recipient.email
+          = invitation.recipient_identifier
           = link_to t('.resend'), invitation_resend_path(invitation), :confirm => t('are_you_sure')
+          %br

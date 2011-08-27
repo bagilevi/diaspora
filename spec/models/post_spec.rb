@@ -10,10 +10,17 @@ describe Post do
     @aspect = @user.aspects.create(:name => "winners")
   end
 
+  describe 'validations' do
+    it 'validates uniqueness of guid and does not throw a db error' do
+      message = Factory(:status_message)
+      Factory.build(:status_message, :guid => message.guid).should_not be_valid
+    end
+  end
+
   describe 'deletion' do
     it 'should delete a posts comments on delete' do
       post = Factory.create(:status_message, :author => @user.person)
-      @user.comment "hey", :on => post
+      @user.comment "hey", :post => post
       post.destroy
       Post.where(:id => post.id).empty?.should == true
       Comment.where(:text => "hey").empty?.should == true
@@ -51,6 +58,29 @@ describe Post do
     end
   end
 
-  describe '#receive' do
+  describe '#last_three_comments' do
+    it 'returns the last three comments of a post' do
+      post = bob.post :status_message, :text => "hello", :to => 'all'
+      created_at = Time.now - 100
+      comments = [alice, eve, bob, alice].map do |u|
+        created_at = created_at + 10
+        u.comment("hey", :post => post, :created_at => created_at)
+      end
+      post.last_three_comments.map{|c| c.id}.should == comments[1,3].map{|c| c.id}
+    end
+  end
+
+  describe 'Likeable#update_likes_counter' do
+    before do
+      @post = bob.post :status_message, :text => "hello", :to => 'all'
+      bob.like(1, :target => @post)
+    end
+    it 'does not update updated_at' do
+      old_time = Time.zone.now - 10000
+      Post.where(:id => @post.id).update_all(:updated_at => old_time)
+      @post.reload.updated_at.to_i.should == old_time.to_i
+      @post.update_likes_counter
+      @post.reload.updated_at.to_i.should == old_time.to_i
+    end
   end
 end

@@ -10,8 +10,11 @@ available:
   de: "Deutsch"
   el: "Ελληνικά"
   en: "English"
+  en_pirate: "English (Pirate)"
   en_shaw: "𐑦𐑙𐑤𐑦𐑖"
+  eo: "Esperanto"
   es: "Español"
+  es-AR: "Castellano"
   es-CL: "Español Chileno"
   eu: "Euskara"
   fi: "Suomi"
@@ -50,10 +53,16 @@ fallbacks:
     - :en
     - :en-GB
     - :en-US
+  en_pirate:
+    - :en
+    - :en-GB
+    - :en-US
   sv:
     - :sv-SE
   he:
     - :he-IL
+  es-AR:
+    - :es
   es-CL:
     - :es
   gl:

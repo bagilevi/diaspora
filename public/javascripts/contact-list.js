@@ -7,15 +7,13 @@ var List = {
   initialize: function() {
     $(".contact_list_search").live("keyup", function(e) {
       var search = $(this);
-      var list   = $(this).siblings("ul").first();
+      var list   = $(".contacts", ".searchable");
       var query  = new RegExp(search.val(),'i');
 
-      $("> li", list).each( function() {
-        var element = $(this);
-        if( !element.text().match(query) ) {
-          if( !element.hasClass('hidden') ) {
-            element.addClass('hidden');
-          }
+      $("> .contact", list).each( function(idx, element) {
+        element = $(element);
+        if( !element.find(".name").text().match(query) ) {
+          element.addClass('hidden');
         } else {
           element.removeClass('hidden');
         }
@@ -23,22 +21,21 @@ var List = {
     });
   },
   disconnectUser: function(contact_id){
-        $.ajax({
-            url: "/contacts/" + contact_id,
-            type: "DELETE",
-            success: function(){
-                if( $('.contact_list').length == 1){
-                  $('.contact_list li[data-contact_id='+contact_id+']').fadeOut(200);
-                } else if($('#aspects_list').length == 1) {
-                  $.facebox.close();
-                };
-              }
-            });
+    $.ajax({
+        url: "/contacts/" + contact_id,
+        type: "DELETE",
+        success: function(){
+          if( $('.searchable').length == 1){
+              $('.searchable .contact[data-contact_id='+contact_id+']').fadeOut(200);
+          } else if($('#aspects_list').length == 1) {
+            $.facebox.close();
+          };
+        }
+    });
   }
 };
 
 $(document).ready(function() {
-
   $('.added').live('ajax:loading', function() {
     $(this).addClass('disabled');
     $(this).fadeTo(200,0.4);

@@ -29,6 +29,10 @@ describe CommentsController do
         response.code.should == '201'
         response.body.should match comment_hash[:text]
       end
+      it 'responds to format mobile' do
+        post :create, comment_hash.merge(:format => 'mobile')
+        response.should be_redirect
+      end
     end
 
     context "on a post from a contact" do
@@ -49,7 +53,7 @@ describe CommentsController do
       end
 
       it "doesn't overwrite id" do
-        old_comment = alice.comment("hello", :on => @post)
+        old_comment = alice.comment("hello", :post => @post)
         comment_hash[:id] = old_comment.id
         post :create, comment_hash
         old_comment.reload.text.should == 'hello'
@@ -73,20 +77,20 @@ describe CommentsController do
     context 'your post' do
       before do
         @message = alice.post(:status_message, :text => "hey", :to => @aspect1.id)
-        @comment = alice.comment("hey", :on => @message)
-        @comment2 = bob.comment("hey", :on => @message)
-        @comment3 = eve.comment("hey", :on => @message)
+        @comment = alice.comment("hey", :post => @message)
+        @comment2 = bob.comment("hey", :post => @message)
+        @comment3 = eve.comment("hey", :post => @message)
       end
 
       it 'lets the user delete his comment' do
         alice.should_receive(:retract).with(@comment)
-        delete :destroy, :format => "js",  :id => @comment.id
+        delete :destroy, :format => "js", :post_id => 1,  :id => @comment.id
         response.status.should == 204
       end
 
       it "lets the user destroy other people's comments" do
         alice.should_receive(:retract).with(@comment2)
-        delete :destroy, :format => "js",  :id => @comment2.id
+        delete :destroy, :format => "js", :post_id => 1,  :id => @comment2.id
         response.status.should == 204
       end
     end
@@ -94,22 +98,53 @@ describe CommentsController do
     context "another user's post" do
       before do
         @message = bob.post(:status_message, :text => "hey", :to => bob.aspects.first.id)
-        @comment = alice.comment("hey", :on => @message)
-        @comment2 = bob.comment("hey", :on => @message)
-        @comment3 = eve.comment("hey", :on => @message)
+        @comment = alice.comment("hey", :post => @message)
+        @comment2 = bob.comment("hey", :post => @message)
+        @comment3 = eve.comment("hey", :post => @message)
       end
 
       it 'let the user delete his comment' do
         alice.should_receive(:retract).with(@comment)
-        delete :destroy, :format => "js",  :id => @comment.id
+        delete :destroy, :format => "js", :post_id => 1,  :id => @comment.id
         response.status.should == 204
       end
 
       it 'does not let the user destroy comments he does not own' do
         alice.should_not_receive(:retract).with(@comment2)
-        delete :destroy, :format => "js",  :id => @comment3.id
+        delete :destroy, :format => "js", :post_id => 1,  :id => @comment3.id
         response.status.should == 403
       end
+    end
+    it 'renders nothing and 404 on a nonexistent comment' do
+      delete :destroy, :post_id => 1, :id => 343415
+      response.status.should == 404
+      response.body.strip.should be_empty
+    end
+  end
+
+  describe '#index' do
+    before do
+      @message = bob.post(:status_message, :text => "hey", :to => bob.aspects.first.id)
+      @comments = [alice, bob, eve].map{ |u| u.comment("hey", :post => @message) }
+    end
+    it 'works for mobile' do
+      get :index, :post_id => @message.id, :format => 'mobile'
+      response.should be_success
+    end
+
+    it 'returns all the comments for a post' do
+      get :index, :post_id => @message.id, :format => 'js'
+      assigns[:comments].should == @comments
+    end
+    it 'returns a 404 on a nonexistent post' do
+      get :index, :post_id => 235236, :format => 'js'
+      response.status.should == 404
+    end
+    it 'returns a 404 on a post that is not visible to the signed in user' do
+      message = eve.post(:status_message, :text => "hey", :to => eve.aspects.first.id)
+      bob.comment("hey", :post => @message)
+      get :index, :post_id => message.id, :format => 'js'
+      response.status.should == 404
     end
   end
 end

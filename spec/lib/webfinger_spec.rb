@@ -7,6 +7,7 @@ require 'spec_helper'
 require File.join(Rails.root, 'lib/webfinger')
 
 describe Webfinger do
+  let(:host_with_port) { "#{AppConfig.pod_uri.host}:#{AppConfig.pod_uri.port}" }
   let(:user1) { alice }
   let(:user2) { eve }
 
@@ -40,18 +41,13 @@ describe Webfinger do
 
     context 'webfinger query chain processing' do
       describe '#webfinger_profile_url' do
-        it 'should parse out the webfinger template' do
+        it 'parses out the webfinger template' do
           finger.send(:webfinger_profile_url, diaspora_xrd).should ==
-            "http://example.org/webfinger?q=foo@tom.joindiaspora.com"
+            "http://#{host_with_port}/webfinger?q=foo@tom.joindiaspora.com"
         end
 
         it 'should return nil if not an xrd' do
           finger.send(:webfinger_profile_url, '<html></html>').should be nil
-        end
-
-        it 'should return the template for xrd' do
-          finger.send(:webfinger_profile_url, diaspora_xrd).should ==
-            'http://example.org/webfinger?q=foo@tom.joindiaspora.com'
         end
       end
 
@@ -67,6 +63,20 @@ describe Webfinger do
       end
     end
 
+    describe '#get_xrd' do
+      it 'follows redirects' do
+        redirect_url = "http://whereami.whatisthis/host-meta"
+        stub_request(:get, "https://tom.joindiaspora.com/.well-known/host-meta").
+          to_return(:status => 302, :headers => { 'Location' => redirect_url })
+        stub_request(:get, redirect_url).
+          to_return(:status => 200, :body => diaspora_xrd)
+        begin
+        finger.send :get_xrd
+        rescue; end
+        a_request(:get, redirect_url).should have_been_made
+      end
+    end
+
 
     context 'webfingering local people' do
       it 'should return a person from the database if it matches its handle' do
@@ -75,24 +85,40 @@ describe Webfinger do
       end
     end
     it 'should fetch a diaspora webfinger and make a person for them' do
-      diaspora_xrd.stub!(:body).and_return(diaspora_xrd)
-      hcard_xml.stub!(:body).and_return(hcard_xml)
-      diaspora_finger.stub!(:body).and_return(diaspora_finger)
-      RestClient.stub!(:get).and_return(diaspora_xrd, diaspora_finger, hcard_xml)
-      #new_person = Factory.build(:person, :diaspora_handle => "tom@tom.joindiaspora.com")
-      # http://tom.joindiaspora.com/.well-known/host-meta
-      f = Webfinger.new("alice@example.org").fetch
+      User.delete_all; Person.delete_all; Profile.delete_all
+      hcard_url = "http://google-1655890.com/hcard/users/29a9d5ae5169ab0b"
 
-      f.should be_valid
+      f = Webfinger.new("alice@#{host_with_port}")
+      stub_request(:get, f.send(:xrd_url)).
+        to_return(:status => 200, :body => diaspora_xrd, :headers => {})
+      stub_request(:get, f.send(:webfinger_profile_url, diaspora_xrd)).
+        to_return(:status => 200, :body => diaspora_finger, :headers => {})
+      f.should_receive(:hcard_url).and_return(hcard_url)
+
+      stub_request(:get, hcard_url).
+        to_return(:status => 200, :body => hcard_xml, :headers => {})
+
+      person = f.fetch
+
+      WebMock.should have_requested(:get, f.send(:xrd_url))
+      WebMock.should have_requested(:get, f.send(:webfinger_profile_url, diaspora_xrd))
+      WebMock.should have_requested(:get, hcard_url)
+      person.should be_valid
     end
 
     it 'should retry with http if https fails' do
       f = Webfinger.new("tom@tom.joindiaspora.com")
+      xrd_url = "://tom.joindiaspora.com/.well-known/host-meta"
 
-      diaspora_xrd.stub!(:body).and_return(diaspora_xrd)
-      RestClient.should_receive(:get).twice.and_return(nil, diaspora_xrd)
-      f.should_receive(:xrd_url).twice
+      stub_request(:get, "https#{xrd_url}").
+        to_return(:status => 503, :body => "", :headers => {})
+      stub_request(:get, "http#{xrd_url}").
+        to_return(:status => 200, :body => diaspora_xrd, :headers => {})
+
+      #Faraday::Connection.any_instance.should_receive(:get).twice.and_return(nil, diaspora_xrd)
       f.send(:get_xrd)
+      WebMock.should have_requested(:get,"https#{xrd_url}")
+      WebMock.should have_requested(:get,"http#{xrd_url}")
       f.instance_variable_get(:@ssl).should == false
     end
 

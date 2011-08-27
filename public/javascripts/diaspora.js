@@ -4,52 +4,86 @@
 */
 
 (function() {
-  if(typeof window.Diaspora !== "undefined") {
-    return;
-  }
-
-  var Diaspora = { };
-
-  Diaspora.WidgetCollection = function() {
-    this.initialized = false;
-    this.collection = { };
-    this.eventsContainer = $({});
+  var Diaspora = {
+    Pages: {},
+    Widgets: {}
   };
 
-  Diaspora.WidgetCollection.prototype.add = function(widgetId, widget) {
-    this[widgetId] = this.collection[widgetId] = new widget();
-    if(this.initialized) {
-      this.collection[widgetId].start();
+  Diaspora.EventBroker = {
+    extend: function(Klass) {
+      var whatToExtend = (typeof Klass === "function") ? Klass.prototype : Klass;
+
+      $.extend(whatToExtend, {
+	      eventsContainer: $({}),
+        publish: function(eventName, args) {
+          var eventNames = eventName.split(" ");
+
+          for(eventName in eventNames) {
+            this.eventsContainer.trigger(eventNames[eventName], args);
+          }
+        },
+        subscribe: function(eventName, callback, context) {
+          var eventNames = eventName.split(" ");
+
+          for(eventName in eventNames) {
+            this.eventsContainer.bind(eventNames[eventName], $.proxy(callback, context));
+          }
+        }
+      });
+
+      return whatToExtend;
     }
   };
 
-  Diaspora.WidgetCollection.prototype.remove = function(widgetId) {
-    delete this.collection[widgetId];
-  };
+  Diaspora.BaseWidget = {
+    instantiate: function(Widget, element) {
+      $.extend(Diaspora.Widgets[Widget].prototype, Diaspora.EventBroker.extend(Diaspora.BaseWidget));
 
-  Diaspora.WidgetCollection.prototype.init = function() {
-    this.initialized = true;
+      var widget = new Diaspora.Widgets[Widget](),
+        args = Array.prototype.slice.call(arguments, 1);
 
-    for(var widgetId in this.collection) {
-      if(typeof this.collection[widgetId].start !== "undefined") {
-        this.collection[widgetId].start();
-      }
+      widget.publish("widget/ready", args);
+
+      return widget;
+    },
+
+    globalSubscribe: function(eventName, callback, context) {
+      Diaspora.page.subscribe(eventName, callback, context);
+    },  
+
+    globalPublish: function(eventName, args) {
+      Diaspora.page.publish(eventName, args);
     }
   };
 
-  Diaspora.WidgetCollection.prototype.subscribe = function(id, callback, context) {
-    this.eventsContainer.bind(id, $.proxy(callback, context));
+  Diaspora.BasePage = function(body) {
+    $.extend(this, Diaspora.BaseWidget);
+    $.extend(this, {
+      backToTop: this.instantiate("BackToTop", body.find("#back-to-top")),
+      directionDetector: this.instantiate("DirectionDetector"),
+      flashMessages: this.instantiate("FlashMessages"),
+      header: this.instantiate("Header", body.find("header")),
+      hoverCard: this.instantiate("HoverCard", body.find("#hovercard")),
+      timeAgo: this.instantiate("TimeAgo", "abbr.timeago")
+    });
   };
 
-  Diaspora.WidgetCollection.prototype.publish = function(id) {
-    this.eventsContainer.trigger(id);
-  };
+  Diaspora.instantiatePage = function() {
+    if (typeof Diaspora.Pages[Diaspora.Page] === "undefined") {
+      Diaspora.page = Diaspora.EventBroker.extend(Diaspora.BaseWidget);
+    } else {
+      var Page = Diaspora.Pages[Diaspora.Page];
+      $.extend(Page.prototype, Diaspora.EventBroker.extend(Diaspora.BaseWidget));
 
-  Diaspora.widgets = new Diaspora.WidgetCollection();
+      Diaspora.page = new Page();
+    }
+
+    $.extend(Diaspora.page, new Diaspora.BasePage($(document.body)));
+    Diaspora.page.publish("page/ready", [$(document.body)])
+  };
 
   window.Diaspora = Diaspora;
 })();
 
 
-$(document).ready(function() { Diaspora.widgets.init(); });
-
+$(Diaspora.instantiatePage);

@@ -34,8 +34,13 @@ describe UsersController do
     end
 
     it 'redirects to a profile page if html is requested' do
-
+      Diaspora::OstatusBuilder.should_not_receive(:new)
       get :public, :username => @user.username
+      response.should be_redirect
+    end
+    it 'redirects to a profile page if mobile is requested' do
+      Diaspora::OstatusBuilder.should_not_receive(:new)
+      get :public, :username => @user.username, :format => :mobile
       response.should be_redirect
     end
   end
@@ -44,7 +49,6 @@ describe UsersController do
     before do
       @params  = { :id => @user.id,
                   :user => { :diaspora_handle => "notreal@stuff.com" } }
-
     end
 
     it "doesn't overwrite random attributes" do
@@ -61,24 +65,6 @@ describe UsersController do
     it 'responds with a 204 on a js request' do
       put :update, @params.merge(:format => :js)
       response.status.should == 204
-    end
-
-    context "open aspects" do
-      before do
-        @index_params = {:id => @user.id, :user => {:a_ids => [@aspect.id.to_s, @aspect1.id.to_s]} }
-      end
-
-      it "stores the aspect params in the user" do
-        put :update,  @index_params
-        @user.reload.aspects.where(:open => true).all.to_set.should == [@aspect, @aspect1].to_set
-      end
-
-      it "correctly resets the home state" do
-        @index_params[:user][:a_ids] = ["home"]
-
-        put :update, @index_params
-        @user.aspects.where(:open => true).should == []
-      end
     end
 
     context 'password updates' do
@@ -105,6 +91,41 @@ describe UsersController do
            )
         @user.reload
         @user.language.should_not == old_language
+      end
+    end
+
+    describe 'email' do
+      before do
+        Resque.stub!(:enqueue)
+      end
+
+      it 'allow the user to change his (unconfirmed) email' do
+        put(:update, :id => @user.id, :user => { :email => "my@newemail.com"})
+        @user.reload
+        @user.unconfirmed_email.should eql("my@newemail.com")
+      end
+
+      it 'informs the user about success' do
+        put(:update, :id => @user.id, :user => { :email => "my@newemail.com"})
+        request.flash[:notice].should eql(I18n.t('users.update.unconfirmed_email_changed'))
+        request.flash[:error].should be_blank
+      end
+
+      it 'informs the user about failure' do
+        put(:update, :id => @user.id, :user => { :email => "my@newemailcom"})
+        request.flash[:error].should eql(I18n.t('users.update.unconfirmed_email_not_changed'))
+        request.flash[:notice].should be_blank
+      end
+
+      it 'allow the user to change his (unconfirmed) email to blank (= abort confirmation)' do
+        put(:update, :id => @user.id, :user => { :email => ""})
+        @user.reload
+        @user.unconfirmed_email.should eql(nil)
+      end
+
+      it 'sends out activation email on success' do
+        Resque.should_receive(:enqueue).with(Job::Mail::ConfirmEmail, @user.id).once
+        put(:update, :id => @user.id, :user => { :email => "my@newemail.com"})
       end
     end
 
@@ -145,4 +166,58 @@ describe UsersController do
       response.should redirect_to new_user_session_path
     end
   end
+
+  describe '#destroy' do
+    it 'enqueues a delete job' do
+      Resque.should_receive(:enqueue).with(Job::DeleteAccount, alice.id)
+      delete :destroy
+    end
+
+    it 'locks the user out' do
+      delete :destroy
+      alice.reload.access_locked?.should be_true
+    end
+  end
+
+  describe '#confirm_email' do
+    before do
+      @user.update_attribute(:unconfirmed_email, 'my@newemail.com')
+    end
+
+    it 'redirects to to the user edit page' do
+      get 'confirm_email', :token => @user.confirm_email_token
+      response.should redirect_to edit_user_path
+    end
+
+    it 'confirms email' do
+      get 'confirm_email', :token => @user.confirm_email_token
+      @user.reload
+      @user.email.should eql('my@newemail.com')
+      request.flash[:notice].should eql(I18n.t('users.confirm_email.email_confirmed', :email => 'my@newemail.com'))
+      request.flash[:error].should be_blank
+    end
+
+    it 'does NOT confirm email with wrong token' do
+      get 'confirm_email', :token => @user.confirm_email_token.reverse
+      @user.reload
+      @user.email.should_not eql('my@newemail.com')
+      request.flash[:error].should eql(I18n.t('users.confirm_email.email_not_confirmed'))
+      request.flash[:notice].should be_blank
+    end
+  end
+
+  describe 'getting_started' do
+    it 'does not fail miserably' do
+    get :getting_started
+    response.should be_success
+
+    end
+
+    it 'does not fail miserably on mobile' do
+    get :getting_started, :format => :mobile
+    response.should be_success
+
+    end
+  end
 end
+

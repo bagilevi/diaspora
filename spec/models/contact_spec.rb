@@ -68,6 +68,19 @@ describe Contact do
         }.by(1)
       end
     end
+
+    describe 'only_sharing' do
+      it 'returns contacts with sharing true and receiving false' do
+        lambda {
+          alice.contacts.create!(:receiving => true, :sharing => true, :person => Factory(:person))
+          alice.contacts.create!(:receiving => false, :sharing => true, :person => Factory(:person))
+          alice.contacts.create!(:receiving => false, :sharing => true, :person => Factory(:person))
+          alice.contacts.create!(:receiving => true, :sharing => false, :person => Factory(:person))
+        }.should change{
+          Contact.receiving.count
+        }.by(2)
+      end
+    end
   end
 
   describe '#contacts' do
@@ -76,17 +89,18 @@ describe Contact do
       @bob = bob
       @eve = eve
       @bob.aspects.create(:name => 'next')
+      @bob.aspects(true)
       @people1 = []
       @people2 = []
 
       1.upto(5) do
         person = Factory(:person)
-        bob.contacts.create(:person => person, :aspects => [bob.aspects.first])
+        @bob.contacts.create(:person => person, :aspects => [@bob.aspects.first])
         @people1 << person
       end
       1.upto(5) do
         person = Factory(:person)
-        bob.contacts.create(:person => person, :aspects => [bob.aspects.last])
+        @bob.contacts.create(:person => person, :aspects => [@bob.aspects.last])
         @people2 << person
       end
     #eve <-> bob <-> alice
@@ -94,11 +108,13 @@ describe Contact do
 
     context 'on a contact for a local user' do
       before do
+        @alice.reload
+        @alice.aspects.reload
         @contact = @alice.contact_for(@bob.person)
       end
 
       it "returns the target local user's contacts that are in the same aspect" do
-        @contact.contacts.map{|p| p.id}.should == [@eve.person].concat(@people1).map{|p| p.id}
+        @contact.contacts.map{|p| p.id}.should =~ [@eve.person].concat(@people1).map{|p| p.id}
       end
 
       it 'returns nothing if contacts_visible is false in that aspect' do

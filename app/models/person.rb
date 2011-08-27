@@ -17,16 +17,18 @@ class Person < ActiveRecord::Base
   xml_attr :profile, :as => Profile
   xml_attr :exported_key
 
-  has_one :profile
+  has_one :profile, :dependent => :destroy
   delegate :last_name, :to => :profile
+  accepts_nested_attributes_for :profile
 
   before_validation :downcase_diaspora_handle
   def downcase_diaspora_handle
     diaspora_handle.downcase! unless diaspora_handle.blank?
   end
 
-  has_many :contacts #Other people's contacts for this person
-  has_many :posts, :foreign_key => :author_id #his own posts
+  has_many :contacts, :dependent => :destroy #Other people's contacts for this person
+  has_many :posts, :foreign_key => :author_id, :dependent => :destroy #his own posts
+  has_many :comments, :foreign_key => :author_id, :dependent => :destroy #his own comments
 
   belongs_to :owner, :class_name => 'User'
 
@@ -42,40 +44,77 @@ class Person < ActiveRecord::Base
   validates_uniqueness_of :diaspora_handle
 
   scope :searchable, joins(:profile).where(:profiles => {:searchable => true})
+  scope :remote, where('people.owner_id IS NULL')
+  scope :local, where('people.owner_id IS NOT NULL')
+  scope :for_json, select('DISTINCT people.id, people.diaspora_handle').includes(:profile)
+
+  def self.featured_users
+    AppConfig[:featured_users].present? ? Person.where(:diaspora_handle => AppConfig[:featured_users]) : []
+  end
+
+  # Set a default of an empty profile when a new Person record is instantiated.
+  # Passing :profile => nil to Person.new will instantiate a person with no profile.
+  # Calling Person.new with a block:
+  #   Person.new do |p|
+  #     p.profile = nil
+  #   end
+  # will not work!  The nil profile will be overriden with an empty one.
+  def initialize(params={})
+    profile_set = params.has_key?(:profile) || params.has_key?("profile")
+    params[:profile_attributes] = params.delete(:profile) if params.has_key?(:profile) && params[:profile].is_a?(Hash)
+    super
+    self.profile ||= Profile.new unless profile_set
+  end
+  
+  
+  def self.find_from_id_or_username(params)
+    p =   if params[:id].present?
+            Person.where(:id => params[:id]).first
+          elsif params[:username].present? && u = User.find_by_username(params[:username])
+            u.person
+          else
+            nil
+          end
+    raise ActiveRecord::RecordNotFound unless p.present?
+    p
+  end
+
 
   def self.search_query_string(query)
-    where_clause = <<-SQL
-      profiles.first_name LIKE ? OR
-      profiles.last_name LIKE ? OR
-      people.diaspora_handle LIKE ? OR
-      profiles.first_name LIKE ? OR
-      profiles.last_name LIKE ?
-    SQL
-    sql = ""
-    tokens = []
+    query = query.downcase
+    like_operator = postgres? ? "ILIKE" : "LIKE"
 
-    query_tokens = query.to_s.strip.split(" ")
-    query_tokens.each_with_index do |raw_token, i|
-      token = "#{raw_token}%"
-      up_token = "#{raw_token.titleize}%"
-      sql << " OR " unless i == 0
-      sql << where_clause
-      tokens.concat([token, token, token])
-      tokens.concat([up_token, up_token])
-    end
-    [sql, tokens]
+    where_clause = <<-SQL
+      profiles.full_name #{like_operator} ? OR
+      people.diaspora_handle #{like_operator} ?
+    SQL
+
+    q_tokens = query.to_s.strip.gsub(/(\s|$|^)/) { "%#{$1}" }
+    [where_clause, [q_tokens, q_tokens]]
   end
 
   def self.search(query, user)
-    return [] if query.to_s.blank? || query.to_s.length < 3
+    return [] if query.to_s.blank? || query.to_s.length < 2
 
     sql, tokens = self.search_query_string(query)
+
     Person.searchable.where(sql, *tokens).joins(
-      "LEFT OUTER JOIN `contacts` ON `contacts`.user_id = #{user.id} AND `contacts`.person_id = `people`.id"
+      "LEFT OUTER JOIN contacts ON contacts.user_id = #{user.id} AND contacts.person_id = people.id"
     ).includes(:profile
-    ).order("contacts.user_id DESC", "profiles.last_name ASC", "profiles.first_name ASC")
+    ).order(search_order)
   end
 
+  # @return [Array<String>] postgreSQL and mysql deal with null values in orders differently, it seems.
+  def self.search_order
+    @search_order ||= Proc.new {
+      order = if postgres?
+        "ASC"
+      else
+        "DESC"
+      end
+      ["contacts.user_id #{order}", "profiles.last_name ASC", "profiles.first_name ASC"]
+    }.call
+  end
 
   def self.public_search(query, opts={})
     return [] if query.to_s.blank? || query.to_s.length < 3
@@ -192,33 +231,26 @@ class Person < ActiveRecord::Base
     !remote?
   end
 
-  def as_json(opts={})
-    opts ||= {}
-    if(opts[:format] == :twitter)
-      {
-        :id => self.guid,
-        :screen_name => self.diaspora_handle,
-        :name => self.name,
-        :created_at => self.created_at,
-        :profile_image_url => self.profile.image_url(:thumb_small),
-        :profile => self.profile.as_json(opts)
-      }
-    else
-      {:id => self.guid,
-       :name => self.name,
-       :avatar => self.profile.image_url(:thumb_small),
-       :handle => self.diaspora_handle,
-       :url => "/people/#{self.id}"}
-    end
+  def has_photos?
+    self.posts.where(:type => "Photo").exists?
   end
 
-  def to_twitter(format=:json)
+  def as_json( opts = {} )
+    opts ||= {}
+    json = {
+      :id => self.id,
+      :name => self.name,
+      :avatar => self.profile.image_url(:thumb_medium),
+      :handle => self.diaspora_handle,
+      :url => "/people/#{self.id}",
+    }
+    json.merge!(:tags => self.profile.tags.map{|t| "##{t.name}"}) if opts[:includes] == "tags"
+    json
   end
 
   protected
 
   def clean_url
-    self.url ||= "http://localhost:3000/" if self.class == User
     if self.url
       self.url = 'http://' + self.url unless self.url.match(/https?:\/\//)
       self.url = self.url + '/' if self.url[-1, 1] != '/'

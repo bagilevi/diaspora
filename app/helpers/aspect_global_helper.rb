@@ -9,12 +9,6 @@ module AspectGlobalHelper
     end
   end
 
-  def aspects_without_post(aspects, post)
-    aspects.reject do |aspect|
-      AspectVisibility.exists?(:aspect_id => aspect.id, :post_id => post.id)
-    end
-  end
-
   def aspect_badges(aspects, opts={})
     str = ''
     aspects.each do |aspect|
@@ -44,21 +38,6 @@ module AspectGlobalHelper
     str.html_safe
   end
 
-  def aspect_li(aspect, opts={})
-    param_string = ""
-    if opts.size > 0
-      param_string << '?'
-      opts.each_pair do |k, v|
-        param_string << "#{k}=#{v}"
-      end
-    end
-"<li>
-  <a href='/aspects/#{aspect.id}#{param_string}'>
-    #{aspect.name}
-  </a>
-</li>".html_safe
-  end
-
   def link_for_aspect(aspect, opts={})
     opts[:params] ||= {}
     params ||= {}
@@ -70,8 +49,12 @@ module AspectGlobalHelper
     link_to aspect.name, aspects_path( opts[:params] ), opts
   end
 
-  def current_aspect?(aspect)
-    !@aspect.nil? && !@aspect.instance_of?(Symbol) && @aspect.id == aspect.id
+  def aspect_listing_link_opts aspect
+    if controller.instance_of?(ContactsController)
+      {:href => contacts_path(:a_id => aspect.id)}
+    else
+      {:href => aspects_path("a_ids[]" => aspect.id), :class => "aspect_selector name hard_aspect_link", 'data-guid' => aspect.id}
+    end
   end
 
   def aspect_or_all_path(aspect)
@@ -82,20 +65,28 @@ module AspectGlobalHelper
     end
   end
 
-  def aspect_dropdown_list_item(aspect, contact, person)
-    checked = (contact.persisted? && contact.aspect_memberships.detect{ |am| am.aspect_id == aspect.id})
-    klass = checked ? "selected" : ""
-    hidden = !checked ? "hidden" : ""
+  def aspect_membership_dropdown(contact, person, hang, aspect=nil)
+    selected_aspects = all_aspects.select{|aspect| contact.in_aspect?(aspect) }
 
-    str = "<li data-aspect_id=#{aspect.id} class='#{klass}'>"
-    #str << "<input #{checked} id=\"in_aspect\" name=\"in_aspect\" type=\"checkbox\" value=\"in_aspect\" />"
-    str << "<img src='/images/icons/check_yes_ok.png' width=18 height=18 class='check #{hidden}'/>"
-    str << "<img src='/images/icons/check_yes_ok_white.png' width=18 height=18 class='checkWhite'/>"
-    str << aspect.name
-    str << "<div class=\"hidden\">"
-    str << aspect_membership_button(aspect, contact, person)
-    str << "</div>"
-    str << "</li>"
+    render "shared/aspect_dropdown",
+      :selected_aspects => selected_aspects,
+      :person => person,
+      :hang => hang,
+      :dropdown_class => "aspect_membership"
+  end
+
+  def aspect_dropdown_list_item(aspect, checked)
+    klass = checked ? "selected" : ""
+
+    str = <<LISTITEM
+<li data-aspect_id=#{aspect.id} class='#{klass}'>
+  #{aspect.name}
+</li>
+LISTITEM
     str.html_safe
+  end
+
+  def dropdown_may_create_new_aspect
+    @aspect == :profile || @aspect == :tag || @aspect == :search || @aspect == :notification
   end
 end

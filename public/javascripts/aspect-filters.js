@@ -5,24 +5,21 @@
 
 var AspectFilters = {
   selectedGUIDS: [],
-  requests: 0,
+  activeRequest: null,
   initialize: function(){
     AspectFilters.initializeSelectedGUIDS();
     AspectFilters.interceptAspectLinks();
     AspectFilters.interceptAspectNavLinks();
-
-    if($("a.home_selector").parent().hasClass("selected")){
-      AspectFilters.performAspectUpdate();
-    }
   },
   initializeSelectedGUIDS: function(){
-    $("#aspect_nav li").each(function(){
+    $("#aspect_nav .aspect_selector").each(function(){
       var button = $(this),
           guid = button.attr('data-guid');
 
-      if(guid && location.href.search("a_ids..="+guid+"(&|$)") != -1){
-        button.addClass('selected');
+      if(guid && location.href.search("a_ids..="+guid+"(#|&|$)") != -1){
+        button.parent().addClass('active');
         AspectFilters.selectedGUIDS.push(guid);
+        $("#aspect_nav li.all_aspects").removeClass('active');
       }
     });
   },
@@ -42,13 +39,11 @@ var AspectFilters = {
     $('html, body').animate({scrollTop:0}, 'fast');
   },
   switchToAspect: function(aspectLi){
-    AspectFilters.requests++;
-
     var guid = aspectLi.attr('data-guid');
 
     // select correct aspect in filter list & deselect others
-    $("#aspect_nav li").removeClass('selected');
-    aspectLi.addClass('selected');
+    $("#aspect_nav li.active").removeClass('active');
+    aspectLi.addClass('active');
 
     AspectFilters.fadeOut();
 
@@ -58,27 +53,25 @@ var AspectFilters = {
     $("#aspect_nav a.aspect_selector").click(function(e){
       e.preventDefault();
 
-      AspectFilters.requests++;
-
       // loading animation
       AspectFilters.fadeOut();
 
       // filtering //////////////////////
       var $this = $(this),
           listElement = $this.parent(),
-          guid = listElement.attr('data-guid'),
-          homeListElement = $("#aspect_nav a.home_selector").parent();
+          guid = $this.attr('data-guid'),
+          homeListElement = $("#aspect_nav li.all_aspects");
 
-      if( listElement.hasClass('selected') ){
+      if( listElement.hasClass('active') ){
         // remove filter
         var idx = AspectFilters.selectedGUIDS.indexOf( guid );
         if( idx != -1 ){
           AspectFilters.selectedGUIDS.splice(idx,1);
         }
-        listElement.removeClass('selected');
+        listElement.removeClass('active');
 
         if(AspectFilters.selectedGUIDS.length === 0){
-          homeListElement.addClass('selected');
+          homeListElement.addClass('active');
         }
 
       } else {
@@ -86,9 +79,9 @@ var AspectFilters = {
         if(AspectFilters.selectedGUIDS.indexOf( guid == 1)){
           AspectFilters.selectedGUIDS.push( guid );
         }
-        listElement.addClass('selected');
+        listElement.addClass('active');
 
-        homeListElement.removeClass('selected');
+        homeListElement.removeClass('active');
       }
 
        AspectFilters.performAjax(AspectFilters.generateURL());
@@ -113,23 +106,6 @@ var AspectFilters = {
     }
     return baseURL;
   },
-  performAspectUpdate: function(){
-    // update the open aspects in the user
-    updateURL = "/user";
-    updateURL += '?';
-    if(AspectFilters.selectedGUIDS.length === 0){
-      updateURL += 'user[a_ids][]=home';
-    } else {
-      for(i=0; i < AspectFilters.selectedGUIDS.length; i++){
-        updateURL += 'user[a_ids][]='+ AspectFilters.selectedGUIDS[i] +'&';
-      }
-    }
-
-    $.ajax({
-      url : updateURL,
-      type: "PUT"
-      });
-  },
   performAjax: function(newURL) {
     var post = $("#publisher textarea").val(),
         photos = {};
@@ -148,11 +124,15 @@ var AspectFilters = {
       history.pushState(null, document.title, newURL);
     }
 
-    $.ajax({
+    try {
+      AspectFilters.activeRequest.abort();
+    } catch(e) {} finally {
+      AspectFilters.activeRequest = null;
+    }
+    AspectFilters.activeRequest = $.ajax({
       url : newURL,
       dataType : 'script',
       success  : function(data){
-        AspectFilters.requests--;
         // fill in publisher
         // (not cached because this element changes)
 
@@ -172,13 +152,10 @@ var AspectFilters = {
 
         // reinit listeners on stream
         photozone.html(photos_html);
-        Diaspora.widgets.publish("stream/reloaded");
+        Diaspora.page.publish("stream/reloaded");
 
         // fade contents back in
-        if(AspectFilters.requests === 0){
-          AspectFilters.fadeIn();
-          AspectFilters.performAspectUpdate();
-        }
+        AspectFilters.fadeIn();
       }
     });
   },

@@ -14,7 +14,7 @@ sk:
         other: "In {{count}} aspects"
         zero: "Add to aspect"
     comments: 
-      hide: "hide comments"
+      hide: "skyť komentáre"
       show: "show all comments"
     confirm_dialog: "Ste si istý?"
     failed_to_like: "Failed to like!"
@@ -23,6 +23,10 @@ sk:
       no_more: "No more posts."
     publisher: 
       at_least_one_aspect: "You must publish to at least one aspect"
+      limited: "Limited - your post will only be seen by people you are sharing with"
+      public: "Public - your post will be visible to everyone and found by search engines"
+    reshares: 
+      duplicate: "You've already reshared that post!"
     search_for: "Hľadať {{name}}"
     show_more: "show more"
     timeago: 

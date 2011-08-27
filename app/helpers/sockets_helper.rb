@@ -28,30 +28,27 @@ module SocketsHelper
         post_hash = {:post => object,
           :author => object.author,
           :photos => object.photos,
+          :reshare => nil,
           :comments => object.comments.map{|c|
             {:comment => c,
              :author => c.author
             }
-        },
-          :current_user => user,
-          :all_aspects => user.aspects,
+          }
         }
         v = render_to_string(:partial => 'shared/stream_element', :locals => post_hash)
       elsif object.is_a? Person
         person_hash = {
           :single_aspect_form => opts["single_aspect_form"],
           :person => object,
-          :all_aspects => user.aspects,
-          :contact => user.contact_for(object),
-          :request => user.request_from(object),
-          :current_user => user}
+          :contact => user.contact_for(object)
+        }
         v = render_to_string(:partial => 'people/person', :locals => person_hash)
 
       elsif object.is_a? Comment
-        v = render_to_string(:partial => 'comments/comment', :locals => {:post => object.post, :comment => object, :person => object.author, :current_user => user})
+        v = render_to_string(:partial => 'comments/comment', :locals => {:post => object.post, :comment => object, :person => object.author})
 
       elsif object.is_a? Like
-        v = render_to_string(:partial => 'likes/likes', :locals => {:likes => object.post.likes, :dislikes => object.post.dislikes})
+        v = render_to_string(:partial => 'likes/likes', :locals => {:likes => object.target.likes.includes(:author => :profile)})
 
       elsif object.is_a? Notification
         v = render_to_string(:partial => 'notifications/popup', :locals => {:note => object, :person => opts[:actor]})
@@ -60,7 +57,7 @@ module SocketsHelper
         raise "#{object.inspect} with class #{object.class} is not actionhashable." unless object.is_a? Retraction
       end
     rescue Exception => e
-      Rails.logger.error("event=socket_render status=fail user=#{user.diaspora_handle} object=#{object.id.to_s}")
+      Rails.logger.error(:event => :socket_render, :status => :fail, :user => user.diaspora_handle, :object=> object.id, :object_class => object.class, :error_message => e.message)
       raise e
     end
     action_hash = {:class =>object.class.to_s.underscore.pluralize, :html => v, :post_id => obj_id(object)}
@@ -71,10 +68,9 @@ module SocketsHelper
 
     if object.is_a? Comment
       post = object.post
-      action_hash[:comment_id] = object.id
+      action_hash[:comment_guid] = object.guid
       action_hash[:my_post?] = (post.author.owner_id == uid)
       action_hash[:post_guid] = post.guid
-
     end
 
     if object.is_a? Like

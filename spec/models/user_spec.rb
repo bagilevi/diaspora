@@ -5,8 +5,56 @@
 require 'spec_helper'
 
 describe User do
+
   it 'should have a key' do
     alice.encryption_key.should_not be nil
+  end
+
+  it 'the key should marshall to and from the db correctly' do
+    user = User.build(:username => 'max', :email => 'foo@bar.com', :password => 'password', :password_confirmation => 'password')
+    user.save!
+
+    expect{
+      user.reload.encryption_key
+    }.should_not raise_error
+
+  end
+
+  context 'callbacks' do
+    describe '#save_person!' do
+      it 'saves the corresponding user if it has changed' do
+        alice.person.url = "http://stuff.com"
+        Person.any_instance.should_receive(:save)
+        alice.save
+      end
+
+      it 'does not save the corresponding user if it has not changed' do
+        Person.any_instance.should_not_receive(:save)
+        alice.save
+      end
+    end
+
+    describe '#infer_email_from_invitation_provider' do
+      it 'sets corresponding email if invitation_service is email' do
+        addr = '12345@alice.com'
+        alice.invitation_service = 'email'
+        alice.invitation_identifier = addr
+
+        lambda {
+          alice.infer_email_from_invitation_provider
+        }.should change(alice, :email)
+      end
+
+      it 'does not set an email if invitation_service is not email' do
+        addr = '1233123'
+        alice.invitation_service = 'facebook'
+        alice.invitation_identifier = addr
+
+        lambda {
+          alice.infer_email_from_invitation_provider
+        }.should_not change(alice, :email)
+      end
+    end
   end
 
   describe 'overwriting people' do
@@ -34,6 +82,7 @@ describe User do
       new_user.id.should_not == alice.id
     end
   end
+
   describe "validation" do
     describe "of associated person" do
       it "fails if person is not valid" do
@@ -113,6 +162,31 @@ describe User do
         alice.email = eve.email
         alice.should_not be_valid
       end
+
+      it "requires a vaild email address" do
+        alice.email = "somebody@anywhere"
+        alice.should_not be_valid
+      end
+    end
+
+    describe "of unconfirmed_email" do
+      it "unconfirmed_email address can be nil/blank" do
+        alice.unconfirmed_email = nil
+        alice.should be_valid
+        alice.unconfirmed_email = ""
+        alice.should be_valid
+      end
+
+      it "does NOT require a unique unconfirmed_email address" do
+        eve.update_attribute :unconfirmed_email, "new@email.com"
+        alice.unconfirmed_email = "new@email.com"
+        alice.should be_valid
+      end
+
+      it "requires a vaild unconfirmed_email address" do
+        alice.unconfirmed_email = "somebody@anywhere"
+        alice.should_not be_valid
+      end
     end
 
     describe "of language" do
@@ -130,6 +204,15 @@ describe User do
         user = Factory(:user, :language => nil)
         user.language.should == 'fr'
       end
+    end
+  end
+
+  describe '#seed_aspects' do
+    it 'follows the default account' do
+      Webfinger.stub_chain(:new, :fetch).and_return(Factory(:person))
+      expect{
+       eve.seed_aspects
+      }.to change(eve.contacts, :count).by(1)
     end
   end
 
@@ -226,13 +309,83 @@ describe User do
     it "returns false if the users are already connected" do
       alice.can_add?(bob.person).should be_false
     end
-    
+
     it "returns false if the user has already sent a request to that person" do
       alice.share_with(eve.person, alice.aspects.first)
       alice.reload
       eve.reload
       alice.can_add?(eve.person).should be_false
     end
+  end
+
+  describe '.find_by_invitation' do
+    let(:invited_user) {
+      inv = Factory.build(:invitation, :recipient => @recipient, :service => @type, :identifier => @identifier)
+      User.find_by_invitation(inv)
+    }
+
+    context 'send a request to an existing' do
+      before do
+        @recipient = alice
+      end
+
+      context 'active user' do
+        it 'by service' do
+          @type = 'facebook'
+          @identifier = '123456'
+
+          @recipient.services << Services::Facebook.new(:uid => @identifier)
+          @recipient.save
+
+          invited_user.should == @recipient
+        end
+
+        it 'by email' do
+          @type = 'email'
+          @identifier = alice.email
+
+          invited_user.should == @recipient
+        end
+      end
+
+      context 'invited user' do
+        it 'by service and identifier' do
+          @identifier = alice.email
+          @type = 'email'
+          invited_user.should == alice
+        end
+      end
+
+      context 'not on server (not yet invited)' do
+        it 'returns nil' do
+          @recipient = nil
+          @identifier = 'foo@bar.com'
+          @type = 'email'
+          invited_user.should be_nil
+        end
+      end
+    end
+  end
+
+  describe '.find_or_create_by_invitation' do
+
+  end
+
+  describe '.create_from_invitation!' do
+    before do
+      @identifier = 'max@foobar.com'
+      @inv = Factory.build(:invitation, :admin => true, :service => 'email', :identifier => @identifier)
+      @user = User.create_from_invitation!(@inv)
+    end
+
+    it 'creates a persisted user' do
+      @user.should be_persisted
+    end
+
+    it 'sets the email if the service is email' do
+      @user.email.should == @inv.identifier
+    end
+
   end
 
   describe 'update_user_preferences' do
@@ -256,18 +409,22 @@ describe User do
     end
   end
 
-  describe ".find_for_authentication" do
+  describe ".find_for_database_authentication" do
     it 'finds a user' do
-      User.find_for_authentication(:username => alice.username).should == alice
+      User.find_for_database_authentication(:username => alice.username).should == alice
+    end
+
+    it 'finds a user by email' do
+      User.find_for_database_authentication(:username => alice.email).should == alice
     end
 
     it "does not preserve case" do
-      User.find_for_authentication(:username => alice.username.upcase).should == alice
+      User.find_for_database_authentication(:username => alice.username.upcase).should == alice
     end
 
     it 'errors out when passed a non-hash' do
       lambda {
-        User.find_for_authentication(alice.username)
+        User.find_for_database_authentication(alice.username)
       }.should raise_error
     end
   end
@@ -374,71 +531,68 @@ describe User do
     end
   end
 
-  describe 'account removal' do
-    it 'should disconnect everyone' do
-      alice.should_receive(:disconnect_everyone)
-      alice.destroy
+  describe 'account deletion' do
+    describe '#remove_all_traces' do
+      it 'should disconnect everyone' do
+        alice.should_receive(:disconnect_everyone)
+        alice.remove_all_traces
+      end
+
+
+      it 'should remove mentions' do
+        alice.should_receive(:remove_mentions)
+        alice.remove_all_traces
+      end
+
+      it 'should remove person' do
+        alice.should_receive(:remove_person)
+        alice.remove_all_traces
+      end
+
+      it 'should remove all aspects' do
+        lambda {
+          alice.remove_all_traces
+        }.should change{ alice.aspects(true).count }.by(-1)
+      end
     end
 
-    it 'removes invitations from the user' do
-      alice.invite_user alice.aspects.first.id, 'email', 'blah@blah.blah'
-      lambda {
-        alice.destroy
-      }.should change {alice.invitations_from_me(true).count }.by(-1)
-    end
+    describe '#destroy' do
+      it 'removes invitations from the user' do
+        Factory(:invitation, :sender => alice)
+        lambda {
+          alice.destroy
+        }.should change {alice.invitations_from_me(true).count }.by(-1)
+      end
 
-    it 'removes invitations to the user' do
-      Invitation.create(:sender_id => eve.id, :recipient_id => alice.id, :aspect_id => eve.aspects.first.id)
-      lambda {
-        alice.destroy
-      }.should change {alice.invitations_to_me(true).count }.by(-1)
-    end
+      it 'removes invitations to the user' do
+        Invitation.new(:sender => eve, :recipient => alice, :identifier => alice.email, :aspect => eve.aspects.first).save(:validate => false)
+        lambda {
+          alice.destroy
+        }.should change {alice.invitations_to_me(true).count }.by(-1)
+      end
 
-    it 'should remove mentions' do
-      alice.should_receive(:remove_mentions)
-      alice.destroy
-    end
-
-    it 'should remove person' do
-      alice.should_receive(:remove_person)
-      alice.destroy
-    end
-
-    it 'should remove all aspects' do
-      lambda {
-        alice.destroy
-      }.should change{ alice.aspects(true).count }.by(-1)
-    end
-
-    it 'removes all contacts' do
-      lambda {
-        alice.destroy
-      }.should change {
-        alice.contacts.count
-      }.by(-1)
-    end
-
-    it 'removes all service connections' do
-      Services::Facebook.create(:access_token => 'what', :user_id => alice.id)
-      lambda {
-        alice.destroy
-      }.should change {
-        alice.services.count
-      }.by(-1)
+      it 'removes all service connections' do
+        Services::Facebook.create(:access_token => 'what', :user_id => alice.id)
+        lambda {
+          alice.destroy
+        }.should change {
+          alice.services.count
+        }.by(-1)
+      end
     end
 
     describe '#remove_person' do
       it 'should remove the person object' do
         person = alice.person
-        alice.destroy
+        alice.remove_person
         person.reload
-        person.should be nil
+        person.should be_nil
       end
 
       it 'should remove the posts' do
         message = alice.post(:status_message, :text => "hi", :to => alice.aspects.first.id)
         alice.reload
-        alice.destroy
+        alice.remove_person
         proc { message.reload }.should raise_error ActiveRecord::RecordNotFound
       end
     end
@@ -449,40 +603,49 @@ describe User do
         sm =  Factory(:status_message)
         mention  = Mention.create(:person => person, :post=> sm)
         alice.reload
-        alice.destroy
+        alice.remove_mentions
         proc { mention.reload }.should raise_error ActiveRecord::RecordNotFound
       end
     end
 
     describe '#disconnect_everyone' do
       it 'has no error on a local friend who has deleted his account' do
-        alice.destroy
+        Job::DeleteAccount.perform(alice.id)
         lambda {
-          bob.destroy
+          bob.disconnect_everyone
         }.should_not raise_error
       end
 
       it 'has no error when the user has sent local requests' do
         alice.share_with(eve.person, alice.aspects.first)
         lambda {
-          alice.destroy
+          alice.disconnect_everyone
         }.should_not raise_error
       end
 
-      it 'should send retractions to remote poeple' do
+      it 'sends retractions to remote poeple' do
         person = eve.person
         eve.delete
+        person.owner_id = nil
         person.save
         alice.contacts.create(:person => person, :aspects => [alice.aspects.first])
 
         alice.should_receive(:disconnect).once
-        alice.destroy
+        alice.disconnect_everyone
       end
 
-      it 'should disconnect local people' do
+      it 'disconnects local people' do
         lambda {
-          alice.destroy
+          alice.remove_all_traces
         }.should change{bob.reload.contacts.count}.by(-1)
+      end
+
+      it 'removes all contacts' do
+        lambda {
+          alice.disconnect_everyone
+        }.should change {
+          alice.contacts.count
+        }.by(-1)
       end
     end
   end
@@ -492,14 +655,14 @@ describe User do
       alice.disable_mail = false
       alice.save
 
-      Resque.should_receive(:enqueue).with(Job::MailStartedSharing, alice.id, 'contactrequestid').once
-      alice.mail(Job::MailStartedSharing, alice.id, 'contactrequestid')
+      Resque.should_receive(:enqueue).with(Job::Mail::StartedSharing, alice.id, 'contactrequestid').once
+      alice.mail(Job::Mail::StartedSharing, alice.id, 'contactrequestid')
     end
 
     it 'does not enqueue a mail job if the correct corresponding job has a prefrence entry' do
       alice.user_preferences.create(:email_type => 'started_sharing')
       Resque.should_not_receive(:enqueue)
-      alice.mail(Job::MailStartedSharing, alice.id, 'contactrequestid')
+      alice.mail(Job::Mail::StartedSharing, alice.id, 'contactrequestid')
     end
 
     it 'does not send a mail if disable_mail is set to true' do
@@ -507,7 +670,7 @@ describe User do
        alice.save
        alice.reload
        Resque.should_not_receive(:enqueue)
-      alice.mail(Job::MailStartedSharing, alice.id, 'contactrequestid')
+      alice.mail(Job::Mail::StartedSharing, alice.id, 'contactrequestid')
     end
   end
 
@@ -519,7 +682,7 @@ describe User do
 
     describe "#add_contact_to_aspect" do
       it 'adds the contact to the aspect' do
-        lambda { 
+        lambda {
           alice.add_contact_to_aspect(@contact, @aspect1)
         }.should change(@aspect1.contacts, :count).by(1)
       end
@@ -554,6 +717,254 @@ describe User do
           alice.should_not_receive(:delete_person_from_aspect)
           alice.move_contact(bob.person, @aspect1, alice.aspects.first)
         end
+      end
+    end
+  end
+
+  context 'likes' do
+    before do
+      @message = alice.post(:status_message, :text => "cool", :to => alice.aspects.first)
+      @message2 = bob.post(:status_message, :text => "uncool", :to => bob.aspects.first)
+      @like = alice.like(true, :target => @message)
+      @like2 = bob.like(true, :target => @message)
+    end
+
+    describe '#like_for' do
+      it 'returns the correct like' do
+        alice.like_for(@message).should == @like
+        bob.like_for(@message).should == @like2
+      end
+
+      it "returns nil if there's no like" do
+        alice.like_for(@message2).should be_nil
+      end
+    end
+
+    describe '#liked?' do
+      it "returns true if there's a like" do
+        alice.liked?(@message).should be_true
+        bob.liked?(@message).should be_true
+      end
+
+      it "returns false if there's no like" do
+        alice.liked?(@message2).should be_false
+      end
+    end
+  end
+
+  context 'change email' do
+    let(:user){ alice }
+
+    describe "#unconfirmed_email" do
+      it "is nil by default" do
+        user.unconfirmed_email.should eql(nil)
+      end
+
+      it "forces blank to nil" do
+        user.unconfirmed_email = ""
+        user.save!
+        user.unconfirmed_email.should eql(nil)
+      end
+
+      it "is ignored if it equals email" do
+        user.unconfirmed_email = user.email
+        user.save!
+        user.unconfirmed_email.should eql(nil)
+      end
+
+      it "allows change to valid new email" do
+        user.unconfirmed_email = "alice@newmail.com"
+        user.save!
+        user.unconfirmed_email.should eql("alice@newmail.com")
+      end
+    end
+
+    describe "#confirm_email_token" do
+      it "is nil by default" do
+        user.confirm_email_token.should eql(nil)
+      end
+
+      it "is autofilled when unconfirmed_email is set to new email" do
+        user.unconfirmed_email = "alice@newmail.com"
+        user.save!
+        user.confirm_email_token.should_not be_blank
+        user.confirm_email_token.size.should eql(30)
+      end
+
+      it "is set back to nil when unconfirmed_email is empty" do
+        user.unconfirmed_email = "alice@newmail.com"
+        user.save!
+        user.confirm_email_token.should_not be_blank
+        user.unconfirmed_email = nil
+        user.save!
+        user.confirm_email_token.should eql(nil)
+      end
+
+      it "generates new token on every new unconfirmed_email" do
+        user.unconfirmed_email = "alice@newmail.com"
+        user.save!
+        first_token = user.confirm_email_token
+        user.unconfirmed_email = "alice@andanotherone.com"
+        user.save!
+        user.confirm_email_token.should_not eql(first_token)
+        user.confirm_email_token.size.should eql(30)
+      end
+    end
+
+    describe '#mail_confirm_email' do
+      it 'enqueues a mail job on user with unconfirmed email' do
+        user.update_attribute(:unconfirmed_email, "alice@newmail.com")
+        Resque.should_receive(:enqueue).with(Job::Mail::ConfirmEmail, alice.id).once
+        alice.mail_confirm_email.should eql(true)
+      end
+
+      it 'enqueues NO mail job on user without unconfirmed email' do
+        Resque.should_not_receive(:enqueue).with(Job::Mail::ConfirmEmail, alice.id)
+        alice.mail_confirm_email.should eql(false)
+      end
+    end
+
+    describe '#confirm_email' do
+      context 'on user with unconfirmed email' do
+        before do
+          user.update_attribute(:unconfirmed_email, "alice@newmail.com")
+        end
+
+        it 'confirms email and set the unconfirmed_email to email on valid token' do
+          user.confirm_email(user.confirm_email_token).should eql(true)
+          user.email.should eql("alice@newmail.com")
+          user.unconfirmed_email.should eql(nil)
+          user.confirm_email_token.should eql(nil)
+        end
+
+        it 'returns false and does not change anything on wrong token' do
+          user.confirm_email(user.confirm_email_token.reverse).should eql(false)
+          user.email.should_not eql("alice@newmail.com")
+          user.unconfirmed_email.should_not eql(nil)
+          user.confirm_email_token.should_not eql(nil)
+        end
+
+        it 'returns false and does not change anything on blank token' do
+          user.confirm_email("").should eql(false)
+          user.email.should_not eql("alice@newmail.com")
+          user.unconfirmed_email.should_not eql(nil)
+          user.confirm_email_token.should_not eql(nil)
+        end
+
+        it 'returns false and does not change anything on blank token' do
+          user.confirm_email(nil).should eql(false)
+          user.email.should_not eql("alice@newmail.com")
+          user.unconfirmed_email.should_not eql(nil)
+          user.confirm_email_token.should_not eql(nil)
+        end
+      end
+
+      context 'on user without unconfirmed email' do
+        it 'returns false and does not change anything on any token' do
+          user.confirm_email("12345"*6).should eql(false)
+          user.email.should_not eql("alice@newmail.com")
+          user.unconfirmed_email.should eql(nil)
+          user.confirm_email_token.should eql(nil)
+        end
+
+        it 'returns false and does not change anything on blank token' do
+          user.confirm_email("").should eql(false)
+          user.email.should_not eql("alice@newmail.com")
+          user.unconfirmed_email.should eql(nil)
+          user.confirm_email_token.should eql(nil)
+        end
+
+        it 'returns false and does not change anything on blank token' do
+          user.confirm_email(nil).should eql(false)
+          user.email.should_not eql("alice@newmail.com")
+          user.unconfirmed_email.should eql(nil)
+          user.confirm_email_token.should eql(nil)
+        end
+      end
+    end
+  end
+
+  describe "#accept_invitation!" do
+    before do
+      fantasy_resque do
+        @invitation = Factory.create(:invitation, :sender => eve, :identifier => 'invitee@example.org', :aspect => eve.aspects.first)
+      end
+      @invitation.reload
+      @form_params = {:invitation_token => "abc",
+                            :email    => "a@a.com",
+                            :username => "user",
+                            :password => "secret",
+                            :password_confirmation => "secret",
+                            :person => {:profile => {:first_name => "Bob",
+                              :last_name  => "Smith"}}}
+
+    end
+
+    context 'after invitation acceptance' do
+      it 'destroys the invitations' do
+        user = @invitation.recipient.accept_invitation!(@form_params)
+        user.invitations_to_me.count.should == 0
+      end
+
+      it "should create the person with the passed in params" do
+        lambda {
+          @invitation.recipient.accept_invitation!(@form_params)
+        }.should change(Person, :count).by(1)
+      end
+
+      it 'resolves incoming invitations into contact requests' do
+        user = @invitation.recipient.accept_invitation!(@form_params)
+        eve.contacts.where(:person_id => user.person.id).count.should == 1
+      end
+    end
+
+    context 'from an admin' do
+      it 'should work' do
+        i = nil
+        fantasy_resque do
+          i = Invitation.create!(:admin => true, :service => 'email', :identifier => "new_invitee@example.com")
+        end
+        i.reload
+        i.recipient.accept_invitation!(@form_params)
+      end
+    end
+  end
+
+  describe '#retract' do
+    before do
+      @retraction = mock
+
+      @post = Factory(:status_message, :author => bob.person, :public => true)
+    end
+
+    context "posts" do
+      before do
+        SignedRetraction.stub(:build).and_return(@retraction)
+        @retraction.stub(:perform)
+      end
+
+      it 'sends a retraction' do
+        dispatcher = mock
+        Postzord::Dispatch.should_receive(:new).with(bob, @retraction, anything()).and_return(dispatcher)
+        dispatcher.should_receive(:post)
+
+        bob.retract(@post)
+      end
+
+      it 'adds resharers of target post as additional subsctibers' do
+        person = Factory(:person)
+        reshare = Factory(:reshare, :root => @post, :author => person)
+        @post.reshares << reshare
+
+        dispatcher = mock
+        Postzord::Dispatch.should_receive(:new).with(bob, @retraction, {:additional_subscribers => [person]}).and_return(dispatcher)
+        dispatcher.should_receive(:post)
+
+        bob.retract(@post)
+      end
+
+      it 'performs the retraction' do
+        pending
       end
     end
   end

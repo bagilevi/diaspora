@@ -15,6 +15,12 @@ end
 
 Devise.setup do |config|
   # Configure the e-mail address which will be shown in DeviseMailer.
+  # ==> ORM configuration
+  # Load and configure the ORM. Supports :active_record (default), :mongoid
+  # (bson_ext recommended) and :data_mapper (experimental).
+  require 'devise/orm/active_record'
+
+  #mail setup
   if AppConfig[:smtp_sender_address]
     config.mailer_sender = AppConfig[:smtp_sender_address]
   else
@@ -25,10 +31,8 @@ Devise.setup do |config|
     config.mailer_sender = "please-change-me@config-initializers-devise.com"
   end
 
-  # ==> ORM configuration
-  # Load and configure the ORM. Supports :active_record (default), :mongoid
-  # (bson_ext recommended) and :data_mapper (experimental).
-  require 'devise/orm/active_record'
+  # Configure the class responsible to send e-mails.
+  config.mailer = "DiasporaDeviseMailer"
 
   # ==> Configuration for any authentication mechanism
   # Configure which keys are used when authenticating an user. By default is

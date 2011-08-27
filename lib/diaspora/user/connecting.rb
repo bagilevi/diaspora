@@ -5,6 +5,10 @@
 module Diaspora
   module UserModules
     module Connecting
+      # This will create a contact on the side of the sharer and the sharee.
+      # @param [Person] person The person to start sharing with.
+      # @param [Aspect] aspect The aspect to add them to.
+      # @return [Contact] The newly made contact for the passed in person.
       def share_with(person, aspect)
         contact = self.contacts.find_or_initialize_by_person_id(person.id)
         unless contact.receiving?
@@ -18,8 +22,22 @@ module Diaspora
         if notification = Notification.where(:target_id => person.id).first
           notification.update_attributes(:unread=>false)
         end
-        
+
+        register_post_visibilities(contact)
         contact
+      end
+
+      # This puts the last 100 public posts by the passed in contact into the user's stream.
+      # @param [Contact] contact
+      # @return [void]
+      def register_post_visibilities(contact)
+        #should have select here, but proven hard to test
+        posts = Post.where(:author_id => contact.person_id, :public => true).limit(100)
+        p = posts.map do |post|
+          PostVisibility.new(:contact_id => contact.id, :post_id => post.id)
+        end
+        PostVisibility.import(p) unless posts.empty?
+        nil
       end
 
       def remove_contact(contact, opts={:force => false})
@@ -44,7 +62,7 @@ module Diaspora
         retraction = Retraction.for(self)
         retraction.subscribers = [person]#HAX
         Postzord::Dispatch.new(self, retraction).post
-        
+
         AspectMembership.where(:contact_id => bad_contact.id).delete_all
         remove_contact(bad_contact)
       end

@@ -35,6 +35,15 @@ describe MarkdownifyHelper do
         markdownify(proto+"://"+url).should == "<a target=\"_blank\" href=\""+proto+"://"+url+"\">"+url+"</a>"
       end
 
+      it "doesn't double parse video links" do
+        message = "http://www.vimeo.com/17449557
+                   http://www.youtube.com/watch?v=0x__dDWdf23&a=GxdCwVVULXdvEBKmx_f5ywvZ0zZHHHDU&list=ML&playnext=1
+                   http://youtu.be/x_CzD0GBD-4"
+        res = markdownify(message)
+        res.should =~ /href.+href.+href/
+        res.should_not =~ /href.+href.+href.+href/
+      end
+
       describe "video links" do
         it "recognizes vimeo links" do
           video_id = "17449557"
@@ -56,6 +65,15 @@ describe MarkdownifyHelper do
         it "recognizes youtube links" do
           video_id = "0x__dDWdf23"
           url = "http://www.youtube.com/watch?v=" + video_id + "&a=GxdCwVVULXdvEBKmx_f5ywvZ0zZHHHDU&list=ML&playnext=1"
+          res = markdownify(url)
+          res.should =~ /Youtube:/
+          res.should =~ /data-host="youtube.com"/
+          res.should =~ /data-video-id="#{video_id}"/
+        end
+
+        it "recognizes youtu.be links" do
+          video_id = "x_CzD0GBD-4"
+          url =  "http://youtu.be/#{video_id}"
           res = markdownify(url)
           res.should =~ /Youtube:/
           res.should =~ /data-host="youtube.com"/
@@ -132,20 +150,20 @@ describe MarkdownifyHelper do
       end
     end
 
-    describe "emoticons" do
+    describe "specialchars" do
       it "replaces &lt;3 with &hearts;" do
         message = "i <3 you"
         markdownify(message).should == "i &hearts; you"
       end
 
       it "replaces various things with (their) HTML entities" do
-        message = ":) :-) :( :-( ... -> <- (tm) (r) (c)"
-        markdownify(message).should == "&#9786; &#9786; &#9785; &#9785; &hellip; &rarr; &larr; &trade; &reg; &copy;"
+        message = "... <-> -> <- (tm) (r) (c)"
+        markdownify(message).should == "&hellip; &#8596; &rarr; &larr; &trade; &reg; &copy;"
       end
 
       it "skips doing it if you say so" do
-        message = ":) :-) :( :-( ... -> <-"
-        markdownify(message, :emoticons => false).should == ":) :-) :( :-( ... -&gt; &lt;-"
+        message = "... -> <-"
+        markdownify(message, :specialchars => false).should == "... -&gt; &lt;-"
       end
     end
 
@@ -196,7 +214,7 @@ describe MarkdownifyHelper do
       end
 
       it "should have a robust link parsing" do
-        message = "This [*text*](http://en.wikipedia.org/wiki/Text_(literary_theory)) with many [links](google.com) tests [_http_](http://google.com/search?q=with_multiple__underscores*and**asterisks), [___FTP___](ftp://ftp.uni-kl.de/CCC/26C3/mp4/26c3-3540-en-a_hackers_utopia.mp4 \"File Transfer Protocol\"), [**any protocol**](foo://bar.example.org/yes_it*makes*no_sense)"
+        message = "This [ *text* ]( http://en.wikipedia.org/wiki/Text_(literary_theory) ) with many [ links]( google.com) tests [_http_](http://google.com/search?q=with_multiple__underscores*and**asterisks ), [___FTP___]( ftp://ftp.uni-kl.de/CCC/26C3/mp4/26c3-3540-en-a_hackers_utopia.mp4 \"File Transfer Protocol\"), [**any protocol**](foo://bar.example.org/yes_it*makes*no_sense)"
         markdownify(message).should == 'This <a target="_blank" href="http://en.wikipedia.org/wiki/Text_(literary_theory)"><em>text</em></a> with many <a target="_blank" href="http://google.com">links</a> tests <a target="_blank" href="http://google.com/search?q=with_multiple__underscores*and**asterisks"><em>http</em></a>, <a target="_blank" href="ftp://ftp.uni-kl.de/CCC/26C3/mp4/26c3-3540-en-a_hackers_utopia.mp4" title="File Transfer Protocol"><em><strong>FTP</strong></em></a>, <a target="_blank" href="foo://bar.example.org/yes_it*makes*no_sense"><strong>any protocol</strong></a>'
       end
     end

@@ -3,6 +3,7 @@ Given /^a user with username "([^\"]*)" and password "([^\"]*)"$/ do |username, 
                   :password_confirmation => password, :getting_started => false)
   @me.aspects.create(:name => "Besties")
   @me.aspects.create(:name => "Unicorns")
+  @me.reload
 end
 
 Given /^that I am a rock star$/ do
@@ -34,13 +35,15 @@ Given /^a user named "([^\"]*)" with email "([^\"]*)"$/ do |name, email|
 end
 
 Given /^I have been invited by an admin$/ do
-  @me = Invitation.create_invitee(:service => 'email', :identifier => "new_invitee@example.com")
+  i = Invitation.create!(:admin => true, :service => 'email', :identifier => "new_invitee@example.com")
+  @me = i.attach_recipient!
 end
 
 Given /^I have been invited by a user$/ do
   @inviter = Factory(:user)
   aspect = @inviter.aspects.create(:name => "Rocket Scientists")
-  @me = @inviter.invite_user(aspect.id, 'email', "new_invitee@example.com", "Hey, tell me about your rockets!")
+  i =  Invitation.create!(:aspect => aspect, :sender => @inviter, :service => 'email', :identifier => "new_invitee@example.com", :message =>"Hey, tell me about your rockets!")
+  @me = i.attach_recipient!
 end
 
 When /^I click on my name$/ do
@@ -67,56 +70,6 @@ Given /^I have one follower$/ do
   other_user.reload
   other_aspect.reload
   @me.reload
-end
-
-Then /^I should see (\d+) contact request(?:s)?$/ do |request_count|
-  wait_until do
-    number_of_requests = evaluate_script("$('.person.request.ui-draggable').length")
-    number_of_requests == request_count.to_i
-  end
-end
-
-Then /^I should see (\d+) contact(?:s)? in "([^\"]*)"$/ do |contact_count, aspect_name|
-  aspect = @me.reload.aspects.find_by_name(aspect_name)
-  number_of_contacts = evaluate_script(
-    "$('ul.dropzone.ui-droppable[data-aspect_id=\"#{aspect.id}\"]').children('li.person').length")
-  number_of_contacts.should == contact_count.to_i
-end
-
-Then /^I should see no contact(?:s)? in "([^\"]*)"$/ do |aspect_name|
-  aspect = @me.reload.aspects.find_by_name(aspect_name)
-  number_of_contacts = evaluate_script(
-    "$('ul.dropzone.ui-droppable[data-aspect_id=\"#{aspect.id}\"]').children('li.person').length")
-  number_of_contacts.should == 0
-end
-
-When /^I drag the contact request to the "([^\"]*)" aspect$/ do |aspect_name|
-  Given "I have turned off jQuery effects"
-  aspect = @me.reload.aspects.find_by_name(aspect_name)
-  aspect_div = find("ul.dropzone[data-aspect_id='#{aspect.id}']")
-  request_li = find(".person.request.ui-draggable")
-  request_li.drag_to(aspect_div)
-end
-
-When /^I click "X" on the contact request$/ do
-  evaluate_script <<-JS
-    window.confirm = function() { return true; };
-    $(".person.request.ui-draggable .delete").hover().click();
-  JS
-end
-
-When /^I click on the contact request$/ do
-  find(".person.request.ui-draggable a").click
-end
-
-Given /^I have no open aspects saved$/ do
-  @me.aspects.update_all(:open => false)
-end
-
-Then /^aspect "([^"]*)" should (not )?be selected$/ do |aspect_name, not_selected|
-  link_is_selected = evaluate_script("$('a:contains(\"#{aspect_name}\")').parent('li').hasClass('selected');")
-  expected_value = !not_selected
-  link_is_selected.should == expected_value
 end
 
 Given /^a user with email "([^"]*)" is connected with "([^"]*)"$/ do |arg1, arg2|
@@ -155,22 +108,15 @@ Given /^many posts from alice for bob$/ do
   end
 end
 
+
 Then /^I should have (\d) contacts? in "([^"]*)"$/ do |n_contacts, aspect_name|
   @me.aspects.where(:name => aspect_name).first.contacts.count.should == n_contacts.to_i
-end
-
-Given /^I have (\d) contacts?$/ do |count|
-  count.to_i.times do
-    u = Factory(:user_with_aspect)
-    u.share_with(@me.person, u.aspects.first)
-  end
 end
 
 When /^I (add|remove|toggle) the person (to|from) my ([\d])(nd|rd|st|th) aspect$/ do |word1, word2, aspect_number, nd|
   steps %Q{
     And I press the first ".toggle.button"
     And I press the #{aspect_number}#{nd} "li" within ".dropdown.active .dropdown_list"
-    And I wait for the ajax to finish
     And I press the first ".toggle.button"
   }
 end
@@ -188,10 +134,65 @@ When /^I add the person to a new aspect called "([^\"]*)"$/ do |aspect_name|
   }
 end
 
-And /^I follow the "([^\"]*)" link from the Devise.mailer$/ do |link_text|
-  doc = Nokogiri(Devise.mailer.deliveries.first.body.to_s)
+When /^I post a status with the text "([^\"]*)"$/ do |text|
+  @me.post(:status_message, :text => text, :public => true, :to => 'all')
+end
+
+
+And /^I follow the "([^\"]*)" link from the last sent email$/ do |link_text|
+  email_text = Devise.mailer.deliveries.first.body.to_s
+  email_text = Devise.mailer.deliveries.first.html_part.body.raw_source if email_text.blank?
+  doc = Nokogiri(email_text)
   links = doc.css('a')
   link = links.detect{ |link| link.text == link_text }
+  link = links.detect{ |link| link.attributes["href"].value.include?(link_text)} unless link
   path = link.attributes["href"].value
   visit URI::parse(path).request_uri
+end
+
+Then /^I should have (\d+) Devise email delivery$/ do |n|
+  Devise.mailer.deliveries.length.should == n.to_i
+end
+
+Then /^I should have (\d+) email delivery$/ do |n|
+  ActionMailer::Base.deliveries.length.should == n.to_i
+end
+
+
+When /^"([^\"]+)" has posted a status message with a photo$/ do |email|
+  user = User.find_for_database_authentication(:username => email)
+  post = Factory(:status_message_with_photo, :text => "Look at this dog", :author => user.person)
+  [post, post.photos.first].each do |p|
+    user.add_to_streams(p, user.aspects)
+    user.dispatch_post(p)
+  end
+end
+
+Then /^my "([^\"]*)" should be "([^\"]*)"$/ do |field, value|
+  @me.reload.send(field).should == value
+end
+
+Given /^I have (\d+) contacts$/ do |n|
+  count = n.to_i - @me.contacts.count
+
+  people = []
+  contacts = []
+  aspect_memberships = []
+
+  count.times do
+    person = Factory.create(:person)
+    people << person
+  end
+
+  people.each do |person|
+    contacts << Contact.new(:person_id => person.id, :user_id => @me.id, :sharing => true, :receiving => true)
+  end
+  Contact.import(contacts)
+  contacts = @me.contacts.limit(n.to_i)
+
+  aspect_id = @me.aspects.first.id
+  contacts.each do |contact|
+    aspect_memberships << AspectMembership.new(:contact_id => contact.id, :aspect_id => @me.aspects.first.id)
+  end
+  AspectMembership.import(aspect_memberships)
 end

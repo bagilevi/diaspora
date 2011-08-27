@@ -60,22 +60,29 @@ describe PhotosController do
 
       it "assigns the photo" do
         assigns[:photo].should == @alices_photo
-        assigns[:ownership].should be_true
+        @controller.ownership.should be_true
       end
     end
 
     context "private photo user can see" do
-      before do
-        get :show, :id => @bobs_photo.id
-      end
-
       it "succeeds" do
+        get :show, :id => @bobs_photo.id
         response.should be_success
       end
 
       it "assigns the photo" do
+        get :show, :id => @bobs_photo.id
         assigns[:photo].should == @bobs_photo
-        assigns[:ownership].should be_false
+        @controller.ownership.should be_false
+      end
+
+      it 'succeeds with a like present' do
+        sm = bob.post(:status_message, :text => 'parent post', :to => 'all')
+        @bobs_photo.status_message_guid = sm.guid
+        @bobs_photo.save!
+        alice.like(1, :target => @bobs_photo.status_message)
+        get :show, :id => @bobs_photo.id
+        response.should be_success
       end
     end
 
@@ -111,7 +118,7 @@ describe PhotosController do
 
       it "assigns the photo" do
         assigns[:photo].should == @photo
-        assigns[:ownership].should be_false
+        @controller.ownership.should be_false
       end
     end
   end
@@ -135,6 +142,12 @@ describe PhotosController do
       Photo.find_by_id(@alices_photo.id).should be_nil
     end
 
+    it 'will let you delete your profile picture' do
+      get :make_profile_photo, :photo_id => @alices_photo.id
+      delete :destroy, :id => @alices_photo.id
+      Photo.find_by_id(@alices_photo.id).should be_nil
+    end
+
     it 'sends a retraction on delete' do
       alice.should_receive(:retract).with(@alices_photo)
       delete :destroy, :id => @alices_photo.id
@@ -145,7 +158,7 @@ describe PhotosController do
       Photo.find_by_id(@bobs_photo.id).should be_true
     end
 
-    it 'will not let you destory posts you do not own' do
+    it 'will not let you destroy posts you do not own' do
       eves_photo = eve.post(:photo, :user_file => uploaded_photo, :to => eve.aspects.first.id, :public => true)
       delete :destroy, :id => eves_photo.id
       Photo.find_by_id(eves_photo.id).should be_true
@@ -181,6 +194,62 @@ describe PhotosController do
     it 'should return a 422 on failure' do
       get :make_profile_photo, :photo_id => @bobs_photo.id
       response.code.should == "422"
+    end
+  end
+
+
+  describe 'data helpers' do
+    describe '.ownership' do
+      it 'is true if current user owns the photo' do
+        get :show, :id => @alices_photo.id
+        @controller.ownership.should be_true
+      end
+
+      it 'is true if current user owns the photo' do
+        get :show, :id => @bobs_photo.id
+        @controller.ownership.should be_false
+      end
+    end
+
+    describe 'parent' do
+      it 'grabs the status message of the photo if a parent exsists' do
+        sm = alice.post(:status_message, :text => 'yes', :to => alice.aspects.first)
+        @alices_photo.status_message = sm
+        @alices_photo.save
+        get :show, :id => @alices_photo.id
+        @controller.parent.id.should == sm.id
+      end
+
+      it 'uses the photo if no status_message exsists' do
+        get :show, :id => @alices_photo.id
+        @controller.parent.id.should == @alices_photo.id
+      end
+    end
+
+    describe '.photo' do
+      it 'returns a visible photo, based on the :id param' do
+        get :show, :id => @alices_photo.id
+        @controller.photo.id.should == @alices_photo.id
+
+      end
+    end
+
+    describe '.additional_photos' do
+      it 'finds all of a parent status messages photos' do
+        sm = alice.post(:status_message, :text => 'yes', :to => alice.aspects.first)
+        @alices_photo.status_message = sm
+        @alices_photo.save
+        get :show, :id => @alices_photo.id
+        @controller.additional_photos.should include(@alices_photo)
+      end
+    end
+
+    describe '.next_photo' do
+
+    end
+
+    describe '.previous_photo' do
+
     end
   end
 end

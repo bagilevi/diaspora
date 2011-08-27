@@ -11,9 +11,6 @@
   = render 'shared/settings_nav'
 
 .span-12.prepend-5.last
-  %h2
-    = t('account')
-
   .span-5.append-1
     %h3
       = t('.your_handle')
@@ -22,8 +19,15 @@
   .span-5.last
     %h3
       = t('.your_email')
-    %p
-      = current_user.email
+    = form_for 'user', :url => user_path, :html => { :method => :put } do |f|
+      = f.error_messages
+      %p
+        = f.text_field :email, :value => @user.unconfirmed_email || @user.email
+        = f.submit t('.change_email')
+    %br
+    - if @user.unconfirmed_email.present?
+      %p= t('.email_awaiting_confirmation', :email => @user.email, :unconfirmed_email => @user.unconfirmed_email)
+    %br
 
   %br
   %br
@@ -105,6 +109,10 @@
           = type.label t('.liked') 
           = type.check_box :liked, {:checked =>  @email_prefs['liked']}, false, true 
 
+        %br
+        %p.checkbox_select
+          = type.label t('.reshared') 
+          = type.check_box :reshared, {:checked =>  @email_prefs['reshared']}, false, true 
     %br
     = f.submit t('.change')
 

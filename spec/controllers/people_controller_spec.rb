@@ -39,7 +39,23 @@ describe PeopleController do
                                :profile => Factory.build(:profile, :first_name => "Eugene",
                                                          :last_name => "w"))
       get :index, :q => "Eug"
-      assigns[:people].should =~ [@eugene, eugene2]
+      assigns[:people].map{|x| x.id}.should =~ [@eugene.id, eugene2.id]
+    end
+
+    it "excludes people that are not searchable" do
+      eugene2 = Factory.create(:person,
+                               :profile => Factory.build(:profile, :first_name => "Eugene",
+                                                         :last_name => "w", :searchable => false))
+      get :index, :q => "Eug"
+      assigns[:people].should_not =~ [eugene2]
+    end
+
+    it "allows unsearchable people to be found by handle" do
+      eugene2 = Factory.create(:person, :diaspora_handle => "eugene@example.org",
+                               :profile => Factory.build(:profile, :first_name => "Eugene",
+                                                         :last_name => "w", :searchable => false))
+      get :index, :q => "eugene@example.org"
+      assigns[:people][0].id.should == eugene2.id
     end
 
     it "does not redirect to person page if there is exactly one match" do
@@ -58,6 +74,21 @@ describe PeopleController do
     end
   end
 
+  describe '#tag_index' do
+    it 'works for js' do
+      get :tag_index, :name => 'jellybeans', :format => :js
+      response.should be_success
+    end
+
+    it 'returns awesome people who have that tag' do
+      f = Factory(:person)
+      f.profile.tag_string = "#seeded"
+      f.profile.save
+      get :tag_index, :name => 'seeded', :format => :js
+      assigns[:people].count.should == 1
+    end
+  end
+
   describe "#show performance", :performance => true do
     before do
       require 'benchmark'
@@ -73,7 +104,7 @@ describe PeopleController do
       end
       @posts.each do |post|
         @users.each do |user|
-          user.comment "yo#{post.text}", :on => post
+          user.comment "yo#{post.text}", :post => post
         end
       end
     end
@@ -86,14 +117,19 @@ describe PeopleController do
   end
 
   describe '#show' do
-    it "redirects to #index if the id is invalid" do
+    it "404s if the id is invalid" do
       get :show, :id => 'delicious'
-      response.should redirect_to people_path
+      response.code.should == "404"
     end
 
-    it "redirects to #index if no person is found" do
+    it "404s if no person is found via id" do
       get :show, :id => 3920397846
-      response.should redirect_to people_path
+      response.code.should == "404"
+    end
+
+    it "404s if no person is found via username" do
+      get :show, :username => 'delicious'
+      response.code.should == "404"
     end
 
     it 'does not allow xss attacks' do
@@ -105,6 +141,7 @@ describe PeopleController do
       response.should be_success
       response.body.match(profile.first_name).should be_false
     end
+
 
     context "when the person is the current user" do
       it "succeeds" do
@@ -129,14 +166,20 @@ describe PeopleController do
         @user.post(:status_message, :text => "public", :to => 'all', :public => true)
         @user.reload.posts.length.should == 3
         get :show, :id => @user.person.to_param
-        assigns(:posts).models.should =~ @user.posts
+        assigns(:posts).map(&:id).should =~ @user.posts.map(&:id)
       end
 
       it "renders the comments on the user's posts" do
         message = @user.post :status_message, :text => 'test more', :to => @aspect.id
-        @user.comment 'I mean it', :on => message
+        @user.comment 'I mean it', :post => message
         get :show, :id => @user.person.id
         response.should be_success
+      end
+
+      it 'passes through the includes option for json requests' do
+        json = @user.person.as_json
+        Person.any_instance.should_receive(:as_json).with(:includes => "horses").and_return(json)
+        get :show, :format => :json, :id => @user.person.id, :includes => "horses"
       end
     end
 
@@ -167,14 +210,20 @@ describe PeopleController do
           @public_posts.first.save
         end
 
+        it "posts include reshares" do
+          reshare = @user.post(:reshare, :public => true, :root_guid => Factory(:status_message, :public => true).guid, :to => alice.aspects)
+          get :show, :id => @user.person.id
+          assigns[:posts].map{|x| x.id}.should include(reshare.id)
+        end
+
         it "assigns only public posts" do
           get :show, :id => @person.id
-          assigns[:posts].models.should =~ @public_posts
+          assigns[:posts].map(&:id).should =~ @public_posts.map(&:id)
         end
 
         it 'is sorted by created_at desc' do
           get :show, :id => @person.id
-          assigns[:posts].models.should == @public_posts.sort_by{|p| p.created_at}.reverse
+          assigns[:posts].should == @public_posts.sort_by{|p| p.created_at}.reverse
         end
       end
 
@@ -211,7 +260,13 @@ describe PeopleController do
         bob.reload.posts.length.should == 4
 
         get :show, :id => @person.id
-        assigns(:posts).models.should =~ posts_user_can_see
+        assigns(:posts).map(&:id).should =~ posts_user_can_see.map(&:id)
+      end
+
+      it "posts include reshares" do
+        reshare = @user.post(:reshare, :public => true, :root_guid => Factory(:status_message, :public => true).guid, :to => alice.aspects)
+        get :show, :id => @user.person.id
+        assigns[:posts].map{|x| x.id}.should include(reshare.id)
       end
 
       it 'sets @commenting_disabled to true' do
@@ -243,8 +298,14 @@ describe PeopleController do
         eve.reload.posts.length.should == 3
 
         get :show, :id => @person.id
-        assigns[:posts].models.should =~ [public_post]
+        assigns[:posts].map(&:id).should =~ [public_post].map(&:id)
       end
+
+        it "posts include reshares" do
+          reshare = @user.post(:reshare, :public => true, :root_guid => Factory(:status_message, :public => true).guid, :to => alice.aspects)
+          get :show, :id => @user.person.id
+          assigns[:posts].map{|x| x.id}.should include(reshare.id)
+        end
 
       it 'sets @commenting_disabled to true' do
         get :show, :id => @person.id
@@ -259,6 +320,7 @@ describe PeopleController do
       contacts = contact.contacts
       get :contacts, :person_id => bob.person.id
       assigns(:contacts_of_contact).should == contacts
+      response.should be_success
     end
   end
 

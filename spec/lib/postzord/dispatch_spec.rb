@@ -23,10 +23,20 @@ describe Postzord::Dispatch do
       zord.instance_variable_get(:@object).should == @sm
     end
 
-    it 'sets @subscribers from object' do
-      @sm.should_receive(:subscribers).and_return(@subscribers)
-      zord = Postzord::Dispatch.new(alice, @sm)
-      zord.instance_variable_get(:@subscribers).should == @subscribers
+    context 'setting @subscribers' do 
+      it 'sets @subscribers from object' do
+        @sm.should_receive(:subscribers).and_return(@subscribers)
+        zord = Postzord::Dispatch.new(alice, @sm)
+        zord.instance_variable_get(:@subscribers).should == @subscribers
+      end
+
+      it 'accepts additional subscribers from opts' do
+        new_person = Factory(:person)
+
+        @sm.should_receive(:subscribers).and_return(@subscribers)
+        zord = Postzord::Dispatch.new(alice, @sm, :additional_subscribers => new_person)
+        zord.instance_variable_get(:@subscribers).should == @subscribers | [new_person]
+      end
     end
 
     it 'sets the @sender_person object' do
@@ -84,7 +94,7 @@ describe Postzord::Dispatch do
         end
         context "local leia" do
           before do
-            @comment = @local_leia.build_comment "yo", :on => @post
+            @comment = @local_leia.build_comment :text => "yo", :post => @post
             @comment.save
           end
           context "local leia's mailman" do
@@ -156,7 +166,7 @@ describe Postzord::Dispatch do
         end
         context "local luke" do
           before do
-            @comment = @local_luke.build_comment "yo", :on => @post
+            @comment = @local_luke.build_comment :text => "yo", :post => @post
             @comment.save
             @mailman = Postzord::Dispatch.new(@local_luke, @comment)
           end
@@ -182,7 +192,7 @@ describe Postzord::Dispatch do
       context "remote raphael's post is commented on by local luke" do
         before do
           @post = Factory(:status_message, :author => @remote_raphael)
-          @comment = @local_luke.build_comment "yo", :on => @post
+          @comment = @local_luke.build_comment :text => "yo", :post => @post
           @comment.save
           @mailman = Postzord::Dispatch.new(@local_luke, @comment)
         end
@@ -302,7 +312,9 @@ describe Postzord::Dispatch do
       it 'should call object#socket_to_user for each local user' do
         sc = mock()
         SocketsController.should_receive(:new).and_return(sc)
-        sc.should_receive(:outgoing).with(bob, @zord.instance_variable_get(:@object), :aspect_ids => bob.contact_for(alice.person).aspect_memberships.map{|a| a.aspect_id})
+        sc.should_receive(:outgoing).with(bob,
+                                          @zord.instance_variable_get(:@object),
+                                          :aspect_ids => bob.contact_for(alice.person).aspect_memberships.map{|a| postgres? ? a.aspect_id.to_s : a.aspect_id })
         @zord.send(:socket_and_notify_users, [bob])
       end
 

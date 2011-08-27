@@ -11,6 +11,8 @@ module Diaspora
         cattr_accessor :field_with_tags
       end
       model.instance_eval do
+        before_create :build_tags
+
         def extract_tags_from sym
           self.field_with_tags = sym
         end
@@ -36,10 +38,11 @@ module Diaspora
       unique_matches.values
     end
 
-    def format_tags(text, opts={})
+    def self.format_tags(text, opts={})
       return text if opts[:plain_text]
+      text = ERB::Util.h(text) unless opts[:no_escape]
       regex = /(^|\s)#(#{VALID_TAG_BODY})/
-      form_message = text.gsub(regex) do |matched_string|
+      form_message = text.to_str.gsub(regex) do |matched_string|
         "#{$~[1]}<a href=\"/tags/#{$~[2]}\" class=\"tag\">##{$~[2]}</a>"
       end
       form_message.html_safe

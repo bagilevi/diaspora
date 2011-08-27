@@ -8,8 +8,10 @@
   :left -11px
 
 .button
-  @include border-radius(3px)
-  @include linear-gradient(#f7f7f7,#d0d0d0)
+  @include border-radius(2px)
+  @include linear-gradient(rgb(248,250,250),rgb(228,223,223))
+  @include box-shadow(0,1px,1px,#cfcfcf)
+  @include transition(width, 3s)
 
   :font
     :style normal
@@ -17,8 +19,8 @@
 
   :display inline
 
-  :padding 4px 7px
-  :min-width 26px
+  :padding 4px 9px
+  :min-width 90px
 
   :font-size 12px
   :line
@@ -28,15 +30,13 @@
 
   :border 1px solid #aaa
     :top 1px solid #bbb
-    :bottom 1px solid #888
+    :bottom 1px solid darken(#aaa,13%)
 
   :cursor pointer
 
   :white-space nowrap
 
-  :color #4a4a4a
-  :text
-    :shadow 0 1px 1px #eee
+  :color #444
 
   &:hover
     @include linear-gradient(#d6d6d6,#b0b0b0)
@@ -66,6 +66,35 @@
   :border
     :top 1px solid #aaa
 
+.button.delete
+  :color desaturate($red,10%)
+
+.button.in_aspects
+  @include linear-gradient(lighten(#76C000,8%),#76C000)
+
+.button.creation
+  @include linear-gradient(lighten($creation-blue,8%), darken($creation-blue, 3%))
+  :color #fafafa
+
+  :border 1px solid #666
+    :top 1px solid #777
+    :bottom 1px solid darken(#666,13%)
+
+  &:hover
+    @include linear-gradient(lighten($creation-blue,3%), darken($creation-blue, 8%))
+
+.button.red_on_hover
+  &:hover
+    @include linear-gradient(lighten(#F74427, 10%), darken(#F74427,0%))
+    :color #222
+
+    :border 1px solid #666
+      :top 1px solid #777
+      :bottom 1px solid darken(#666,13%)
+
+  &:active
+    :text-shadow none
+
 .right
   :position absolute
   :right 0
@@ -93,26 +122,43 @@
 
     ul
       @include user-select(none)
+      :font
+        :size normal
 
       :padding 0 !important
       :margin 0 !important
-      :color #333
+      :color #000
 
       > li
         :font-size 11px !important
         :padding 3px 2px 
           :left 24px
         :position relative
+        :color #222
 
-        .check,
-        .checkWhite
-          :position absolute
-          :left 4px
-          :top 1px
+        &.selected
+          :background
+            :image url('/images/icons/check_yes_ok.png')
+            :position 3px 1px
+            :repeat no-repeat
 
-        .checkWhite
-          :display none
-          :top 0px
+        &.selected:hover
+          :background
+            :image url('/images/icons/check_yes_ok_white.png')
+            /* bump top position up 1px to compensate for the 1px added top border */
+            :position 3px 0px
+
+        &.loading
+          :background
+            :image url('/images/ajax-loader.gif')
+            :repeat no-repeat
+            :position 4px 2px
+
+        &.loading:hover
+          :background
+            :image url('/images/ajax-loader_inverted.gif')
+            /* bump top position up 1px to compensate for the 1px added top border */
+            :position 4px 1px
 
         &.newItem
           a
@@ -121,7 +167,6 @@
 
             &:hover
               :text-decoration none
-          
 
   &.hang_right
     .wrapper
@@ -141,13 +186,17 @@
       @include border-radius(3px, 3px, 0, 0)
       :border 1px solid #444
         :bottom none
-    
+
     .selected
       :font-weight bold
 
+    .button
+      :background #666
+    
     .button,
     .wrapper ul > li:hover
-      :background #666
+      :background
+        :color #666
       :color #fff
       :text-shadow none
 
@@ -166,11 +215,4 @@
     .wrapper ul > li,
     .wrapper ul > li *
       :cursor pointer
-
-    .selected:hover .checkWhite
-      :display block
-
-    .selected:hover .check
-      :display none
-
 

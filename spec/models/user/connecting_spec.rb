@@ -39,6 +39,13 @@ describe Diaspora::UserModules::Connecting do
         bob.should_receive(:remove_contact).with(bob.contact_for(alice.person))
         bob.disconnected_by(alice.person)
       end
+
+      it 'removes notitications' do
+        alice.share_with(eve.person, alice.aspects.first)
+        Notifications::StartedSharing.where(:recipient_id => eve.id).first.should_not be_nil
+        eve.disconnected_by(alice.person)
+        Notifications::StartedSharing.where(:recipient_id => eve.id).first.should be_nil
+      end
     end
 
     describe '#disconnect' do
@@ -58,7 +65,7 @@ describe Diaspora::UserModules::Connecting do
       end
 
       it 'should remove the contact from all aspects they are in' do
-        contact = alice.contact_for(bob.person) 
+        contact = alice.contact_for(bob.person)
         new_aspect = alice.aspects.create(:name => 'new')
         alice.add_contact_to_aspect(contact, new_aspect)
 
@@ -69,13 +76,23 @@ describe Diaspora::UserModules::Connecting do
     end
   end
 
+  describe '#register_post_visibilities' do
+    it 'creates post visibilites for up to 100 posts' do
+      Post.stub_chain(:where, :limit).and_return([Factory(:status_message, :public => true)])
+      c = Contact.create!(:user_id => alice.id, :person_id => eve.person.id)
+      expect{
+        alice.register_post_visibilities(c)
+      }.to change(PostVisibility, :count).by(1)
+    end
+  end
+
   describe '#share_with' do
     it 'finds or creates a contact' do
       lambda {
         alice.share_with(eve.person, alice.aspects.first)
       }.should change(alice.contacts, :count).by(1)
     end
-    
+
     it 'does not set mutual on intial share request' do
       alice.share_with(eve.person, alice.aspects.first)
       alice.contacts.find_by_person_id(eve.person.id).should_not be_mutual
@@ -87,7 +104,7 @@ describe Diaspora::UserModules::Connecting do
 
       alice.contacts.find_by_person_id(eve.person.id).should be_mutual
     end
-    
+
     it 'adds a contact to an aspect' do
       contact = alice.contacts.create(:person => eve.person)
       alice.contacts.stub!(:find_or_initialize_by_person_id).and_return(contact)
@@ -95,6 +112,11 @@ describe Diaspora::UserModules::Connecting do
       lambda {
         alice.share_with(eve.person, alice.aspects.first)
       }.should change(contact.aspects, :count).by(1)
+    end
+
+    it 'calls #register_post_visibilities with a contact' do
+      eve.should_receive(:register_post_visibilities)
+      eve.share_with(alice.person, eve.aspects.first)
     end
 
     context 'dispatching' do
@@ -126,7 +148,7 @@ describe Diaspora::UserModules::Connecting do
         alice.share_with(eve.person, a2)
       end
     end
-    
+
     it 'sets receiving' do
       alice.share_with(eve.person, alice.aspects.first)
       alice.contact_for(eve.person).should be_receiving

@@ -5,10 +5,8 @@
 class ApplicationController < ActionController::Base
   has_mobile_fu
   protect_from_forgery :except => :receive
-
   before_filter :ensure_http_referer_is_set
   before_filter :set_header_data, :except => [:create, :update]
-  before_filter :set_invites
   before_filter :set_locale
   before_filter :set_git_header if (AppConfig[:git_update] && AppConfig[:git_revision])
   before_filter :which_action_and_user
@@ -16,6 +14,8 @@ class ApplicationController < ActionController::Base
   before_filter :set_grammatical_gender
 
   inflection_method :grammatical_gender => :gender
+
+  helper_method :all_aspects, :all_contacts_count, :my_contacts_count, :only_sharing_count
 
   def ensure_http_referer_is_set
     request.env['HTTP_REFERER'] ||= '/aspects'
@@ -28,19 +28,29 @@ class ApplicationController < ActionController::Base
         @notification_count = Notification.for(current_user, :unread =>true).count
         @unread_message_count = ConversationVisibility.sum(:unread, :conditions => "person_id = #{current_user.person.id}")
       end
-      @object_aspect_ids = []
-      @all_aspects = current_user.aspects
     end
+  end
+
+
+  ##helpers
+  def all_aspects
+    @all_aspects ||= current_user.aspects
+  end
+
+  def all_contacts_count
+    @all_contacts_count ||= current_user.contacts.count
+  end
+
+  def my_contacts_count
+    @my_contacts_count ||= current_user.contacts.receiving.count
+  end
+
+  def only_sharing_count
+    @only_sharing_count ||= current_user.contacts.only_sharing.count
   end
 
   def ensure_page
     params[:page] = params[:page] ? params[:page].to_i : 1
-  end
-
-  def set_invites
-    if user_signed_in?
-      @invites = current_user.invites
-    end
   end
 
   def set_git_header
@@ -105,6 +115,6 @@ class ApplicationController < ActionController::Base
   end
 
   def after_sign_in_path_for(resource)
-      stored_location_for(:user) || aspects_path(:a_ids => current_user.aspects.where(:open => true).select(:id).all.map{|a| a.id})
+    stored_location_for(:user) || (current_user.getting_started? ? getting_started_path : aspects_path)
   end
 end

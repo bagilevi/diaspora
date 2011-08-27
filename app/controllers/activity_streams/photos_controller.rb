@@ -3,11 +3,32 @@
 #   the COPYRIGHT file.
 
 class ActivityStreams::PhotosController < ApplicationController
-  before_filter :authenticate_user!
+  class AuthenticationFilter
+    def initialize(scope = nil)
+      @scope = scope
+    end
+
+    def filter(controller, &block)
+      if controller.params[:auth_token]
+        if controller.current_user
+          yield
+        else
+          controller.fail!
+        end
+      else
+        controller.request.env['oauth2'].authenticate_request! :scope => @scope do |*args|
+          controller.sign_in controller.request.env['oauth2'].resource_owner
+          block.call(*args)
+        end
+      end
+    end
+  end
+
+  around_filter AuthenticationFilter.new, :only => :create
   skip_before_filter :verify_authenticity_token, :only => :create
 
   respond_to :json
-  respond_to :html, :only => [:show, :destroy]
+  respond_to :html, :only => [:show]
 
   def create
     @photo = ActivityStreams::Photo.from_activity(params[:activity])
@@ -21,6 +42,8 @@ class ActivityStreams::PhotosController < ApplicationController
       current_user.dispatch_post(@photo, :url => post_url(@photo))
 
       render :nothing => true, :status => 201
+    else
+      render :nothing => true, :status => 422
     end
   end
 
@@ -29,11 +52,7 @@ class ActivityStreams::PhotosController < ApplicationController
     respond_with @photo
   end
 
-  def destroy
-    @photo = current_user.posts.where(:id => params[:id]).first
-    if @photo
-      current_user.retract(@photo)
-    end
-    respond_with @photo
+  def fail!
+    render :nothing => true, :status => 401
   end
 end

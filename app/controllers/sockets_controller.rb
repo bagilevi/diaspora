@@ -6,20 +6,48 @@ class SocketsController < ApplicationController
   include ApplicationHelper
   include SocketsHelper
   include Rails.application.routes.url_helpers
+  helper_method :all_aspects
+  helper_method :current_user
 
   def incoming(msg)
     Rails.logger.info("Socket received connection to: #{msg}")
   end
 
   def outgoing(user_or_id, object, opts={})
-    if user_or_id.instance_of?(Fixnum)
-      user_id = user_or_id
-    else
-      user_id = user_or_id.id
-      @user = user_or_id
-    end
+    #this should be the actual params of the controller
+    @params = {:user_or_id => user_or_id, :object => object}.merge(opts)
     return unless Diaspora::WebSocket.is_connected?(user_id)
-    @_request = ActionDispatch::Request.new({})
-    Diaspora::WebSocket.queue_to_user(user_id, action_hash(@user || User.find(user_id), object, opts))
+    @_request = SocketRequest.new({})
+    Diaspora::WebSocket.queue_to_user(user_id, action_hash(user, object, opts))
+  end
+
+  def user_id
+    if @params[:user_or_id].instance_of?(Fixnum)
+      @user_id ||= @params[:user_or_id]
+    else
+      @user_id ||= @params[:user_or_id].id
+    end
+  end
+
+  def user
+   @user ||= ((@params[:user_or_id].instance_of? User )? @params[:user_or_id] : User.find(user_id))
+  end
+
+  def current_user
+    user
+  end
+
+  def url_options
+    {:host => "#{AppConfig[:pod_uri].host}:#{AppConfig[:pod_uri].port}"}
+  end
+
+  def all_aspects
+    @all_aspects ||= user.aspects
+  end
+
+  class SocketRequest < ActionDispatch::Request
+    def format
+      'socket'
+    end
   end
 end

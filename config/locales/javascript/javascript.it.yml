@@ -23,6 +23,10 @@ it:
       no_more: "Non ci sono altri post."
     publisher: 
       at_least_one_aspect: "Devi condividere almeno con un aspetto"
+      limited: "Non pubblico - il tuo post sarà visibile solamente a coloro con cui lo condividi"
+      public: "Pubblico - il tuo post sarà visibile a tutti inclusi i motori di ricerca"
+    reshares: 
+      duplicate: "Hai già condiviso questo post!"
     search_for: "Ricerca per {{name}}"
     show_more: "mostra altro"
     timeago: 

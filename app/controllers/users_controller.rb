@@ -1,6 +1,7 @@
 #   Copyright (c) 2010, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
+
 class UsersController < ApplicationController
   require File.join(Rails.root, 'lib/diaspora/ostatus_builder')
   require File.join(Rails.root, 'lib/diaspora/exporter')
@@ -20,11 +21,10 @@ class UsersController < ApplicationController
   end
 
   def update
-
     password_changed = false
-    if u = params[:user]
-      @user = current_user
+    @user = current_user
 
+    if u = params[:user]
       u.delete(:password) if u[:password].blank?
       u.delete(:password_confirmation) if u[:password].blank? and u[:password_confirmation].blank?
       u.delete(:language) if u[:language].blank?
@@ -48,50 +48,45 @@ class UsersController < ApplicationController
         else
           flash[:error] = I18n.t 'users.update.language_not_changed'
         end
-      elsif u[:a_ids]
-        @user.aspects.update_all(:open => false)
-        unless u[:a_ids] == ["home"]
-          @user.aspects.where(:id => u[:a_ids]).update_all(:open => true)
+      elsif u[:email]
+        @user.unconfirmed_email = u[:email]
+        if @user.save
+          @user.mail_confirm_email
+          flash[:notice] = I18n.t 'users.update.unconfirmed_email_changed'
+        else
+          flash[:error] = I18n.t 'users.update.unconfirmed_email_not_changed'
         end
       end
+    elsif aspect_order = params[:reorder_aspects]
+      @user.reorder_aspects(aspect_order)
     end
 
     respond_to do |format|
-      format.js{
-        render :nothing => true, :status => 204
-      }
-      format.all{
-        if password_changed
-          redirect_to new_user_session_path
-        else
-          redirect_to edit_user_path
-        end
-      }
+      format.js   { render :nothing => true, :status => 204 }
+      format.all  { redirect_to password_changed ? new_user_session_path : edit_user_path }
     end
   end
 
   def destroy
-    current_user.destroy
+    Resque.enqueue(Job::DeleteAccount, current_user.id)
+    current_user.lock_access!
     sign_out current_user
     flash[:notice] = I18n.t 'users.destroy'
     redirect_to root_path
   end
 
   def public
-    user = User.find_by_username(params[:username])
-
-    if user
-      posts = StatusMessage.where(:author_id => user.person.id, :public => true).order('created_at DESC')
-      director = Diaspora::Director.new
-      ostatus_builder = Diaspora::OstatusBuilder.new(user, posts)
+    if user = User.find_by_username(params[:username])
       respond_to do |format|
-        format.atom{
+        format.atom do
+          posts = StatusMessage.where(:author_id => user.person.id, :public => true).order('created_at DESC').limit(25)
+          director = Diaspora::Director.new
+          ostatus_builder = Diaspora::OstatusBuilder.new(user, posts)
           render :xml => director.build(ostatus_builder), :content_type => 'application/atom+xml'
-        }
-        format.html{
-          redirect_to person_path(user.person.id)
-      }
-    end
+        end
+
+        format.any { redirect_to person_path(user.person.id) }
+      end
     else
       redirect_to root_url, :error => I18n.t('users.public.does_not_exist', :username => params[:username])
     end
@@ -103,28 +98,9 @@ class UsersController < ApplicationController
     @person   = @user.person
     @profile  = @user.profile
     @services = @user.services
-    service = current_user.services.where(:type => "Services::Facebook").first
+    @step     = 0
 
-    @step = ((params[:step].to_i>0)&&(params[:step].to_i<4)) ? params[:step].to_i : 1
-    @step ||= 1
-
-    if @step == 2 && SERVICES['facebook']['app_id'] == ""
-      @step = 3
-    end
-
-    if @step == 3
-      @friends = service ? service.finder(:local => true) : []
-      @friends ||= []
-    end
-
-
-    if @step == 3 && @friends.length == 0
-      @user.update_attributes(:getting_started => false)
-      flash[:notice] = I18n.t('users.getting_started.could_not_find_anyone')
-      redirect_to root_path
-    else
-      render "users/getting_started"
-    end
+    render "users/getting_started"
   end
 
   def getting_started_completed
@@ -141,5 +117,14 @@ class UsersController < ApplicationController
   def export_photos
     tar_path = PhotoMover::move_photos(current_user)
     send_data( File.open(tar_path).read, :filename => "#{current_user.id}.tar" )
+  end
+
+  def confirm_email
+    if current_user.confirm_email(params[:token])
+      flash[:notice] = I18n.t('users.confirm_email.email_confirmed', :email => current_user.email)
+    elsif current_user.unconfirmed_email.present?
+      flash[:error] = I18n.t('users.confirm_email.email_not_confirmed')
+    end
+    redirect_to edit_user_path
   end
 end
