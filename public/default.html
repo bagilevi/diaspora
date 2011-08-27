@@ -22,9 +22,13 @@
         color: #777;
       }
 
+      #steps {
+        width: 30%;
+        float: left;
+        padding-left: 10em;
+      }
       #steps li{
         display: inline-block;
-        width: 30%;
         padding: 1%;
         text-align: center;
         vertical-align: top;
@@ -36,6 +40,7 @@
 
       #links {
         margin: 0;
+        margin-top: 2em;
         padding: 0;
       }
       #links .section {
@@ -51,8 +56,8 @@
         background-color: #D9FFA9;
       }
 
-      #login-link {
-        float: right;
+      #login-link { float:right}
+      #login-link, .buttonized {
         padding: 3px 5px;
         background: #f0f0f0;
         border: 1px solid #ddd;
@@ -83,6 +88,25 @@
         cursor: help;
       }
 
+
+      #logo {
+        color: black;
+        font-family: serif;
+        font-size: 21px;
+      }
+      #logo .b {
+        font-weight: bold;
+      }
+      #logo .alpha {
+        font-size: 14px;
+        position: relative;
+        top: -0.5em;
+        left: -0.4em;
+      }
+      p {
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+
     </style>
   </head>
 
@@ -91,7 +115,7 @@
       <div id="contentr">
         <div id="header" style="margin-bottom:24px;">
           <a id="login-link" href="login">Log In</a>
-          <img src='images/logo_caps.png'/>
+          <span id="logo"><span class="a">London</span><span class="b">DIASPORA</span> <span class="alpha">alpha</span></span>
         </div>
 
         <div id="about" style='display:none;'>
@@ -108,66 +132,61 @@
           <br>
           <br>
 
+        </div>
+      </div>
+
+    </div>
+
+    <div id="about" style='display:none;'>
+      <h3><a href="rails/info/properties" onclick="about(); return false;">About your pod&rsquo;s environment</a></h3>
+      <div id="about-content" style="display: none"></div>
+    </div>
+
+  </div>
+
           <ol id="steps">
-            <li>
-              <h2>Configure your <abbr class="helpful" title="A Diaspora installation">pod</abbr></h2>
-              <img src='images/icons/cog.png'/>
-              <p>Look at <code class="helpful" title='General pod configuration (location to upload photos, SSL certs, etc.)'>config/application.yml.example</code> and <code class="helpful" title="mySQL username/password">config/database.yml.example</code> for help.</p>
-            </li>
 
             <li>
               <h2>Try it out</h2>
               <img src='images/icons/smiley_laughing.png'/>
-              <p>Start by <a href="users/sign_up">creating an account</a>.</p>
+              <p><a href="users/sign_up" class="buttonized">Create an Account</a></p>
+              <p>or</p>
+              <p><a class="buttonized" href="login">Log In</a></p>
             </li>
 
-            <li>
-              <h2>Make a contribution!</h2>
-              <img src='images/icons/pen_write.png'/>
-              <p>Make Diaspora even better!  Fork the project on <a href="http://github.com/diaspora/diaspora/" title="github">github</a>, make some changes, and submit a pull request.</p>
-            </li>
           </ol>
-        </div>
-      </div>
+  <div class="info" id="info">
+    <p>
+    This is an installation of <a href="http://en.wikipedia.org/wiki/Diaspora_(software)">DIASPORA*</a>
+    – <cite>"the privacy aware,
+    personally controlled, do-it-all, open source social network"</cite>
+    </p>
+    <p>
+    This is an <a href="http://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha">alpha software</a>, so you can expect frequent problems
+    </p>
+    <p>
+    Good response time for
+    London, UK and Europe,
+    but anyone is welcome to join.
+    </p>
+    <p>
+    Maintained by <a href="https://londondiaspora.org/people/2">Levente Bagi</a>, a
+    <a href="http://en.wikipedia.org/wiki/Ruby_on_Rails">Ruby on Rails</a> developer in London
+    </p>
 
-      <br>
-      <br>
+    <ul id="links">
+        <li><strong><a href="http://github.com/diaspora/diaspora/wiki" title="Wiki on github">Documentation</a></strong></li>
+        <li><a href="http://getsatisfaction.com/diaspora/" title="Get Satisfaction">User Feedback</a></li>
+        <li><a href="http://webchat.freenode.net/?channels=diaspora" title="#diaspora">IRC</a></li>
+        <li><a href="http://groups.google.com/group/diaspora-discuss" title="General discussion mailing list">Discussion</a></li>
+        <li><a href="http://diaspora.shapado.com/">Questions &amp; Answers</a></li>
+    </ul>
+  </div>
 
-      <hr>
-
-      <br>
+  <div class="clear"></div>
 
 
-      <h3>Useful Resources</h3>
-      <ul id="links">
-        <ul class="section">
-          <li><strong><a href="http://github.com/diaspora/diaspora/" title="Git repository">Codebase</a></strong></li>
-          <li><strong><a href="http://github.com/diaspora/diaspora/wiki" title="Wiki on github">Documentation</a></strong></li>
-          <br>
-          <li><a href="http://bugs.joindiaspora.com/" title="Bug tracker">Find & Report bugs</a></li>
-        </ul>
-        <ul class="section">
-          <li><a href="http://webchat.freenode.net/?channels=diaspora" title="#diaspora">IRC - General</a></li>
-          <li><a href="http://webchat.freenode.net/?channels=diaspora-dev" title="#diaspora-dev">IRC - Development</a></li>
-        </ul>
-        <ul class="section">
-          <li><a href="http://groups.google.com/group/diaspora-discuss" title="General discussion mailing list">Discussion - General</a></li>
-          <li><a href="http://groups.google.com/group/diaspora-dev" title="Dev mailing list">Discussion - Development</a></li>
-        </ul>
-        <ul class="section">
-          <li><a href="http://getsatisfaction.com/diaspora/" title="Get Satisfaction">User Feedback</a></li>
-          <li><a href="http://guides.rubyonrails.org/">Learn more about Ruby On Rails!</a></li>
-        </ul>
-      </ul>
-    </div>
+</div>
 
-    <br>
-    <br>
 
-    <hr>
 
-    <div id="change-page">
-      This page can be changed to a custom landing page by creating <code>app/views/home/_show.html.haml</code>
-    </div>
-  </body>
-</html>
