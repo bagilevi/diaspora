@@ -4,9 +4,7 @@
 
 .container{:style => "position:relative;"}
   %a#logo{ :href => root_path, :class => (current_user ? 'small' : nil) }
-    %span.a> London
-    %span.b> Diaspora
-    %span.alpha> alpha
+    <span class="a">London</span><span class="b">DIASPORA</span> <span class="alpha">alpha</span>
   - if !current_user
     .right
       %ul#landing_nav
