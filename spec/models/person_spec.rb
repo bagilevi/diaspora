@@ -40,6 +40,7 @@ describe Person do
         person_ids.uniq.should == person_ids
       end
     end
+
     describe '.local' do
       it 'returns only local people' do
         Person.local =~ [@person]
@@ -73,7 +74,25 @@ describe Person do
         }.to raise_error ActiveRecord::RecordNotFound
       end
     end
+
+    describe '.all_from_aspects' do
+      it "pulls back the right people given all a user's aspects" do
+        aspect_ids = bob.aspects.map(&:id)
+        Person.all_from_aspects(aspect_ids, bob).map(&:id).should =~ bob.contacts.includes(:person).map{|c| c.person.id}
+      end
+
+      it "pulls back the right people given a subset of aspects" do
+        aspect_ids = bob.aspects.first.id
+        Person.all_from_aspects(aspect_ids, bob).map(&:id).should =~ bob.aspects.first.contacts.includes(:person).map{|c| c.person.id}
+      end
+
+      it "respects aspects given a user" do
+        aspect_ids = alice.aspects.map(&:id)
+        Person.all_from_aspects(aspect_ids, bob).map(&:id).should == []
+      end
+    end
   end
+
   describe "delegating" do
     it "delegates last_name to the profile" do
       @person.last_name.should == @person.profile.last_name
@@ -267,34 +286,34 @@ describe Person do
       @casey_grippi.profile.save
       @casey_grippi.reload
     end
-    it 'is ordered by last name' do
+    it 'orders results by last name' do
       @robert_grimm.profile.first_name = "AAA"
-      @robert_grimm.profile.save
+      @robert_grimm.profile.save!
 
       @eugene_weinstein.profile.first_name = "AAA"
-      @eugene_weinstein.profile.save
+      @eugene_weinstein.profile.save!
 
       @yevgeniy_dodis.profile.first_name = "AAA"
-      @yevgeniy_dodis.profile.save
+      @yevgeniy_dodis.profile.save!
 
       @casey_grippi.profile.first_name = "AAA"
-      @casey_grippi.profile.save
+      @casey_grippi.profile.save!
 
       people = Person.search("AAA", @user)
       people.map { |p| p.name }.should == [@yevgeniy_dodis, @robert_grimm, @casey_grippi, @eugene_weinstein].map { |p| p.name }
     end
 
-    it 'should return nothing on an empty query' do
+    it 'returns nothing on an empty query' do
       people = Person.search("", @user)
-      people.empty?.should be true
+      people.should be_empty
     end
 
-    it 'should return nothing on a one character query' do
+    it 'returns nothing on a one-character query' do
       people = Person.search("i", @user)
-      people.empty?.should be true
+      people.should be_empty
     end
 
-    it 'should yield search results on partial names' do
+    it 'returns results for partial names' do
       people = Person.search("Eug", @user)
       people.count.should == 1
       people.first.should == @eugene_weinstein
@@ -309,7 +328,7 @@ describe Person do
       people.second.should == @casey_grippi
     end
 
-    it 'gives results on full names' do
+    it 'returns results for full names' do
       people = Person.search("Casey Grippi", @user)
       people.count.should == 1
       people.first.should == @casey_grippi
@@ -321,23 +340,23 @@ describe Person do
       Person.search("", @user).should_not include invisible_person
     end
 
-    it 'searches on handles' do
+    it 'returns results for Diaspora handles' do
       people = Person.search(@robert_grimm.diaspora_handle, @user)
       people.should == [@robert_grimm]
     end
 
     it "puts the searching user's contacts first" do
       @robert_grimm.profile.first_name = "AAA"
-      @robert_grimm.profile.save
+      @robert_grimm.profile.save!
 
       @eugene_weinstein.profile.first_name = "AAA"
-      @eugene_weinstein.profile.save
+      @eugene_weinstein.profile.save!
 
       @yevgeniy_dodis.profile.first_name = "AAA"
-      @yevgeniy_dodis.profile.save
+      @yevgeniy_dodis.profile.save!
 
       @casey_grippi.profile.first_name = "AAA"
-      @casey_grippi.profile.save
+      @casey_grippi.profile.save!
 
       @user.contacts.create(:person => @casey_grippi, :aspects => [@user.aspects.first])
 

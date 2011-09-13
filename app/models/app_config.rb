@@ -42,7 +42,13 @@ HELP
       Process.exit(1)
     end
 
-    super
+    begin
+      super
+    rescue TypeError
+      puts "Couldn't find section ''#{self.namespace}' in config/application.yml."
+      puts "Double check it's there and that you haven't set RAILS_ENV to something weired (check it for typos)"
+      Process.exit(1)
+    end
 
     if no_cert_file_in_prod?
       $stderr.puts <<-HELP
@@ -131,5 +137,9 @@ HELP
       end
     end
     return @@pod_uri
+  end
+  
+  def self.single_process_mode?
+    (ENV['SINGLE_PROCESS'] == "true" || ENV['SINGLE_PROCESS_MODE'] == "true" || self[:single_process_mode]) ? true : false
   end
 end

@@ -7,11 +7,13 @@ ro:
   javascripts: 
     aspect_dropdown: 
       add_to_aspect: "Adaugă la aspect"
+      all_aspects: "All aspects"
       toggle: 
         few: "În {{count}} aspecte"
         many: "În {{count}} aspecte"
         one: "În {{count}} aspect"
         other: "În {{count}} aspecte"
+        two: "In {{count}} aspects"
         zero: "Adaugă la aspect"
     comments: 
       hide: "hide comments"

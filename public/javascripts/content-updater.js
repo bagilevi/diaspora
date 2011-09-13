@@ -16,10 +16,8 @@ var ContentUpdater = {
       streamElement.prependTo("#main_stream:not('.show')").fadeIn("fast", function() {
         streamElement.find("label").inFieldLabels();
       });
-
+      Diaspora.page.stream.addPost(streamElement);
       Diaspora.page.publish("stream/postAdded", [postGUID]);
-      Diaspora.page.timeAgo.updateTimeAgo();
-      Diaspora.page.directionDetector.updateBinds();
     }
   },
 
@@ -41,16 +39,19 @@ var ContentUpdater = {
 
     $(html).appendTo(comments).fadeIn("fast");
 
-    Diaspora.page.timeAgo.updateTimeAgo();
-    Diaspora.page.directionDetector.updateBinds()
+    Diaspora.page
+      .stream
+      .streamElements[postGUID]
+      .commentStream
+      .publish("comment/added", [$("#"+commentGUID)]);
   },
 
   addLikesToPost: function(postGUID, html) {
-    var likesContainer = $(".likes_container", "#" + postGUID)
+    var likesContainer = $(".likes_container:first", "#" + postGUID)
       .fadeOut("fast")
       .html(html);
 
-    Diaspora.page.stream.streamElements[postGUID].likes.publish("widget/ready", [likesContainer]);
+    Diaspora.page.publish("likes/" + postGUID + "/updated");
 
     likesContainer.fadeIn("fast");
   }

@@ -22,6 +22,9 @@ require 'cucumber/rails/capybara_javascript_emulation' # Lets you click links wi
 # steps to use the XPath syntax.
 Capybara.default_selector = :css
 
+# We have a ridiculously high wait time to account for build machines of various beefiness.
+Capybara.default_wait_time = 30
+
 # If you set this to false, any error raised from within your app will bubble
 # up to your step definition and out to cucumber unless you catch it somewhere
 # on the way. You can make Rails rescue errors and render error pages on a
@@ -41,15 +44,23 @@ Cucumber::Rails::World.use_transactional_fixtures = false
 
 require File.join(File.dirname(__FILE__), "database_cleaner_patches")
 require File.join(File.dirname(__FILE__), "integration_sessions_controller")
+require File.join(File.dirname(__FILE__), "poor_mans_webmock")
 
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support", "fake_redis")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "helper_methods")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support","no_id_on_object")
 require File.join(File.dirname(__FILE__), "..", "..", "spec", "support","user_methods")
 include HelperMethods
+
 Before do
   DatabaseCleaner.clean
   Devise.mailer.deliveries = []
+end
+
+After do
+  if Capybara.current_session.driver.respond_to?(:browser)
+    Capybara.current_session.driver.browser.manage.delete_all_cookies
+  end
 end
 
 silence_warnings do

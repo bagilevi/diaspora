@@ -1,9 +1,9 @@
 source 'http://rubygems.org'
 
-gem 'mysql2', '0.2.6'
-#gem 'pg'
-#gem 'sqlite3'
-gem 'rails', '3.0.9'
+gem 'mysql2', '0.2.6' if ENV['DB'].nil? || ENV['DB'] == 'all' || ENV['DB'] == "mysql"
+gem 'pg' if ENV['DB'] == 'all' || ENV['DB'] == "postgres"
+gem 'sqlite3' if ENV['DB'] == 'all' || ENV['DB'] == "sqlite"
+gem 'rails', '3.0.10'
 gem 'foreigner', '0.9.1'
 gem 'activerecord-import'
 
@@ -13,6 +13,8 @@ gem 'ohai', '0.5.8', :require => false #Chef dependency
 
 gem 'nokogiri'
 gem 'settingslogic', '2.0.6'
+
+gem 'foreman'
 
 gem 'vanna', :git => "git://github.com/MikeSofaer/vanna.git"
 
@@ -35,6 +37,7 @@ gem 'faraday-stack'
 gem 'haml', '3.1.2'
 gem 'sass', '3.1.4'
 gem 'will_paginate', '3.0.pre2'
+gem 'mobile-fu'
 
 #Localization
 gem 'rails-i18n'
@@ -50,9 +53,11 @@ gem 'json', '1.4.6'
 gem 'http_accept_language', :git => 'git://github.com/iain/http_accept_language.git', :ref => '0b78aa7849fc90cf9e12'
 
 gem 'thin', '1.2.11', :require => false
+gem 'redcarpet', :git => 'git://github.com/tanoku/redcarpet'
 
 #Websocket
 gem 'em-websocket', :git => 'git://github.com/igrigorik/em-websocket', :ref => 'e278f5a1c4db60be7485'
+gem 'em-synchrony', :platforms => :ruby_19
 
 #File uploading
 gem 'carrierwave', '0.5.2'
@@ -77,6 +82,7 @@ gem 'cloudfiles', '1.4.10', :require => false
 #Queue
 gem 'resque', '1.10.0'
 gem 'resque-ensure-connected'
+gem 'resque-timeout', '1.0.0'
 gem 'SystemTimer', '1.2.1', :platforms => :ruby_18
 
 group :development do
@@ -84,25 +90,17 @@ group :development do
   gem 'capistrano', '2.5.19', :require => false
   gem 'capistrano-ext', '1.2.1', :require => false
   gem 'sod', :git => "git://github.com/MikeSofaer/sod.git", :require => false
+  gem 'ruby-debug-base19', '0.11.23' if RUBY_VERSION.include? '1.9.1'
+  gem 'ruby-debug19', :platforms => :ruby_19
+  gem 'ruby-debug', :platforms => :mri_18
+  gem 'linecache', '0.43', :platforms => :mri_18
 end
 
 group :test, :development do
-  #gem 'rb-fsevent', :require => false if RUBY_PLATFORM =~ /darwin/i
-  #gem 'guard-rspec'
-   gem 'factory_girl_rails', :require => false
-  unless ENV["TRAVIS"]
-    gem 'ruby-debug-base19', '0.11.23' if RUBY_VERSION.include? '1.9.1'
-    gem 'ruby-debug19', :platforms => :ruby_19
-    gem 'ruby-debug', :platforms => :mri_18
-    gem 'linecache', '0.43', :platforms => :mri_18
-  end
-  gem 'launchy'
   gem 'jasmine', '1.1.0.rc3'
 end
 
 group :test do
-  gem 'mysql2', '0.2.6'
-  #gem 'pg'
   gem 'factory_girl_rails'
   gem 'fixture_builder', '0.2.2'
   gem 'selenium-webdriver', '2.4'
@@ -115,7 +113,6 @@ group :test do
   gem 'database_cleaner', '0.6.0'
   gem 'webmock', :require => false
   gem 'mongrel', :require => false, :platforms => :ruby_18
-  gem 'sqlite3', :require => false
   gem 'rspec-instafail', '>= 0.1.7', :require => false
   gem 'fuubar'
 

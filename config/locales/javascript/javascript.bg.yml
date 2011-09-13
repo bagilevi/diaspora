@@ -7,11 +7,13 @@ bg:
   javascripts: 
     aspect_dropdown: 
       add_to_aspect: "Добавяне в аспект"
+      all_aspects: "Всички аспекти"
       toggle: 
         few: "В {{count}} аспекта"
         many: "В {{count}} аспекта"
         one: "В {{count}} аспект"
         other: "В {{count}} аспекта"
+        two: "В {{count}} аспекта"
         zero: "Добавяне в аспект"
     comments: 
       hide: "скриване на коментарите"

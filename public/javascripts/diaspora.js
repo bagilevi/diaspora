@@ -61,10 +61,10 @@
     $.extend(this, {
       backToTop: this.instantiate("BackToTop", body.find("#back-to-top")),
       directionDetector: this.instantiate("DirectionDetector"),
+      events: function() { return Diaspora.page.eventsContainer.data("events"); },
       flashMessages: this.instantiate("FlashMessages"),
       header: this.instantiate("Header", body.find("header")),
-      hoverCard: this.instantiate("HoverCard", body.find("#hovercard")),
-      timeAgo: this.instantiate("TimeAgo", "abbr.timeago")
+      hoverCard: this.instantiate("HoverCard", body.find("#hovercard"))
     });
   };
 
@@ -77,8 +77,9 @@
 
       Diaspora.page = new Page();
     }
-
-    $.extend(Diaspora.page, new Diaspora.BasePage($(document.body)));
+    
+    if(!$.mobile)//why does this need this?
+      $.extend(Diaspora.page, new Diaspora.BasePage($(document.body)));
     Diaspora.page.publish("page/ready", [$(document.body)])
   };
 

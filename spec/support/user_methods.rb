@@ -36,7 +36,7 @@ class User
     fantasy_resque do
       c = build_comment(options.merge(:text => text))
       if c.save!
-        Postzord::Dispatch.new(self, c).post
+        Postzord::Dispatcher.new(self, c).post
       end
       c
     end
@@ -46,14 +46,15 @@ class User
     fantasy_resque do
       l = build_like(options.merge(:positive => positive))
       if l.save!
-        Postzord::Dispatch.new(self, l).post
+        Postzord::Dispatcher.new(self, l).post
       end
       l
     end
   end
 
   def post_at_time(time)
-    p = self.post(:status_message, :text => 'hi', :to => self.aspects.first)
+    to_aspect = self.aspects.length == 1 ? self.aspects.first : self.aspects.where(:name => "generic")
+    p = self.post(:status_message, :text => 'hi', :to => to_aspect)
     p.created_at = time
     p.save!
   end
