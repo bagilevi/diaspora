@@ -12,7 +12,7 @@ class Profile < ActiveRecord::Base
 
   acts_as_taggable_on :tags
   extract_tags_from :tag_string
-  validates_length_of :tag_list, :maximum => 5
+  validates :tag_list, :length => { :maximum => 5 }
 
   xml_attr :diaspora_handle
   xml_attr :first_name
@@ -29,9 +29,10 @@ class Profile < ActiveRecord::Base
 
   before_save :strip_names
   after_validation :strip_names
-
-  validates_length_of :first_name, :maximum => 32
-  validates_length_of :last_name,  :maximum => 32
+  
+  validates :first_name, :length => { :maximum => 32 }
+  validates :last_name, :length => { :maximum => 32 }
+  
   validates_format_of :first_name, :with => /\A[^;]+\z/, :allow_blank => true
   validates_format_of :last_name, :with => /\A[^;]+\z/, :allow_blank => true
   validate :max_tags
@@ -126,7 +127,7 @@ class Profile < ActiveRecord::Base
   end
 
   # Constructs a full name by joining #first_name and #last_name
-  # @returns [String] A full name
+  # @return [String] A full name
   def construct_full_name
     self.full_name = [self.first_name, self.last_name].join(' ').downcase
     self.full_name

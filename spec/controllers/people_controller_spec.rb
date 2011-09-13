@@ -58,6 +58,20 @@ describe PeopleController do
       assigns[:people][0].id.should == eugene2.id
     end
 
+    it "allows unsearchable people to be found by handle" do
+      d_id = "eugene@example.org"
+      @controller.should_receive(:diaspora_id?).with(d_id)
+      get :index, :q => d_id
+    end
+
+     it "downcases the handle before trying to find someone by it" do
+      eugene2 = Factory.create(:person, :diaspora_handle => "eugene@example.org",
+                               :profile => Factory.build(:profile, :first_name => "Eugene",
+                                                         :last_name => "w", :searchable => false))
+      get :index, :q => "Eugene@Example.ORG"
+      assigns[:people][0].id.should == eugene2.id
+    end
+
     it "does not redirect to person page if there is exactly one match" do
       get :index, :q => "Korth"
       response.should_not redirect_to @korth
@@ -70,6 +84,11 @@ describe PeopleController do
 
     it 'goes to a tag page if you search for a hash' do
       get :index, :q => '#babies'
+      response.should redirect_to('/tags/babies')
+    end
+
+    it 'goes to a tag page if you search for a hash with dots' do
+      get :index, :q => '#babi.es'
       response.should redirect_to('/tags/babies')
     end
   end
@@ -253,8 +272,10 @@ describe PeopleController do
       it "assigns only the posts the current user can see" do
         bob.posts.should be_empty
         posts_user_can_see = []
-        posts_user_can_see << bob.post(:status_message, :text => "to an aspect @user is in", :to => bob.aspects[0].id)
-        bob.post(:status_message, :text => "to an aspect @user is not in", :to => bob.aspects[1].id)
+        aspect_user_is_in = bob.aspects.where(:name => "generic").first
+        aspect_user_is_not_in = bob.aspects.where(:name => "empty").first
+        posts_user_can_see << bob.post(:status_message, :text => "to an aspect @user is in", :to => aspect_user_is_in.id)
+        bob.post(:status_message, :text => "to an aspect @user is not in", :to => aspect_user_is_not_in.id)
         posts_user_can_see << bob.post(:status_message, :text => "to all aspects", :to => 'all')
         posts_user_can_see << bob.post(:status_message, :text => "public", :to => 'all', :public => true)
         bob.reload.posts.length.should == 4
@@ -321,6 +342,46 @@ describe PeopleController do
       get :contacts, :person_id => bob.person.id
       assigns(:contacts_of_contact).should == contacts
       response.should be_success
+    end
+
+    it 'shows an error when invalid person id' do
+      get :contacts, :person_id => 'foo'
+      flash[:error].should be_present
+      response.should redirect_to people_path
+    end
+  end
+
+  describe '#diaspora_id?' do
+    it 'returns true for pods on urls' do
+      @controller.diaspora_id?("ilya_123@pod.geraspora.de").should be_true
+    end
+
+    it 'returns true for pods on urls with port' do
+      @controller.diaspora_id?("ilya_123@pod.geraspora.de:12314").should be_true
+    end
+
+    it 'returns true for pods on localhost' do
+      @controller.diaspora_id?("ilya_123@localhost").should be_true
+    end
+
+    it 'returns true for pods on localhost and port' do
+      @controller.diaspora_id?("ilya_123@localhost:1234").should be_true
+    end
+
+    it 'returns true for pods on ip' do
+      @controller.diaspora_id?("ilya_123@1.1.1.1").should be_true
+    end
+
+    it 'returns true for pods on ip and port' do
+      @controller.diaspora_id?("ilya_123@1.2.3.4:1234").should be_true
+    end
+
+    it 'returns false for pods on with invalid url characters' do
+      @controller.diaspora_id?("ilya_123@join_diaspora.com").should be_false
+    end
+
+    it 'returns false for invalid usernames' do
+      @controller.diaspora_id?("ilya_2%3@joindiaspora.com").should be_false
     end
   end
 

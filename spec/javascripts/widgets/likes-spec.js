@@ -1,8 +1,11 @@
 describe("Diaspora.Widgets.Likes", function() {
   var likes;
   beforeEach(function() {
+    spec.readFixture("ajax_likes_on_post");
     spec.loadFixture("aspects_index_with_a_post_with_likes");
     likes = Diaspora.BaseWidget.instantiate("Likes", $(".stream_element .likes_container"));
+    jasmine.Ajax.useMock();
+    $.fx.off = true;
   });
 
   describe("integration", function() {
@@ -41,13 +44,23 @@ describe("Diaspora.Widgets.Likes", function() {
     });
 
     it("makes the likes list's html the response of the request", function() {
-      spyOn($, "ajax");
+      spyOn($, "ajax").andCallThrough();
 
       likes.expandLikes($.Event());
 
-      $.ajax.mostRecentCall.args[0].success("some html response");
+      mostRecentAjaxRequest().response({
+        responseHeaders: {
+          "Content-type": "text/html"
+        },
+        responseText: spec.readFixture("ajax_likes_on_post"),
+        status: 200
+      });
 
-      expect($(".stream_element .likes_list").html()).toEqual("some html response");
+      expect($(".stream_element .likes_list").html()).toEqual(spec.readFixture("ajax_likes_on_post"));
     });
+  });
+
+  afterEach(function() {
+    $.fx.off = false;
   });
 });

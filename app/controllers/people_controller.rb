@@ -18,7 +18,7 @@ class PeopleController < ApplicationController
     params[:q] ||= params[:term] || ''
 
     if (params[:q][0] == 35 || params[:q][0] == '#') && params[:q].length > 1
-      redirect_to "/tags/#{params[:q].gsub("#", "")}"
+      redirect_to tag_path(:name => params[:q].gsub(/[#\.]/, ''))
       return
     end
 
@@ -32,8 +32,8 @@ class PeopleController < ApplicationController
 
       format.html do
         #only do it if it is an email address
-        if params[:q].try(:match, Devise.email_regexp)
-          people = Person.where(:diaspora_handle => params[:q])
+        if diaspora_id?(params[:q])
+          people = Person.where(:diaspora_handle => params[:q].downcase)
           webfinger(params[:q]) if people.empty?
         else
           people = Person.search(params[:q], current_user)
@@ -43,7 +43,7 @@ class PeopleController < ApplicationController
       end
       format.mobile do
         #only do it if it is an email address
-        if params[:q].try(:match, Devise.email_regexp)
+        if diaspora_id?(params[:q])
           people = Person.where(:diaspora_handle => params[:q])
           webfinger(params[:q]) if people.empty?
         else
@@ -141,7 +141,7 @@ class PeopleController < ApplicationController
   end
 
   def contacts
-    @person = Person.find(params[:person_id])
+    @person = Person.find_by_id(params[:person_id])
     if @person
       @contact = current_user.contact_for(@person)
       @aspect = :profile
@@ -165,13 +165,18 @@ class PeopleController < ApplicationController
     end
   end
 
+  def diaspora_id?(query)
+    !query.try(:match, /^(\w)*@([a-zA-Z0-9]|[-]|[.]|[:])*$/).nil?
+  end
+
   private
   def webfinger(account, opts = {})
     Resque.enqueue(Job::SocketWebfinger, current_user.id, account, opts)
   end
 
-
   def remote_profile_with_no_user_session?
     @person && @person.remote? && !user_signed_in?
   end
+
+
 end

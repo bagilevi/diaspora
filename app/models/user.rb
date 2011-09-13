@@ -4,7 +4,7 @@
 
 require File.join(Rails.root, 'lib/diaspora/user')
 require File.join(Rails.root, 'lib/salmon/salmon')
-require File.join(Rails.root, 'lib/postzord/dispatch')
+require File.join(Rails.root, 'lib/postzord/dispatcher')
 require 'rest-client'
 
 class User < ActiveRecord::Base
@@ -18,9 +18,8 @@ class User < ActiveRecord::Base
 
   before_validation :strip_and_downcase_username
   before_validation :set_current_language, :on => :create
-
-  validates_presence_of :username
-  validates_uniqueness_of :username
+  
+  validates :username, :presence => true, :uniqueness => true
   validates_format_of :username, :with => /\A[A-Za-z0-9_]+\z/
   validates_length_of :username, :maximum => 32
   validates_inclusion_of :language, :in => AVAILABLE_LANGUAGE_CODES
@@ -59,6 +58,10 @@ class User < ActiveRecord::Base
                   :invitation_service,
                   :invitation_identifier
 
+
+  def self.all_sharing_with_person(person)
+    User.joins(:contacts).where(:contacts => {:person_id => person.id})
+  end
 
   # @return [User]
   def self.find_by_invitation(invitation)
@@ -183,14 +186,14 @@ class User < ActiveRecord::Base
 
   def dispatch_post(post, opts = {})
     additional_people = opts.delete(:additional_subscribers)
-    mailman = Postzord::Dispatch.new(self, post, :additional_subscribers => additional_people)
+    mailman = Postzord::Dispatcher.new(self, post, :additional_subscribers => additional_people)
     mailman.post(opts)
   end
 
   def update_post(post, post_hash = {})
     if self.owns? post
       post.update_attributes(post_hash)
-      Postzord::Dispatch.new(self, post).post
+      Postzord::Dispatcher.new(self, post).post
     end
   end
 
@@ -216,7 +219,7 @@ class User < ActiveRecord::Base
   end
 
   def salmon(post)
-    Salmon::SalmonSlap.create(self, post.to_diaspora_xml)
+    Salmon::EncryptedSlap.create_by_user_and_activity(self, post.to_diaspora_xml)
   end
 
   def build_relayable(model, options = {})
@@ -289,7 +292,7 @@ class User < ActiveRecord::Base
      opts[:additional_subscribers] = target.resharers
    end
 
-    mailman = Postzord::Dispatch.new(self, retraction, opts)
+    mailman = Postzord::Dispatcher.new(self, retraction, opts)
     mailman.post
 
     retraction.perform(self)
@@ -306,7 +309,7 @@ class User < ActiveRecord::Base
       params[:image_url_small] = photo.url(:thumb_small)
     end
     if self.person.profile.update_attributes(params)
-      Postzord::Dispatch.new(self, profile).post
+      Postzord::Dispatcher.new(self, profile).post
       true
     else
       false

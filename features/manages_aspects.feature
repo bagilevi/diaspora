@@ -19,6 +19,29 @@ Feature: User manages contacts
     And I press "Create" in the modal window
     Then I should see "losers" within "#aspect_nav"
 
+  Scenario: deleting an aspect from contacts index
+    Given I am signed in
+    And I have an aspect called "People"
+    When I am on the contacts page
+    And I follow "People"
+    And I follow "Edit People"
+    And I wait for the ajax to finish
+    And I preemptively confirm the alert
+    And I press "Delete" in the modal window
+    Then I should be on the contacts page
+    And I should not see "People" within "#aspect_nav"
+
+  Scenario: deleting an aspect from homepage
+    Given I am signed in
+    And I have an aspect called "People"
+    When I am on the home page
+    And I click on "People" aspect edit icon
+    And I wait for the ajax to finish
+    And I preemptively confirm the alert
+    And I press "Delete" in the modal window
+    Then I should be on the aspects page
+    And I should not see "People" within "#aspect_nav"
+
   Scenario: Editing the aspect memberships of a contact from the aspect edit facebox
     Given I am signed in
     And I have 2 contacts
@@ -35,8 +58,9 @@ Feature: User manages contacts
     And I wait for the ajax to finish
     Then I should have 0 contacts in "Cat People"
 
-  Scenario: scrolling through contacts index
+  Scenario: infinite scroll on contacts index
     Given I am signed in
+    And I resize my window to 800x600
     And I have 60 contacts
     And I am on the contacts page
     Then I should see 25 contacts
@@ -46,7 +70,6 @@ Feature: User manages contacts
 
     When I scroll down
     Then I should see 60 contacts
-
 
   Scenario: clicking on the contacts link in the header with zero contacts directs a user to the featured users page
     Given I am signed in

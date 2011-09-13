@@ -14,10 +14,12 @@ module Job
     OPTS = {:max_redirects => 3, :timeout => 5000, :method => :post}
 
     def self.perform(user_id, enc_object_xml, person_ids, retry_count=0)
+      return true if user_id == '91842' #NOTE 09/08/11 blocking diapsorahqposts
       user = User.find(user_id)
+
       people = Person.where(:id => person_ids)
 
-      salmon = Salmon::SalmonSlap.create(user, Base64.decode64(enc_object_xml))
+      salmon = Salmon::EncryptedSlap.create_by_user_and_activity(user, Base64.decode64(enc_object_xml))
 
       failed_request_people = []
 
@@ -37,6 +39,9 @@ module Job
         request = Request.new(url, OPTS.merge(:params => {:xml => CGI::escape(xml)}))
 
         request.on_complete do |response|
+          # Save the reference to the pod to the database if not already present
+          Pod.find_or_create_by_url(response.effective_url)
+
           if response.code >= 300 && response.code < 400
             if response.headers_hash['Location'] == response.request.url.sub('http://', 'https://')
               location = URI.parse(response.headers_hash['Location'])
@@ -48,10 +53,7 @@ module Job
             end
           end
           unless response.success?
-            pod = Pod.find_or_create_by_url(response.effective_url)
-            log_line = "event=http_multi_fail sender_id=#{user_id} recipient_id=#{person.id} url=#{response.effective_url} response_code='#{response.code}'"
-            Rails.logger.info(log_line)
-            pod.pod_stats.create(:error_message => log_line, :person_id => person.id, :error_code => response.code.to_i)
+            Rails.logger.info("event=http_multi_fail sender_id=#{user_id} recipient_id=#{person.id} url=#{response.effective_url} response_code='#{response.code}'")
             failed_request_people << person.id
           end
         end

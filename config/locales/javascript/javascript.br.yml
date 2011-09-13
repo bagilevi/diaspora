@@ -7,11 +7,13 @@ br:
   javascripts: 
     aspect_dropdown: 
       add_to_aspect: "Add to aspect"
+      all_aspects: "All aspects"
       toggle: 
         few: "In {{count}} aspects"
         many: "In {{count}} aspects"
         one: "In {{count}} aspect"
         other: "In {{count}} aspects"
+        two: "In {{count}} aspects"
         zero: "Add to aspect"
     comments: 
       hide: "hide comments"

@@ -53,7 +53,7 @@ Feature: commenting
     And I wait for 2 seconds
     Then I should not see "is that a poodle?"
 
-  Scenario: expand the comment form
+  Scenario: expand the comment form in the main stream and an individual aspect stream
     When I sign in as "bob@bob.bob"
     Then I should see "Look at this dog"
     Then the first comment field should be closed
@@ -73,7 +73,7 @@ Feature: commenting
     Then I should see "Look at this dog"
     When I follow "less than a minute ago"
     Then I should see "Look at this dog"
-    When I open the comment box
+    When I focus the comment field
     And I fill in "text" with "I think thats a cat"
     And I press "Comment"
     And I wait for the ajax to finish

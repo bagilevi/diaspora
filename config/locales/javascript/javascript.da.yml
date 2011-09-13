@@ -7,11 +7,13 @@ da:
   javascripts: 
     aspect_dropdown: 
       add_to_aspect: "Tilføj til aspekt"
+      all_aspects: "All aspects"
       toggle: 
         few: "I {{count}} aspekter"
         many: "I {{count}} aspekter"
         one: "I {{count}} aspekt"
         other: "I {{count}} aspekter"
+        two: "In {{count}} aspects"
         zero: "Tilføj til aspekt"
     comments: 
       hide: "Skjul kommentarer"

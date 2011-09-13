@@ -38,10 +38,13 @@ h1
 ul > li
   :list-style none
 
+.content ul li
+  :list-style disc
+
 form
   :position relative
   input,
-  textarea
+  textarea,
   label
     :font
       :size auto
@@ -170,7 +173,7 @@ header
     :text-shadow 0 1px 0 #000
     :color rgb(147,147,147)
 
-    :width auto
+    :min-width 100px
 
     :cursor pointer
 
@@ -203,6 +206,7 @@ header
       a
         :padding 4px
         :height 100%
+        :color #939393
         &:hover
           :background
             :color $blue
@@ -220,6 +224,8 @@ header
               :color #222
             :text
               :decoration none
+          &:focus
+            :outline none
         .right
           :right 5px
 
@@ -517,17 +523,13 @@ a#logo:hover, a#logo:hover *
   .stream_element
     .content
       p
-      :font
-        :size 1em
+        :font
+          :size 1em
 
   .comment_box
     :width 653px
     :margin
       :bottom 5px
-
-.post_initial_info
-  :margin
-    :bottom 5px
 
 .from
   .details,
@@ -632,6 +634,7 @@ ul.show_comments,
       :height 250px
       :width 400px
 
+      
   .content
     :margin
       :top 0px
@@ -644,6 +647,13 @@ ul.show_comments,
       :margin
         :bottom 0
         :top 0
+    .ltr 
+      ul
+        li
+          :padding 0px
+          :border none
+          :list-style disc
+
 
     .right
       :right 4px
@@ -781,6 +791,8 @@ form.new_comment
     > li
       :margin
         :bottom 2em
+      h4
+        :font-weight bold
 
 a.paginate, #infscr-loading
   :display block
@@ -910,6 +922,7 @@ label
     textarea
       :resize none
       :width 455px
+      :height 50px 
       :margin 0
 
   &.mention_popup
@@ -1775,11 +1788,6 @@ ul#request_result
   :background
     :color rgb(252,252,252)
 
-  .diaspora_id
-    :color #777
-    :font
-      :size smaller
-
   .avatar
     :float left
     :height 50px
@@ -1801,6 +1809,7 @@ ul#request_result
 
     > .contact
       @include border-radius(3px)
+      @include box-shadow(0, 1px, 5px, #ccc)
       :background
         :color #fff
 
@@ -1820,8 +1829,8 @@ ul#request_result
         :bottom 5px
         :right 5px
 
-      :padding 8px
-      :border 1px solid #ccc
+      :padding 5px
+      :border 1px solid #999
 
       > .right
         :right -5px
@@ -2624,7 +2633,7 @@ ul.show_comments,
   :display inline-block
   &:hover
     :text
-      :decoration none
+      :decoration underline
     :background
       :color lighten($blue, 47%)
 
@@ -2909,6 +2918,7 @@ ul.left_nav
     @include transition(opacity)
     @include opacity(0.3)
     :float right
+    :display none
 
     &:hover
       @include opacity(1)
@@ -2918,7 +2928,6 @@ ul.left_nav
 
   .edit
     :margin-top 4px
-    :display none
 
   .contact_count
     @include border-radius(4px)
@@ -2945,12 +2954,6 @@ ul.left_nav
       :width 182px
 
 .section
-  .contact_count
-    :display none !important
-
-  .all_contacts
-    :display none !important
-
   .left_nav
     a.aspect_selector,
     a.home_selector
@@ -2963,8 +2966,10 @@ ul.left_nav
       a.tag_selector
         :width 140px
 
-      li:hover
-        .edit
+      li:hover,
+      li.hover
+        .edit,
+        .unfollow_icon
           :display inline-block
 
 .stream_container

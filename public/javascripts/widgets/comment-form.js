@@ -8,10 +8,12 @@
         commentInput: commentFormElement.find("textarea")
       });
 
+      self.commentInput.autoResize();
       self.commentInput.focus(self.showCommentForm);
     });
 
     this.showCommentForm = function() {
+      self.commentFormElement.parent().removeClass("hidden");
       self.commentFormElement.addClass("open");
     };
   };

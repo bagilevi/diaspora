@@ -12,6 +12,9 @@ module Diaspora
         xml_attr :parent_guid
         xml_attr :parent_author_signature
         xml_attr :author_signature
+
+        validates_associated :parent
+        validates :author, :presence => true
       end
     end
 
@@ -36,28 +39,32 @@ module Diaspora
     end
 
     def receive(user, person)
-      object = self.class.where(:guid => self.guid).first || self
+      self.class.transaction do
+        comment_or_like = self.class.where(:guid => self.guid).first || self
 
-      unless object.parent.author == user.person || object.verify_parent_author_signature
-        Rails.logger.info("event=receive status=abort reason='object signature not valid' recipient=#{user.diaspora_handle} sender=#{self.parent.author.diaspora_handle} payload_type=#{self.class} parent_id=#{self.parent.id}")
-        return
-      end
+        #check to make sure the signature of the comment or like comes from the person claiming to authoring said comment or like
+        unless comment_or_like.parent.author == user.person || comment_or_like.verify_parent_author_signature
+          Rails.logger.info("event=receive status=abort reason='object signature not valid' recipient=#{user.diaspora_handle} sender=#{self.parent.author.diaspora_handle} payload_type=#{self.class} parent_id=#{self.parent.id}")
+          return
+        end
 
-      #sign object as the parent creator if you've been hit UPSTREAM
-      if user.owns? object.parent
-        object.parent_author_signature = object.sign_with_key(user.encryption_key)
-        object.save!
-      end
+        #as the owner of the post being liked or commented on, you need to add your own signature in order to pass it to the people who received your original post
+        if user.owns? comment_or_like.parent
+          comment_or_like.parent_author_signature = comment_or_like.sign_with_key(user.encryption_key)
 
-      #dispatch object DOWNSTREAM, received it via UPSTREAM
-      unless user.owns?(object)
-        object.save!
-        Postzord::Dispatch.new(user, object).post
-      end
+          comment_or_like.save!
+        end
 
-      object.socket_to_user(user) if object.respond_to? :socket_to_user
-      if object.after_receive(user, person)
-        object
+        #dispatch object DOWNSTREAM, received it via UPSTREAM
+        unless user.owns?(comment_or_like)
+          comment_or_like.save 
+          Postzord::Dispatcher.new(user, comment_or_like).post
+        end
+
+        comment_or_like.socket_to_user(user) if comment_or_like.respond_to? :socket_to_user
+        if comment_or_like.after_receive(user, person)
+          comment_or_like 
+        end
       end
     end
 
