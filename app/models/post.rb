@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -12,6 +12,7 @@ class Post < ActiveRecord::Base
   include Diaspora::Likeable
 
   xml_attr :diaspora_handle
+  xml_attr :provider_display_name
   xml_attr :public
   xml_attr :created_at
 
@@ -31,7 +32,20 @@ class Post < ActiveRecord::Base
   
   validates :guid, :uniqueness => true
 
+  #scopes
   scope :all_public, where(:public => true, :pending => false)
+  scope :includes_for_a_stream,  includes({:author => :profile}, :mentions => {:person => :profile}) #note should include root and photos, but i think those are both on status_message
+
+  def self.for_a_stream(max_time, order)
+    by_max_time(max_time, order).
+    includes_for_a_stream.
+    limit(15)
+  end
+
+  def self.by_max_time(max_time, order='created_at')
+    where("posts.#{order} < ?", max_time).order("posts.#{order} desc")
+  end
+  #############
 
   def diaspora_handle
     read_attribute(:diaspora_handle) || self.author.diaspora_handle
@@ -43,6 +57,10 @@ class Post < ActiveRecord::Base
     else
       self.post_visibilities.count
     end
+  end
+
+  def reshare_count
+    @reshare_count ||= Post.where(:root_guid => self.guid).count
   end
 
   def diaspora_handle= nd
@@ -135,4 +153,3 @@ class Post < ActiveRecord::Base
       update_all(:comments_count => self.comments.count)
   end
 end
-

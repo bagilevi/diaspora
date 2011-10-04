@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -21,10 +21,23 @@ class StatusMessage < Post
   has_many :photos, :dependent => :destroy, :foreign_key => :status_message_guid, :primary_key => :guid
   validate :presence_of_content
 
-  attr_accessible :text
+  attr_accessible :text, :provider_display_name
   serialize :youtube_titles, Hash
 
   after_create :create_mentions
+
+  #scopes
+  scope :where_person_is_mentioned, lambda{|person| joins(:mentions).where(:mentions => {:person_id => person.id})}
+
+  def self.owned_or_visible_by_user(user)
+    joins("LEFT OUTER JOIN post_visibilities ON post_visibilities.post_id = posts.id").
+    joins("LEFT OUTER JOIN contacts ON contacts.id = post_visibilities.contact_id").
+    where(Contact.arel_table[:user_id].eq(user.id).or(
+      StatusMessage.arel_table[:public].eq(true).or(
+        StatusMessage.arel_table[:author_id].eq(user.person.id)
+      )
+    )).select('DISTINCT posts.*')
+  end
 
   def text(opts = {})
     self.formatted_message(opts)

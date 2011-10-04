@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -6,7 +6,7 @@ class CommentsController < ApplicationController
   include ApplicationHelper
   before_filter :authenticate_user!
 
-  respond_to :html, :mobile, :only => [:create, :destroy]
+  respond_to :html, :mobile, :except => :show
   respond_to :js, :only => [:index]
 
   rescue_from ActiveRecord::RecordNotFound do
@@ -23,12 +23,12 @@ class CommentsController < ApplicationController
       if @comment.save
         Rails.logger.info(:event => :create, :type => :comment, :user => current_user.diaspora_handle,
                           :status => :success, :comment => @comment.id, :chars => params[:text].length)
-        Postzord::Dispatcher.new(current_user, @comment).post
+        Postzord::Dispatcher.build(current_user, @comment).post
 
         respond_to do |format|
           format.js{ render(:create, :status => 201)}
           format.html{ render :nothing => true, :status => 201 }
-          format.mobile{ redirect_to post_url(@comment.post) }
+          format.mobile{ render :partial => 'comment', :locals => {:post => @comment.post, :comment => @comment} }
         end
       else
         render :nothing => true, :status => 422
@@ -64,4 +64,7 @@ class CommentsController < ApplicationController
     end
   end
 
+  def new
+    render :layout => false
+  end
 end

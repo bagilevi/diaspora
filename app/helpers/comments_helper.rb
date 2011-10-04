@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -28,6 +28,15 @@ module CommentsHelper
       'hidden'
     else
       nil
+    end
+  end
+
+  def commenting_disabled?
+    return true unless user_signed_in?
+    if defined?(@commenting_disabled)
+      return @commenting_disabled
+    else
+      false
     end
   end
 end

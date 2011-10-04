@@ -1,4 +1,4 @@
--#   Copyright (c) 2010, Diaspora Inc.  This file is
+-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 -#   licensed under the Affero General Public License version 3 or later.  See
 -#   the COPYRIGHT file.
 
@@ -10,8 +10,6 @@
   .content
     %span.from
       = person_link(comment.author, :class => "hovercardable")
-    %span.details
-      –
 
     %span{:class => direction_for(comment.text)}
       = markdownify(comment, :youtube_maps => comment.youtube_titles)
@@ -24,7 +22,7 @@
         .likes_container
           = render "likes/likes_container", :target_id => comment.id, :likes_count => comment.likes_count, :target_type => "Comment"
 
-      - unless !user_signed_in? || @commenting_disabled
+      - unless commenting_disabled?
         %span.like_action
           = like_action(comment, current_user)
 

@@ -1,4 +1,4 @@
-#   Copyright (c) 2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -54,7 +54,7 @@ module Salmon
     # @return [String]
     def to_xml
       <<ENTRY
-<me:env xmlns:me="http://salmon-protocol.org/ns/magic-env">
+<me:env>
   <me:data type='#{@data_type}'>#{@data}</me:data>
   <me:encoding>#{@encoding}</me:encoding>
   <me:alg>#{@alg}</me:alg>
@@ -70,7 +70,7 @@ ENTRY
 
     # @return [String]
     def get_data_type
-      'application/atom+xml'
+      'application/xml'
     end
 
     # @return [String]

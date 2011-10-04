@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -94,7 +94,7 @@ describe ConversationsController do
           }
         )
 
-        p = Postzord::Dispatcher.new(alice, cnv)
+        p = Postzord::Dispatcher.build(alice, cnv)
         Postzord::Dispatcher.stub!(:new).and_return(p)
         p.should_receive(:post)
         post :create, @hash

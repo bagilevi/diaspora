@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -10,7 +10,6 @@ class ActivityStreams::Photo < Post
   xml_attr :image_height
   xml_attr :image_width
   xml_attr :object_url
-  xml_attr :provider_display_name
   xml_attr :actor_url
   xml_attr :objectId
 
