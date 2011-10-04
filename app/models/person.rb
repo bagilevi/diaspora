@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -55,7 +55,7 @@ class Person < ActiveRecord::Base
     joins(:contacts => :aspect_memberships).
          where(:contacts => {:user_id => user.id},
                :aspect_memberships => {:aspect_id => aspect_ids}).
-         select("DISTINCT people.*").includes(:profile)
+         select("DISTINCT people.*")
   }
 
   def self.featured_users
@@ -262,6 +262,25 @@ class Person < ActiveRecord::Base
     }
     json.merge!(:tags => self.profile.tags.map{|t| "##{t.name}"}) if opts[:includes] == "tags"
     json
+  end
+
+  # Update an array of people given a url, and set it as the new destination_url
+  # @param people [Array<People>]
+  # @param url [String]
+  def self.url_batch_update(people, url)
+    people.each do |person|
+      person.update_url(url)
+    end 
+  end
+  
+  # @param person [Person]
+  # @param url [String]
+  def update_url(url)
+    location = URI.parse(url)
+    newuri = "#{location.scheme}://#{location.host}"
+    newuri += ":#{location.port}" unless ["80", "443"].include?(location.port.to_s)
+    newuri += "/"
+    self.update_attributes(:url => newuri)
   end
 
   protected

@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -22,6 +22,7 @@ class User < ActiveRecord::Base
   validates :username, :presence => true, :uniqueness => true
   validates_format_of :username, :with => /\A[A-Za-z0-9_]+\z/
   validates_length_of :username, :maximum => 32
+  validates_exclusion_of :username, :in => USERNAME_BLACKLIST
   validates_inclusion_of :language, :in => AVAILABLE_LANGUAGE_CODES
   validates_format_of :unconfirmed_email, :with  => Devise.email_regexp, :allow_blank => true
 
@@ -186,14 +187,14 @@ class User < ActiveRecord::Base
 
   def dispatch_post(post, opts = {})
     additional_people = opts.delete(:additional_subscribers)
-    mailman = Postzord::Dispatcher.new(self, post, :additional_subscribers => additional_people)
+    mailman = Postzord::Dispatcher.build(self, post, :additional_subscribers => additional_people)
     mailman.post(opts)
   end
 
   def update_post(post, post_hash = {})
     if self.owns? post
       post.update_attributes(post_hash)
-      Postzord::Dispatcher.new(self, post).post
+      Postzord::Dispatcher.build(self, post).post
     end
   end
 
@@ -266,7 +267,7 @@ class User < ActiveRecord::Base
 
   ######### Mailer #######################
   def mail(job, *args)
-    pref = job.to_s.gsub('Job::Mail::', '').underscore
+    pref = job.to_s.gsub('Jobs::Mail::', '').underscore
     if(self.disable_mail == false && !self.user_preferences.exists?(:email_type => pref))
       Resque.enqueue(job, *args)
     end
@@ -274,7 +275,7 @@ class User < ActiveRecord::Base
 
   def mail_confirm_email
     return false if unconfirmed_email.blank?
-    Resque.enqueue(Job::Mail::ConfirmEmail, id)
+    Resque.enqueue(Jobs::Mail::ConfirmEmail, id)
     true
   end
 
@@ -292,7 +293,7 @@ class User < ActiveRecord::Base
      opts[:additional_subscribers] = target.resharers
    end
 
-    mailman = Postzord::Dispatcher.new(self, retraction, opts)
+    mailman = Postzord::Dispatcher.build(self, retraction, opts)
     mailman.post
 
     retraction.perform(self)
@@ -309,7 +310,7 @@ class User < ActiveRecord::Base
       params[:image_url_small] = photo.url(:thumb_small)
     end
     if self.person.profile.update_attributes(params)
-      Postzord::Dispatcher.new(self, profile).post
+      Postzord::Dispatcher.build(self, profile).post
       true
     else
       false

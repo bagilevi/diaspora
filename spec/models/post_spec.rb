@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -9,6 +9,47 @@ describe Post do
     @user = alice
     @aspect = @user.aspects.create(:name => "winners")
   end
+
+  describe 'scopes' do
+    describe '.for_a_stream' do
+      before do
+        time_interval = 1000
+        time_past = 1000000
+        @posts = (1..3).map do |n|
+          aspect_to_post = alice.aspects.where(:name => "generic").first
+          post = alice.post :status_message, :text => "#{alice.username} - #{n}", :to => aspect_to_post.id
+          post.created_at = (post.created_at-time_past) - time_interval
+          post.updated_at = (post.updated_at-time_past) + time_interval
+          post.save
+          time_interval += 1000
+          post
+        end
+      end
+
+      it 'returns the posts ordered and limited by unix time' do
+        Post.for_a_stream(Time.now + 1, "created_at").should == @posts
+        Post.for_a_stream(Time.now + 1, "updated_at").should == @posts.reverse
+      end
+
+      it 'includes everything in .includes_for_a_stream' do
+        Post.should_receive(:includes_for_a_stream)
+        Post.for_a_stream(Time.now + 1, "created_at")
+      end
+      it 'is limited to 15 posts' do
+        Post.stub(:by_max_time).and_return(Post)
+        Post.stub(:includes_for_a_stream).and_return(Post)
+        Post.should_receive(:limit)
+        Post.for_a_stream(Time.now + 1, "created_at")
+      end
+    end
+
+    describe 'includes for a stream' do
+      it 'inclues author profile and mentions' 
+      it 'should include photos and root of reshares(but does not)'
+    end
+
+  end
+
 
   describe 'validations' do
     it 'validates uniqueness of guid and does not throw a db error' do
@@ -34,6 +75,13 @@ describe Post do
 
       xml.include?("person_id").should be false
       xml.include?(@user.person.diaspora_handle).should be true
+    end
+  end
+
+  describe '.diaspora_initialize' do
+    it 'takes provider_display_name' do
+      sm = Factory.build(:status_message, :provider_display_name => 'mobile')
+      StatusMessage.diaspora_initialize(sm.attributes.merge(:author => bob.person)).provider_display_name.should == 'mobile'
     end
   end
 

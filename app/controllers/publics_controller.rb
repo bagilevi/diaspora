@@ -1,10 +1,11 @@
-  #   Copyright (c) 2010, Diaspora Inc.  This file is
+  #   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 class PublicsController < ApplicationController
   require File.join(Rails.root, '/lib/diaspora/parser')
   require File.join(Rails.root, '/lib/postzord/receiver/public')
+  require File.join(Rails.root, '/lib/postzord/receiver/private')
   include Diaspora::Parser
 
   skip_before_filter :set_header_data
@@ -50,7 +51,7 @@ class PublicsController < ApplicationController
   end
 
   def receive_public
-    Resque.enqueue(Job::ReceivePublicSalmon, params[:xml])
+    Resque.enqueue(Jobs::ReceiveUnencryptedSalmon, CGI::unescape(params[:xml]))
     render :nothing => true, :status => :ok
   end
 
@@ -64,7 +65,7 @@ class PublicsController < ApplicationController
     end
 
     @user = person.owner
-    Resque.enqueue(Job::ReceiveSalmon, @user.id, CGI::unescape(params[:xml]))
+    Resque.enqueue(Jobs::ReceiveEncryptedSalmon, @user.id, CGI::unescape(params[:xml]))
 
     render :nothing => true, :status => 202
   end
@@ -78,5 +79,4 @@ class PublicsController < ApplicationController
       return
     end
   end
-
 end

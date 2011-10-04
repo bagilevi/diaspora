@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -171,7 +171,7 @@ class PeopleController < ApplicationController
 
   private
   def webfinger(account, opts = {})
-    Resque.enqueue(Job::SocketWebfinger, current_user.id, account, opts)
+    Resque.enqueue(Jobs::SocketWebfinger, current_user.id, account, opts)
   end
 
   def remote_profile_with_no_user_session?

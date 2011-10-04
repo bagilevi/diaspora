@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -13,7 +13,7 @@ describe PostVisibility do
 
     it 'creates a visibility for each user' do
       lambda {
-        PostVisibility.batch_import([@contact], @post)
+        PostVisibility.batch_import([@contact.id], @post)
       }.should change {
         PostVisibility.exists?(:contact_id => @contact.id, :post_id => @post.id)
       }.from(false).to(true)
@@ -22,7 +22,7 @@ describe PostVisibility do
     it 'does not raise if a visibility already exists' do
       PostVisibility.create!(:contact_id => @contact.id, :post_id => @post.id)
       lambda {
-        PostVisibility.batch_import([@contact], @post)
+        PostVisibility.batch_import([@contact.id], @post)
       }.should_not raise_error
     end
   end

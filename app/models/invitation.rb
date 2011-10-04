@@ -1,4 +1,4 @@
-#   Copyright (c) 2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -135,7 +135,7 @@ class Invitation < ActiveRecord::Base
 
   def queue_send!
     unless self.recipient.present?
-      Resque.enqueue(Job::Mail::InviteUserByEmail, self.id) 
+      Resque.enqueue(Jobs::Mail::InviteUserByEmail, self.id) 
     end
   end
 

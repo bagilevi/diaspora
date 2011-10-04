@@ -1,4 +1,4 @@
-/*   Copyright (c) 2010, Diaspora Inc.  This file is
+/*   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 *   licensed under the Affero General Public License version 3 or later.  See
 *   the COPYRIGHT file.
 */
@@ -18,6 +18,12 @@
       pathParse: function(pathStr) {
         var newPath = pathStr.replace("?", "?only_posts=true&"),
         	lastTime = $('#main_stream .stream_element').last().find(".time").attr("integer");
+
+        if(lastTime === undefined){
+          var currentTime = new Date,
+          unixtimeMs = currentTime.getTime(),
+          lastTime = parseInt(unixtimeMs / 1000);
+        }
 
         return newPath.replace(/max_time=\d+/, "max_time=" + lastTime);
       }

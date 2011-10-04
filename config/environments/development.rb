@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -21,7 +21,6 @@ Diaspora::Application.configure do
   config.action_mailer.raise_delivery_errors = false
   config.active_support.deprecation = :log
   #config.threadsafe!
-
   # Monkeypatch around the nasty "2.5MB exception page" issue, caused by very large environment vars
   # This snippet via: http://stackoverflow.com/questions/3114993/exception-pages-in-development-mode-take-upwards-of-15-30-seconds-to-render-why
   # Relevant Rails ticket: https://rails.lighthouseapp.com/projects/8994/tickets/5027-_request_and_responseerb-and-diagnosticserb-take-an-increasingly-long-time-to-render-in-development-with-multiple-show-tables-calls

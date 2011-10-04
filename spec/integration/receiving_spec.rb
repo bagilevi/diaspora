@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -64,7 +64,7 @@ describe 'a user receives a post' do
     alice.visible_posts.count.should == 1
   end
 
-  context 'mentions' do
+  context 'with mentions, ' do
     it 'adds the notifications for the mentioned users regardless of the order they are received' do
       Notification.should_receive(:notify).with(alice, anything(), bob.person)
       Notification.should_receive(:notify).with(eve, anything(), bob.person)
@@ -81,7 +81,7 @@ describe 'a user receives a post' do
       zord.receive_object
     end
 
-    it 'notifies users when receiving a mention in a post from a remote user' do
+    it 'notifies local users who are mentioned' do
       @remote_person = Factory.create(:person, :diaspora_handle => "foobar@foobar.com")
       Contact.create!(:user => alice, :person => @remote_person, :aspects => [@alices_aspect])
 

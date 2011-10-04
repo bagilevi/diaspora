@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -145,6 +145,10 @@ Devise.setup do |config|
   # should add them to the navigational formats lists. Default is [:html]
   # config.navigational_formats = [:html, :iphone]
   config.navigational_formats = [:"*/*", "*/*", :html, :mobile]
+
+  # Looks up user emails ignoring case
+  # for forgot password, sign up, sign in, etc
+  config.case_insensitive_keys = [:email]
 
   # ==> Warden configuration
   # If you want to use other strategies, that are not (yet) supported by Devise,
