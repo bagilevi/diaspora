@@ -1,17 +1,17 @@
--#   Copyright (c) 2010, Diaspora Inc.  This file is
+-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 -#   licensed under the Affero General Public License version 3 or later.  See
 -#   the COPYRIGHT file.
 
 %ul#aspect_nav.left_nav
   %li.all_aspects{:class => ("active" if params["set"] != "all" && params["set"] != "only_sharing" && !@featured && !@finder)}
-    %a.home_selector{:href => aspects_path, :class => ("sub_selected" if params["a_id"])}
-      = t('aspects.index.your_aspects')
+    .root_element= link_to t('aspects.index.your_aspects'), aspects_path
 
     %ul.sub_nav
+      %a.toggle_selector{:href => '#'}
       - for aspect in all_aspects
         %li{:data => {:aspect_id => aspect.id}, :class => ("active" if params["a_id"].to_i == aspect.id)}
           .edit
-            = link_to image_tag("icons/pencil.svg", :height => 12, :title => t('contacts.index.edit_aspect', :name => aspect.name)), edit_aspect_path(aspect), :rel => "facebox"
+            = link_to image_tag("icons/pencil.svg", :height => 12, :title => t('.edit_aspect', :name => aspect.name)), edit_aspect_path(aspect), :rel => "facebox"
 
           %a.aspect_selector{:href => aspects_path("a_ids[]" => aspect.id), :class => "aspect_selector name hard_aspect_link", 'data-guid' => aspect.id}
             = aspect

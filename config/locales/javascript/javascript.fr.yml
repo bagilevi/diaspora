@@ -7,13 +7,13 @@ fr:
   javascripts: 
     aspect_dropdown: 
       add_to_aspect: "Ajouter à l'aspect"
-      all_aspects: "All aspects"
+      all_aspects: "Tous les aspects"
       toggle: 
         few: "Dans {{count}} aspects"
         many: "Dans {{count}} aspects"
         one: "Dans {{count}} aspect"
         other: "Dans {{count}} aspects"
-        two: "In {{count}} aspects"
+        two: "Dans {{count}} aspects"
         zero: "Ajouter à l'aspect"
     comments: 
       hide: "cacher les commentaires"
@@ -25,10 +25,10 @@ fr:
       no_more: "Pas d'autre messages."
     publisher: 
       at_least_one_aspect: "Vous devez créer au moins un aspect"
-      limited: "Limité - votre message ne sera vu par des gens avec qui vous partagez"
+      limited: "Limité - votre message ne sera vu que par des gens avec qui vous partagez"
       public: "Public - votre message sera visible de tous et trouvé par les moteurs de recherche"
     reshares: 
-      duplicate: "Vous avez déjà repartagé ce post !"
+      duplicate: "Vous avez déjà repartagé ce message !"
     search_for: "Chercher {{name}}"
     show_more: "voir plus"
     timeago: 

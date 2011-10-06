@@ -47,7 +47,6 @@ Feature: following and being followed
     And I add the person to my "Unicorns" aspect
 
     When I go to the home page
-    When I follow "Your Aspects"
 
     Then I should have 1 contact in "Unicorns"
     Then I should have 1 contact in "Besties"
@@ -59,7 +58,6 @@ Feature: following and being followed
     Then I go to the destroy user session page
 
     When I sign in as "bob@bob.bob"
-    When I follow "Your Aspects"
     Then I should have 1 contacts in "Besties"
 
     When I am on the home page
@@ -96,7 +94,7 @@ Feature: following and being followed
     Given I sign in as "alice@alice.alice"
     And I am on "bob@bob.bob"'s page
 
-    Then I should see "Add to aspect"
+    Then I should see "Add contact"
     And I should not see "Mention"
     And I should not see "Message"
 

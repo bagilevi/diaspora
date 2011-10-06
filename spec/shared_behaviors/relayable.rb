@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -60,7 +60,7 @@ describe Diaspora::Relayable do
         end
 
         it 'dispatches when the person receiving is the parent author' do
-          p = Postzord::Dispatcher.new(@local_luke, @object_by_recipient)
+          p = Postzord::Dispatcher.build(@local_luke, @object_by_recipient)
           p.should_receive(:post)
           Postzord::Dispatcher.stub!(:new).and_return(p)
           @object_by_recipient.receive(@local_luke, @local_leia.person)

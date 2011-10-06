@@ -1,8 +1,9 @@
-#   Copyright (c) 2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 Diaspora::Application.routes.draw do
+
 
   # Posting and Reading
 
@@ -16,7 +17,7 @@ Diaspora::Application.routes.draw do
 
   resources :posts, :only => [:show, :destroy] do
     resources :likes, :only => [:create, :destroy, :index]
-    resources :comments, :only => [:create, :destroy, :index]
+    resources :comments, :only => [:new, :create, :destroy, :index]
   end
   get 'p/:id' => 'posts#show', :as => 'short_post'
 
@@ -51,6 +52,11 @@ Diaspora::Application.routes.draw do
     post   "tag_followings" => "tag_followings#create", :as => 'tag_tag_followings'
     delete "tag_followings" => "tag_followings#destroy"
   end
+
+
+  get "tag_followings" => "tag_followings#index", :as => 'tag_followings'
+  resources :mentions, :only => [:index]
+
   get 'tags/:name' => 'tags#show', :as => 'tag'
 
   resources :apps, :only => [:show]
@@ -90,6 +96,7 @@ Diaspora::Application.routes.draw do
   scope 'admins', :controller => :admins do
     match :user_search
     get   :admin_inviter
+    get   :weekly_user_stats
     get   :stats, :as => 'pod_stats'
   end
 
@@ -101,7 +108,11 @@ Diaspora::Application.routes.draw do
   resources :aspect_memberships, :only   => [:destroy, :create, :update]
   resources :post_visibilities,  :only   => [:update]
 
-  get 'featured' => "contacts#featured", :as => 'featured_users'
+  get 'featured' => 'featured_users#index', :as => 'featured'
+
+  get 'featured_users' => "contacts#featured", :as => 'featured_users'
+
+
   resources :people, :except => [:edit, :update] do
     resources :status_messages
     resources :photos
@@ -113,8 +124,7 @@ Diaspora::Application.routes.draw do
     end
   end
   get '/u/:username' => 'people#show', :as => 'user_profile'
-
-
+  get '/u/:username/profile_photo' => 'users#user_photo'
   # Federation
 
   controller :publics do
@@ -157,7 +167,17 @@ Diaspora::Application.routes.draw do
 
   get 'mobile/toggle', :to => 'home#toggle_mobile', :as => 'toggle_mobile'
 
-  # Startpage
+  #Protocol Url
+  get 'protocol' => redirect("https://github.com/diaspora/diaspora/wiki/Diaspora%27s-federation-protocol")
+  
+  # Resque web
+  if AppConfig[:mount_resque_web]
+    mount Resque::Server.new, :at => '/resque-jobs', :as => "resque_web"
+  end
 
+  # Logout Page (go mobile)
+  get 'logged_out' => 'users#logged_out', :as => 'logged_out'
+
+  # Startpage
   root :to => 'home#show'
 end

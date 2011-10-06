@@ -1,4 +1,4 @@
-#   Copyright (c) 2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -21,6 +21,7 @@ defaults: &defaults
   # Setting the root certificate bundle (this is operating system specific). Defaults:
   # CentOS: '/etc/pki/tls/certs/ca-bundle.crt'
   # Debian: '/etc/ssl/certs/ca-certificates.crt'
+  # Gentoo: '/etc/ssl/certs/ca-certificates.crt'
   ca_file: '/etc/pki/tls/certs/ca-bundle.crt'
 
   # Secure websocket confguration (wss://).
@@ -54,7 +55,7 @@ defaults: &defaults
   open_invitations: true
 
   # Set this to true if you don't want your users to follow the diasporahq@joindiaspora.com
-  # account on account creation.  The diasporahq account helps users start with some 
+  # account on account creation.  The diasporahq account helps users start with some
   # activity in their stream and get news about Diaspora, but if you don't want your server
   # to contact joindiaspora.com, set this to true:
   no_follow_diasporahq: false
@@ -65,6 +66,7 @@ defaults: &defaults
     - 'diasporahq@joindiaspora.com'
 
   # List of users who have admin privileges
+  # (expressed as an array of local usernames)
   admins:
     - 'example_user1dsioaioedfhgoiesajdigtoearogjaidofgjo'
 
@@ -112,7 +114,7 @@ defaults: &defaults
   smtp_port: '587'
 
   # This chooses which mailer should be used. 'smtp' for a smtp
-  # connection or 'sendmail' to use the sendmail binary.
+  # connection or 'sendmail' to use the sendmail binary, or messagebus, to use the messagebus service
   mailer_method: 'smtp'
 
   # The path to the sendmail binary. Ignored if mailer_method is not set to sendmail
@@ -126,8 +128,13 @@ defaults: &defaults
   # Automatically enable TLS? Ignored if smtp_authentication is set to none
   smtp_starttls_auto: true
 
+  # OpenSSL verify mode used when connecting to a SMTP server with TLS.
+  # Set this to none if you have a self signed certificate, keep it empty (not '') for the default
+  # Possible values: none, peer, client_once, fail_if_no_peer_cert
+  smtp_openssl_verify_mode:
+
   # Domain of smtp server.
-  # This should match the common name of the certificate 
+  # This should match the common name of the certificate
   # the SMTP server sends. If he sends one
   smtp_domain: 'example.com'
 
@@ -160,6 +167,9 @@ defaults: &defaults
   # Use paypal for recurring donations
   paypal_hosted_button_id: ""
 
+  # Mount resque-web into routes
+  # This allows an administrator to see info about the workers
+  mount_resque_web: true
 
 #
 # Use this section to override default settings in specific environments
@@ -171,7 +181,7 @@ development:
 
 production:
   <<: *defaults
-
+  mount_resque_web: false
 
 #
 # Do not touch unless you know what you're doing
@@ -184,12 +194,11 @@ test:
   enable_splunk_logging: false
   open_invitations: true
 
-
 integration_1:
   <<: *defaults
   pod_url: "http://localhost:45789"
   enable_splunk_logging: false
-  
+
 integration_2:
   <<: *defaults
   pod_url: "http://localhost:34658"

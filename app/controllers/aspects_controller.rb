@@ -1,8 +1,8 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
-require File.join(Rails.root, "lib", "aspect_stream")
+require File.join(Rails.root, "lib", 'stream', "aspect_stream")
 
 class AspectsController < ApplicationController
   before_filter :authenticate_user!
@@ -12,13 +12,12 @@ class AspectsController < ApplicationController
   respond_to :html, :js
   respond_to :json, :only => [:show, :create]
 
-  helper_method :tags, :tag_followings
   helper_method :selected_people
 
   def index
     aspect_ids = (params[:a_ids] ? params[:a_ids] : [])
     @stream = AspectStream.new(current_user, aspect_ids,
-                               :order => session[:sort_order],
+                               :order => sort_order,
                                :max_time => params[:max_time].to_i)
 
     if params[:only_posts]
@@ -138,28 +137,5 @@ class AspectsController < ApplicationController
     params[:max_time] ||= Time.now + 1
   end
 
-  def tag_followings
-    if current_user
-      if @tag_followings == nil
-        @tag_followings = current_user.tag_followings
-      end
-      @tag_followings
-    end
-  end
-
-  def tags
-    @tags ||= current_user.followed_tags
-  end
-
   private
-  def save_sort_order
-    if params[:sort_order].present?
-      session[:sort_order] = (params[:sort_order] == 'created_at') ? 'created_at' : 'updated_at'
-    elsif session[:sort_order].blank?
-      session[:sort_order] = 'updated_at'
-    else
-      session[:sort_order] = (session[:sort_order] == 'created_at') ? 'created_at' : 'updated_at'
-    end
-  end
-
 end

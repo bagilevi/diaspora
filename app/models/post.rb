@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -12,6 +12,7 @@ class Post < ActiveRecord::Base
   include Diaspora::Likeable
 
   xml_attr :diaspora_handle
+  xml_attr :provider_display_name
   xml_attr :public
   xml_attr :created_at
 
@@ -31,7 +32,22 @@ class Post < ActiveRecord::Base
   
   validates :guid, :uniqueness => true
 
+  after_create :cache_for_author
+
+  #scopes
   scope :all_public, where(:public => true, :pending => false)
+  scope :includes_for_a_stream,  includes({:author => :profile}, :mentions => {:person => :profile}) #note should include root and photos, but i think those are both on status_message
+
+  def self.for_a_stream(max_time, order)
+    by_max_time(max_time, order).
+    includes_for_a_stream.
+    limit(15)
+  end
+
+  def self.by_max_time(max_time, order='created_at')
+    where("posts.#{order} < ?", max_time).order("posts.#{order} desc")
+  end
+  #############
 
   def diaspora_handle
     read_attribute(:diaspora_handle) || self.author.diaspora_handle
@@ -43,6 +59,10 @@ class Post < ActiveRecord::Base
     else
       self.post_visibilities.count
     end
+  end
+
+  def reshare_count
+    @reshare_count ||= Post.where(:root_guid => self.guid).count
   end
 
   def diaspora_handle= nd
@@ -76,48 +96,12 @@ class Post < ActiveRecord::Base
     end
   end
 
-  # @param [User] user The user that is receiving this post.
-  # @param [Person] person The person who dispatched this post to the
-  # @return [void]
-  def receive(user, person)
-    #exists locally, but you dont know about it
-    #does not exsist locally, and you dont know about it
-    #exists_locally?
-    #you know about it, and it is mutable
-    #you know about it, and it is not mutable
-    self.class.transaction do
-      local_post = self.class.where(:guid => self.guid).first
-      if local_post && local_post.author_id == self.author_id
-        known_post = user.find_visible_post_by_id(self.guid, :key => :guid)
-        if known_post
-          if known_post.mutable?
-            known_post.update_attributes(self.attributes)
-          else
-            Rails.logger.info("event=receive payload_type=#{self.class} update=true status=abort sender=#{self.diaspora_handle} reason=immutable existing_post=#{known_post.id}")
-          end
-        else
-          user.contact_for(person).receive_post(local_post)
-          user.notify_if_mentioned(local_post)
-          Rails.logger.info("event=receive payload_type=#{self.class} update=true status=complete sender=#{self.diaspora_handle} existing_post=#{local_post.id}")
-          return local_post
-        end
-      elsif !local_post
-        if self.save
-          user.contact_for(person).receive_post(self)
-          user.notify_if_mentioned(self)
-          Rails.logger.info("event=receive payload_type=#{self.class} update=false status=complete sender=#{self.diaspora_handle}")
-          return self
-        else
-          Rails.logger.info("event=receive payload_type=#{self.class} update=false status=abort sender=#{self.diaspora_handle} reason=#{self.errors.full_messages}")
-        end
-      else
-        Rails.logger.info("event=receive payload_type=#{self.class} update=true status=abort sender=#{self.diaspora_handle} reason='update not from post owner' existing_post=#{self.id}")
-      end
-    end
-  end
-
   def activity_streams?
     false
+  end
+
+  def triggers_caching?
+    true
   end
 
   def comment_email_subject
@@ -134,5 +118,87 @@ class Post < ActiveRecord::Base
     self.class.where(:id => self.id).
       update_all(:comments_count => self.comments.count)
   end
-end
 
+  # @return [Boolean]
+  def cache_for_author
+    if self.should_cache_for_author?
+      cache = RedisCache.new(self.author.owner, 'created_at')
+      cache.add(self.created_at.to_i, self.id)
+    end
+    true
+  end
+
+  # @return [Boolean]
+  def should_cache_for_author?
+    self.triggers_caching? && RedisCache.configured? &&
+      RedisCache.acceptable_types.include?(self.type) && user = self.author.owner
+  end
+
+
+  # @param [User] user The user that is receiving this post.
+  # @param [Person] person The person who dispatched this post to the
+  # @return [void]
+  def receive(user, person)
+    #exists locally, but you dont know about it
+    #does not exsist locally, and you dont know about it
+    #exists_locally?
+    #you know about it, and it is mutable
+    #you know about it, and it is not mutable
+    self.class.transaction do
+      local_post = persisted_post
+
+      if local_post && verify_persisted_post(local_post)
+        self.receive_persisted(user, person, local_post)
+
+      elsif !local_post
+        self.receive_non_persisted(user, person)
+
+      else
+        Rails.logger.info("event=receive payload_type=#{self.class} update=true status=abort sender=#{self.diaspora_handle} reason='update not from post owner' existing_post=#{self.id}")
+        false
+      end
+    end
+  end
+
+  protected
+
+  # @return [Post,void]
+  def persisted_post
+    self.class.where(:guid => self.guid).first
+  end
+
+  # @return [Boolean]
+  def verify_persisted_post(persisted_post)
+    persisted_post.author_id == self.author_id
+  end
+
+  def receive_persisted(user, person, local_post)
+    known_post = user.find_visible_post_by_id(self.guid, :key => :guid)
+    if known_post
+      if known_post.mutable?
+        known_post.update_attributes(self.attributes)
+        true
+      else
+        Rails.logger.info("event=receive payload_type=#{self.class} update=true status=abort sender=#{self.diaspora_handle} reason=immutable") #existing_post=#{known_post.id}")
+        false
+      end
+    else
+      user.contact_for(person).receive_post(local_post)
+      user.notify_if_mentioned(local_post)
+      Rails.logger.info("event=receive payload_type=#{self.class} update=true status=complete sender=#{self.diaspora_handle}") #existing_post=#{local_post.id}")
+      true
+    end
+  end
+
+  def receive_non_persisted(user, person)
+    if self.save
+      user.contact_for(person).receive_post(self)
+      user.notify_if_mentioned(self)
+      Rails.logger.info("event=receive payload_type=#{self.class} update=false status=complete sender=#{self.diaspora_handle}")
+      true
+    else
+      Rails.logger.info("event=receive payload_type=#{self.class} update=false status=abort sender=#{self.diaspora_handle} reason=#{self.errors.full_messages}")
+      false
+    end
+  end
+end

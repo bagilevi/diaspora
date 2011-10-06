@@ -1,4 +1,4 @@
-#   Copyright (c) 2010, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
@@ -13,13 +13,10 @@ describe Photo do
     @fixture_name      = File.join(File.dirname(__FILE__), '..', 'fixtures', @fixture_filename)
     @fail_fixture_name = File.join(File.dirname(__FILE__), '..', 'fixtures', 'msg.xml')
 
-    @photo  = @user.build_post(:photo, :user_file=> File.open(@fixture_name), :to => @aspect.id)
-    @photo2 = @user.build_post(:photo, :user_file=> File.open(@fixture_name), :to => @aspect.id)
-  end
-
-
-  describe "#process" do
-    it "should do something awesome"
+    @photo  = @user.build_post(:photo, :user_file => File.open(@fixture_name), :to => @aspect.id)
+    @photo2 = @user.build_post(:photo, :user_file => File.open(@fixture_name), :to => @aspect.id)
+    @saved_photo = @user.build_post(:photo, :user_file => File.open(@fixture_name), :to => @aspect.id)
+    @saved_photo.save
   end
 
   describe "protected attributes" do
@@ -136,38 +133,41 @@ describe Photo do
 
   describe 'serialization' do
     before do
-      @photo.process
-      @photo.save!
-      @xml = @photo.to_xml.to_s
+      Jobs::ProcessPhoto.perform(@saved_photo.id)
+      @xml = @saved_photo.to_xml.to_s
     end
+
     it 'serializes the url' do
-      @xml.include?(@photo.remote_photo_path).should be true
-      @xml.include?(@photo.remote_photo_name).should be true
+      @xml.include?(@saved_photo.remote_photo_path).should be true
+      @xml.include?(@saved_photo.remote_photo_name).should be true
     end
+
     it 'serializes the diaspora_handle' do
       @xml.include?(@user.diaspora_handle).should be true
     end
   end
 
   describe 'remote photos' do
+    before do
+      Jobs::ProcessPhoto.perform(@saved_photo.id)
+    end
+
     it 'should set the remote_photo on marshalling' do
-      @photo.process
-      @photo.save!
       #security hax
       user2 = Factory.create(:user)
       aspect2 = user2.aspects.create(:name => "foobars")
       connect_users(@user, @aspect, user2, aspect2)
 
-      url = @photo.url
-      thumb_url = @photo.url :thumb_medium
+      url = @saved_photo.url
+      thumb_url = @saved_photo.url :thumb_medium
 
-      xml = @photo.to_diaspora_xml
+      xml = @saved_photo.to_diaspora_xml
 
-      @photo.destroy
+      @saved_photo.destroy
       zord = Postzord::Receiver::Private.new(user2, :person => @photo.author)
       zord.parse_and_receive(xml)
 
-      new_photo = Photo.where(:guid => @photo.guid).first
+      new_photo = Photo.where(:guid => @saved_photo.guid).first
       new_photo.url.nil?.should be false
       new_photo.url.include?(url).should be true
       new_photo.url(:thumb_medium).include?(thumb_url).should be true
@@ -182,7 +182,7 @@ describe Photo do
 
   describe '#queue_processing_job' do
     it 'should queue a resque job to process the images' do
-      Resque.should_receive(:enqueue).with(Job::ProcessPhoto, @photo.id)
+      Resque.should_receive(:enqueue).with(Jobs::ProcessPhoto, @photo.id)
       @photo.queue_processing_job
     end
   end
@@ -199,6 +199,21 @@ describe Photo do
       expect {
         @status_message.destroy
       }.should change(Photo, :count).by(-1)
+    end
+
+    it 'will delete parent status message iff message is otherwise empty' do
+      expect {
+        @photo2.destroy
+      }.should change(StatusMessage, :count).by(-1)
+    end
+
+    it 'will not delete parent status message iff message had other content' do
+      expect {
+        @status_message.text = "Some text"
+        @status_message.save
+        @status_message.reload
+        @photo2.destroy
+      }.should_not change(StatusMessage, :count)
     end
   end
 end
