@@ -12,6 +12,8 @@ module StreamHelper
       person_path(@person, :max_time => @posts.last.created_at.to_i)
     elsif controller.instance_of?(TagFollowingsController) 
       tag_followings_path(:max_time => time_for_scroll(opts[:ajax_stream], @stream), :sort_order => session[:sort_order])
+    elsif controller.instance_of?(FeaturedUsersController) 
+      featured_path(:max_time => time_for_scroll(opts[:ajax_stream], @stream), :sort_order => session[:sort_order])
     elsif controller.instance_of?(MentionsController) 
       mentions_path(:max_time => time_for_scroll(opts[:ajax_stream], @stream), :sort_order => session[:sort_order])
     elsif controller.instance_of?(AspectsController)
@@ -27,6 +29,7 @@ module StreamHelper
     else
       stream.posts.last.send(stream.order.to_sym).to_i
     end
+
   end
 
   def time_for_sort post

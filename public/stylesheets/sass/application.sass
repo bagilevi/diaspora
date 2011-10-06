@@ -1813,7 +1813,7 @@ ul#request_result
       @include box-shadow(0, 1px, 5px, #ccc)
       :background
         :color #fff
-
+      :float left
       :overflow-x hidden
       :overflow-y hidden
 
@@ -1833,9 +1833,11 @@ ul#request_result
       :padding 5px
       :border 1px solid #999
 
-      > .right
-        :right -5px
-        :bottom 2px
+      > .name
+        :white-space nowrap 
+      // > .right
+      //   :right -5px
+      //   :bottom 2px
 
       &.remote_friend
         :width 285px
@@ -2911,6 +2913,12 @@ ul.left_nav
           :weight 700
         :color #666
 
+    > a.aspect_selector
+      :background
+        :image url(../images/icons/check_yes_ok.png)
+        :position 3px 50%
+        :repeat no-repeat
+
   .contact_count
     :float right
 
@@ -2952,8 +2960,8 @@ ul.left_nav
     .new_aspect,
     a.tag_selector
       :padding
-        :left 15px
-      :width 182px
+        :left 25px
+      :width 172px
 
     a.toggle_selector
       :outline none
@@ -2980,6 +2988,8 @@ ul.left_nav
         .unfollow_icon
           :display inline-block
 
+  .user_card
+    :margin-left 8px
 .stream_container
   :min-height 500px
 

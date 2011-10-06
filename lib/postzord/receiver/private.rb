@@ -23,7 +23,7 @@ class Postzord::Receiver::Private < Postzord::Receiver
       parse_and_receive(salmon.parsed_data)
     else
       Rails.logger.info("event=receive status=abort recipient=#{@user.diaspora_handle} sender=#{@salmon.author_id} reason='not_verified for key'")
-      nil
+      false
     end
   end
 
@@ -49,8 +49,10 @@ class Postzord::Receiver::Private < Postzord::Receiver
   end
 
   def update_cache!
-    cache = RedisCache.new(@user, "created_at")
-    cache.add(@object.created_at.to_i, @object.id)
+    if @user.contact_for(@author).aspect_memberships.size > 0
+      cache = RedisCache.new(@user, "created_at")
+      cache.add(@object.created_at.to_i, @object.id)
+    end
   end
 
   protected

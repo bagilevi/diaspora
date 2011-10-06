@@ -23,12 +23,18 @@ class Postzord::Receiver::LocalBatch < Postzord::Receiver
     # 09/27/11 this is slow
     #socket_to_users if @object.respond_to?(:socket_to_user)
     notify_users
+
+    true
   end
 
   def update_cache!
     @users.each do |user|
-      cache = RedisCache.new(user, "created_at")
-      cache.add(@object.created_at.to_i, @object.id)
+      # (NOTE) this can be optimized furter to not use n-query
+      contact = user.contact_for(object.author)
+      if contact && contact.aspect_memberships.size > 0
+        cache = RedisCache.new(user, "created_at")
+        cache.add(@object.created_at.to_i, @object.id)
+      end
     end
   end
 
