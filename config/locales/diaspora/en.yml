@@ -159,7 +159,7 @@ en:
     index: 
       mentions: "Mentions"
       featured_users: "Featured Users"
-      community_members: "Cool Diaspora* members"
+      community_members: "Featured Diaspora* members"
       see_more_from_us: "See more of the D* community."
       donate: "Donate"
       keep_us_running: "Keep %{pod} running fast and buy servers their coffee fix with a monthly donation!"
@@ -804,7 +804,7 @@ en:
       follow: "Follow #%{tag}"
       following: "Following #%{tag}"
       stop_following: "Stop Following #%{tag}"
-
+      followed_by: 'followed by'
   tag_followings:
     create:
       success: "Successfully following: #%{name}"
@@ -839,7 +839,9 @@ en:
     tags:
       title: "Posts tagged: %{tags}"
       contacts_title: "People who dig these tags" 
-
+    public:
+      title: "Public Activity"
+      contacts_title: "Recent Posters"
 
   users:
     logged_out:
