@@ -32,6 +32,10 @@ h1, h2, h3, h4
   :margin
     :bottom 5px
 
+  small
+    :font-size small
+    :color #999
+
 h1
   :color #111
 
@@ -269,7 +273,7 @@ ul.dropdown
 
 //////////////////////////////////
 //hacks for tagging plugin...
-ul.as-selections 
+ul.as-selections
   :width 100% !important
   >li.as-original
     :width 100% !important
@@ -634,7 +638,7 @@ ul.show_comments,
       :height 250px
       :width 400px
 
-      
+
   .content
     :margin
       :top 0px
@@ -647,7 +651,10 @@ ul.show_comments,
       :margin
         :bottom 0
         :top 0
-    .ltr 
+    p + p
+      :margin
+        :top 1em
+    .ltr
       ol, ul
         padding-left: 2em
         li
@@ -923,7 +930,7 @@ label
     textarea
       :resize none
       :width 455px
-      :height 50px 
+      :height 50px
       :margin 0
 
   &.mention_popup
@@ -1834,7 +1841,7 @@ ul#request_result
       :border 1px solid #999
 
       > .name
-        :white-space nowrap 
+        :white-space nowrap
       // > .right
       //   :right -5px
       //   :bottom 2px
@@ -2869,6 +2876,23 @@ ul.left_nav
     :position relative
     :width 100%
 
+  li.active
+    > a:not(.sub_selected)
+      :color #333
+      :font
+        :weight 700
+
+      .contact_count
+        :font
+          :weight 700
+        :color #666
+
+    > a.aspect_selector
+      :background
+        :image url(../images/icons/check_yes_ok.png)
+        :position 3px 50%
+        :repeat no-repeat
+
   a.aspect_selector,
   a.home_selector,
   a.tag_selector,
@@ -2896,49 +2920,23 @@ ul.left_nav
   a.element_selector
     &:hover
       @include border-radius(2px)
-
       :background
         :color lighten($blue,45%)
       :text
         :decoration none
 
-  li.active
-    > a:not(.sub_selected)
-      :color #333
-      :font
-        :weight 700
-
-      .contact_count
-        :font
-          :weight 700
-        :color #666
-
-    > a.aspect_selector
-      :background
-        :image url(../images/icons/check_yes_ok.png)
-        :position 3px 50%
-        :repeat no-repeat
-
-  .contact_count
-    :float right
-
   .edit,
   .unfollow_icon
+    :margin-top 4px
     @include transition(opacity)
     @include opacity(0.3)
     :float right
     :display none
-
     &:hover
       @include opacity(1)
 
-  .unfollow_icon
-    :margin-top 4px
-
-  .edit
-    :margin-top 4px
-
   .contact_count
+    :float right
     @include border-radius(4px)
     :margin-top 1px
     :color #999
@@ -2990,6 +2988,7 @@ ul.left_nav
 
   .user_card
     :margin-left 8px
+
 .stream_container
   :min-height 500px
 
@@ -3137,7 +3136,7 @@ ul.left_nav
     :padding 15px
 
   .notification_element
-    :padding 10px 
+    :padding 10px
     :min-height 30px
 
     > img
@@ -3252,7 +3251,7 @@ ul#getting_started
 
       .content h3
         :text
-          :decoration line-through 
+          :decoration line-through
 
   .profile
     :min-height 170px
@@ -3304,7 +3303,7 @@ ul#getting_started
   :min-height 70px
 
   .add_to_aspect
-    :padding 10px 0 
+    :padding 10px 0
 
   .avatar
     :float left
@@ -3341,7 +3340,7 @@ ul#getting_started
 .profile .profile_field
   :background
     :image url('/images/icons/monotone_question.png')
-    :position center left 
+    :position center left
     :repeat no-repeat
 
   :padding
@@ -3354,16 +3353,16 @@ ul#getting_started
 .featured_tag
   :background
     //:image url('/images/icons/check_yes_ok.png')
-    :position center left 
+    :position center left
     :repeat no-repeat
     :display none
 
   :padding
     :left 20px
- 
+
   &.followed
     :background
-      :image url('/images/icons/check_yes_ok.png') 
+      :image url('/images/icons/check_yes_ok.png')
 
   &:hover,
     :background

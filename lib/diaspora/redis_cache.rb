@@ -34,17 +34,23 @@ class RedisCache
     post_ids[0...limit]
   end
 
-  def ensure_populated!
-    self.repopulate! unless cache_exists?
+  def ensure_populated!(opts = {})
+    self.repopulate!(opts) unless cache_exists?
   end
 
-  def repopulate!
-    self.populate! && self.trim!
+  def repopulate!(opts = {})
+    self.populate!(opts) && self.trim!
   end
 
-  def populate!
+  def populate!(opts = {})
     # user executes query and gets back hashes
-    sql = @user.visible_posts_sql(:type => RedisCache.acceptable_types, :limit => CACHE_LIMIT, :order => self.order)
+    opts.merge!({
+      :type => RedisCache.acceptable_types,
+      :limit => CACHE_LIMIT,
+      :order => self.order
+    })
+
+    sql = @user.visible_posts_sql(opts)
     hashes = Post.connection.select_all(sql)
 
     # hashes are inserted into set in a single transaction
@@ -75,10 +81,15 @@ class RedisCache
     self.trim!
   end
 
+  def remove(id)
+    return unless self.cache_exists?
+    self.redis.zrem(set_key, id)
+  end
+
   # exposing the need to tie cache to a stream
   # @return [Array<String>] Acceptable Post types for the given cache
   def self.acceptable_types
-    ::AspectStream::TYPES_OF_POST_IN_STREAM
+    BaseStream::TYPES_OF_POST_IN_STREAM
   end
 
   # Instantiate a redis connection
