@@ -72,6 +72,17 @@ SQL
 SQL
   end
 
+  def fb_connected_distribution_sql
+    <<SQL
+      SELECT users.id AS id, users.sign_in_count AS count, count(services.id) AS connected
+        FROM users
+          LEFT OUTER JOIN services on services.user_id = users.id
+            AND services.type = 'Services::Facebook'
+          #{self.where_clause_sql}
+          GROUP BY users.id
+SQL
+  end
+
   def sign_in_count_sql
     <<SQL
       SELECT users.id AS id, users.sign_in_count AS count
@@ -87,7 +98,7 @@ SQL
     x_array = []
     y_array = []
 
-    self.result_hash(first_metric).keys.each do |k| 
+    self.result_hash(first_metric).keys.each do |k|
       if val = self.result_hash(second_metric)[k]
         x_array << self.result_hash(first_metric)[k]
         y_array << val
@@ -109,7 +120,7 @@ SQL
   def correlation(x_array, y_array)
     sum = 0.0
     x_array.each_index do |i|
-      sum = sum + x_array[i]*y_array[i]
+      sum = sum + x_array[i].to_f * y_array[i].to_f
     end
     x_y_mean = sum/x_array.length.to_f
     x_mean = mean(x_array)
@@ -123,7 +134,7 @@ SQL
 
   def mean(array)
     sum = array.inject(0.0) do |sum, val|
-      sum += val
+      sum += val.to_f
     end
     sum / array.length
   end
@@ -132,7 +143,7 @@ SQL
     variance = lambda do
       m = mean(array)
       sum = 0.0
-      array.each{ |v| sum += (v-m)**2 }
+      array.each{ |v| sum += (v.to_f-m)**2 }
       sum/array.length.to_f
     end.call
 
@@ -146,7 +157,13 @@ SQL
 
   protected
   def where_clause_sql
-    "where users.created_at > FROM_UNIXTIME(#{(Time.now - 1.month).to_i})"
+    if postgres?
+      "WHERE users.created_at > NOW() - '1 month'::INTERVAL"
+    elsif sqlite?
+      raise "#where_clause_sql not yet written for SQLite"
+    else
+      "where users.created_at > FROM_UNIXTIME(#{(Time.now - 1.month).to_i})"
+    end
   end
 
   def week_created(n)

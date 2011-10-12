@@ -15,7 +15,6 @@
         toggleSelector: aspectNavigation.find("a.toggle_selector")
       });
 
-      self.calculateToggleText();
       self.aspectSelectors.click(self.toggleAspect);
       self.toggleSelector.click(self.toggleAll);
     });
@@ -101,10 +100,6 @@
       self.fadeOut();
 
       self.jXHR = $.getScript(newURL, function(data) {
-        if (typeof(history.pushState) == 'function') {
-          history.pushState(null, document.title, newURL);
-        }
-
         var textarea = $("#publisher textarea#status_message_fake_text"),
           photozone = $("#photodropzone");
 
