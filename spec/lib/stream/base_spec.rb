@@ -1,9 +1,8 @@
 require 'spec_helper'
 require File.join(Rails.root, 'spec', 'shared_behaviors', 'stream')
-
-describe FeaturedUsersStream do
+describe Stream::Base do
   before do
-    @stream = FeaturedUsersStream.new(Factory(:user), :max_time => Time.now, :order => 'updated_at')
+    @stream = Stream::Base.new(stub)
   end
 
   describe 'shared behaviors' do

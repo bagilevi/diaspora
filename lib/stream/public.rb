@@ -2,7 +2,7 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
-class PublicStream < BaseStream
+class Stream::Public < Stream::Base
   def link(opts={})
     Rails.application.routes.url_helpers.public_stream_path(opts)
   end

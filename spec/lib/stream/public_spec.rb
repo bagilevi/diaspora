@@ -1,8 +1,8 @@
 require 'spec_helper'
 require File.join(Rails.root, 'spec', 'shared_behaviors', 'stream')
-describe BaseStream do
+describe Stream::Public do
   before do
-    @stream = BaseStream.new(stub)
+    @stream = Stream::Public.new(stub)
   end
 
   describe 'shared behaviors' do

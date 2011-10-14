@@ -1,4 +1,4 @@
-class BaseStream
+class Stream::Base
   TYPES_OF_POST_IN_STREAM = ['StatusMessage', 'Reshare', 'ActivityStreams::Photo']
   attr_accessor :max_time, :order, :user
 
@@ -26,7 +26,7 @@ class BaseStream
   end
 
   def title
-    'change me in lib/base_stream.rb!'
+    'a title'
   end
 
   def posts
@@ -48,7 +48,7 @@ class BaseStream
   end
 
   def contacts_link
-    'change me in lib/base_stream.rb!'
+    '#'
   end
 
   #helpers

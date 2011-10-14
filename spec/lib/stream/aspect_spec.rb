@@ -4,11 +4,11 @@
 
 require 'spec_helper'
 
-describe AspectStream do
+describe Stream::Aspect do
   describe '#aspects' do
     it 'queries the user given initialized aspect ids' do
       alice = stub.as_null_object
-      stream = AspectStream.new(alice, [1,2,3])
+      stream = Stream::Aspect.new(alice, [1,2,3])
 
       alice.aspects.should_receive(:where)
       stream.aspects
@@ -16,7 +16,7 @@ describe AspectStream do
 
     it "returns all the user's aspects if no aspect ids are specified" do
       alice = stub.as_null_object
-      stream = AspectStream.new(alice, [])
+      stream = Stream::Aspect.new(alice, [])
 
       alice.aspects.should_not_receive(:where)
       stream.aspects
@@ -25,7 +25,7 @@ describe AspectStream do
     it 'filters aspects given a user' do
       alice = stub(:aspects => [stub(:id => 1)])
       alice.aspects.stub(:where).and_return(alice.aspects)
-      stream = AspectStream.new(alice, [1,2,3])
+      stream = Stream::Aspect.new(alice, [1,2,3])
 
       stream.aspects.should == alice.aspects
     end
@@ -36,7 +36,7 @@ describe AspectStream do
       alice = stub.as_null_object
       aspects = stub.as_null_object
 
-      stream = AspectStream.new(alice, [1,2])
+      stream = Stream::Aspect.new(alice, [1,2])
 
       stream.should_receive(:aspects).and_return(aspects)
       aspects.should_receive(:map)
@@ -50,32 +50,32 @@ describe AspectStream do
     end
 
     it 'calls visible posts for the given user' do
-      stream = AspectStream.new(@alice, [1,2])
+      stream = Stream::Aspect.new(@alice, [1,2])
 
       @alice.should_receive(:visible_posts).and_return(stub.as_null_object)
       stream.posts
     end
 
     it 'is called with 3 types' do
-      stream = AspectStream.new(@alice, [1,2], :order => 'created_at')
+      stream = Stream::Aspect.new(@alice, [1,2], :order => 'created_at')
       @alice.should_receive(:visible_posts).with(hash_including(:type=> ['StatusMessage', 'Reshare', 'ActivityStreams::Photo'])).and_return(stub.as_null_object)
       stream.posts
     end
 
     it 'respects ordering' do 
-      stream = AspectStream.new(@alice, [1,2], :order => 'created_at')
+      stream = Stream::Aspect.new(@alice, [1,2], :order => 'created_at')
       @alice.should_receive(:visible_posts).with(hash_including(:order => 'created_at DESC')).and_return(stub.as_null_object)
       stream.posts
     end
 
     it 'respects max_time' do
-      stream = AspectStream.new(@alice, [1,2], :max_time => 123)
+      stream = Stream::Aspect.new(@alice, [1,2], :max_time => 123)
       @alice.should_receive(:visible_posts).with(hash_including(:max_time => instance_of(Time))).and_return(stub.as_null_object)
       stream.posts
     end
 
     it 'passes for_all_aspects to visible posts' do
-      stream = AspectStream.new(@alice, [1,2], :max_time => 123)
+      stream = Stream::Aspect.new(@alice, [1,2], :max_time => 123)
       all_aspects = mock
       stream.stub(:for_all_aspects?).and_return(all_aspects)
       @alice.should_receive(:visible_posts).with(hash_including(:all_aspects? => all_aspects)).and_return(stub.as_null_object)
@@ -89,7 +89,7 @@ describe AspectStream do
 
       alice = stub.as_null_object
       aspect_ids = [1,2,3]
-      stream = AspectStream.new(alice, [])
+      stream = Stream::Aspect.new(alice, [])
 
       stream.stub(:aspect_ids).and_return(aspect_ids)
       Person.should_receive(:all_from_aspects).with(stream.aspect_ids, alice).and_return(stub(:includes => :profile))
@@ -100,7 +100,7 @@ describe AspectStream do
   describe '#aspect' do
     before do
       alice = stub.as_null_object
-      @stream = AspectStream.new(alice, [1,2])
+      @stream = Stream::Aspect.new(alice, [1,2])
     end
 
     it "returns an aspect if the stream is not for all the user's aspects" do
@@ -118,7 +118,7 @@ describe AspectStream do
     before do
       alice = stub.as_null_object
       alice.aspects.stub(:size).and_return(2)
-      @stream = AspectStream.new(alice, [1,2])
+      @stream = Stream::Aspect.new(alice, [1,2])
     end
 
     it "is true if the count of aspect_ids is equal to the size of the user's aspect count" do
@@ -134,7 +134,7 @@ describe AspectStream do
 
   describe '.ajax_stream?' do
     before do
-      @stream = AspectStream.new(stub, stub)
+      @stream = Stream::Aspect.new(stub, stub)
     end
     it 'is true stream is for all aspects?' do
       @stream.stub(:for_all_aspects?).and_return(true)
@@ -148,7 +148,7 @@ describe AspectStream do
   end
   describe 'shared behaviors' do
     before do
-      @stream = AspectStream.new(alice, alice.aspects.map(&:id))
+      @stream = Stream::Aspect.new(alice, alice.aspects.map(&:id))
     end
     it_should_behave_like 'it is a stream'
   end

@@ -2,7 +2,7 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
-class AspectStream < BaseStream
+class Stream::Aspect< Stream::Base
 
   # @param user [User]
   # @param inputted_aspect_ids [Array<Integer>] Ids of aspects for given stream
@@ -23,7 +23,7 @@ class AspectStream < BaseStream
   def aspects
     @aspects ||= lambda do
       a = user.aspects
-      a = a.where(:id => @inputted_aspect_ids) if @inputted_aspect_ids.length > 0
+      a = a.where(:id => @inputted_aspect_ids) if @inputted_aspect_ids.any?
       a
     end.call
   end

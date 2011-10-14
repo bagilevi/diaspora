@@ -1,9 +1,9 @@
 require 'spec_helper'
 require File.join(Rails.root, 'spec', 'shared_behaviors', 'stream')
 
-describe TagStream do
+describe Stream::FollowedTag do
   before do
-    @stream = TagStream.new(Factory(:user), :max_time => Time.now, :order => 'updated_at')
+    @stream = Stream::FollowedTag.new(Factory(:user), :max_time => Time.now, :order => 'updated_at')
     @stream.stub(:tag_string).and_return("foo")
   end
 
@@ -13,7 +13,7 @@ describe TagStream do
 
   describe '.can_comment?' do
     before do
-      @stream = TagStream.new(alice)
+      @stream = Stream::FollowedTag.new(alice)
       @stream.stub(:people).and_return([bob.person])
     end
 

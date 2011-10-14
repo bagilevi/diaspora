@@ -2,7 +2,7 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
-class MentionStream< BaseStream
+class Stream::Mention < Stream::Base
   def link(opts={})
     Rails.application.routes.url_helpers.mentions_path(opts)
   end

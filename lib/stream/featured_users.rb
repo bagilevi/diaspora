@@ -1,4 +1,4 @@
-class FeaturedUsersStream < BaseStream
+class Stream::FeaturedUsers < Stream::Base
   def title
     "Featured users doing cool stuff!"
   end
