@@ -107,7 +107,7 @@ Diaspora::Application.routes.draw do
     get :sharing, :on => :collection
   end
   resources :aspect_memberships, :only   => [:destroy, :create, :update]
-  resources :post_visibilities,  :only   => [:update]
+  resources :share_visibilities,  :only   => [:update]
 
   get 'featured' => 'featured_users#index', :as => 'featured'
 
@@ -163,6 +163,12 @@ Diaspora::Application.routes.draw do
 
   scope 'api/v0', :controller => :apis do
     get :me
+  end
+
+  namespace :api do
+    namespace :v0 do
+      get "/users/:username" => 'users#show', :as => 'user'
+    end
   end
 
 

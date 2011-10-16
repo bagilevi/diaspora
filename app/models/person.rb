@@ -28,6 +28,7 @@ class Person < ActiveRecord::Base
 
   has_many :contacts, :dependent => :destroy # Other people's contacts for this person
   has_many :posts, :foreign_key => :author_id, :dependent => :destroy # This person's own posts
+  has_many :photos, :foreign_key => :author_id, :dependent => :destroy # This person's own photos
   has_many :comments, :foreign_key => :author_id, :dependent => :destroy # This person's own comments
 
   belongs_to :owner, :class_name => 'User'
@@ -58,6 +59,8 @@ class Person < ActiveRecord::Base
          select("DISTINCT people.*")
   }
 
+  scope :profile_tagged_with, lambda{|tag_name| joins(:profile => :tags).where(:profile => {:tags => {:name => tag_name}}).where('profiles.searchable IS TRUE') }
+
   def self.featured_users
     AppConfig[:featured_users].present? ? Person.where(:diaspora_handle => AppConfig[:featured_users]) : []
   end
@@ -75,7 +78,6 @@ class Person < ActiveRecord::Base
     super
     self.profile ||= Profile.new unless profile_set
   end
-  
   
   def self.find_from_id_or_username(params)
     p = if params[:id].present?
@@ -248,7 +250,7 @@ class Person < ActiveRecord::Base
   end
 
   def has_photos?
-    self.posts.where(:type => "Photo").exists?
+    self.photos.exists?
   end
 
   def as_json( opts = {} )
@@ -272,6 +274,8 @@ class Person < ActiveRecord::Base
       person.update_url(url)
     end 
   end
+
+  
   
   # @param person [Person]
   # @param url [String]
