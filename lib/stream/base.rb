@@ -5,7 +5,7 @@ class Stream::Base
   def initialize(user, opts={})
     self.user = user
     self.max_time = opts[:max_time]
-    self.order = opts[:order] 
+    self.order = opts[:order]
   end
 
   # @return [Person]
@@ -14,10 +14,10 @@ class Stream::Base
   end
 
   # @return [Boolean]
-  def has_communtiy_spotlight?
+  def has_community_spotlight?
     random_community_spotlight_member.present?
   end
-  
+
   #requied to implement said stream
   def link(opts={})
     'change me in lib/base_stream.rb!'
@@ -27,6 +27,10 @@ class Stream::Base
   def can_comment?(post)
     return true if post.author.local?
     post_is_from_contact?(post)
+  end
+
+  def post_from_group(post)
+    []
   end
 
   # @return [String]

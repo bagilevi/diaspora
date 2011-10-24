@@ -5,7 +5,7 @@ module InterimStreamHackinessHelper
       @commenting_disabled
     elsif defined?(@stream)
       !@stream.can_comment?(post)
-    else 
+    else
       false
     end
   end
@@ -18,5 +18,21 @@ module InterimStreamHackinessHelper
     else
       nil
     end
+  end
+
+  def from_group(post)
+    if defined?(@stream) && params[:controller] == 'multis'
+      @stream.post_from_group(post)
+    else
+     [] 
+    end
+  end
+
+  def what_stream_sentence(post)
+    from_group(post).map{|x| I18n.t("streams.#{x.to_s}")}.to_sentence
+  end
+
+  def stream_settings_link(post)
+    link_to "", "#{edit_user_path}#stream-preferences"
   end
 end

@@ -104,19 +104,13 @@ en:
       updating: "updating"
     aspect_contacts:
       done_editing: "done editing"
-    aspect_stream:
-      stream: "Stream"
-      mentions: "Mentions"
-      recently: "recently:"
-      commented_on: "commented on"
-      posted: "posted"
     show:
       edit_aspect: "edit aspect"
     no_posts_message:
       start_talking: "Nobody has said anything yet!"
     no_contacts_message:
       you_should_add_some_more_contacts: "You should add some more contacts!"
-      try_adding_some_more_contacts: "You can search (top) or invite (right) more contacts."
+      try_adding_some_more_contacts: "You can search or invite more contacts."
       or_spotlight:  "Or you can share with %{link}"
       community_spotlight: "community spotlight"
     aspect_listings:
@@ -125,11 +119,10 @@ en:
       edit_aspect: "Edit %{name}"
       add_an_aspect: "+ Add an aspect"
     selected_contacts:
-      view_all_communtiy_spotlight: "See all community spotlight"
+      view_all_community_spotlight: "See all community spotlight"
       view_all_contacts: "View all contacts"
       no_contacts: "You don't have any contacts here yet."
       manage_your_aspects: "Manage your aspects."
-
     new:
       name: "Name (only visible to you)"
       create: "Create"
@@ -159,13 +152,12 @@ en:
       acquaintances: "Acquaintances"
       friends: "Friends"
     index:
-      mentions: "Mentions"
+      welcome: "Welcome"
       community_spotlight: "Community Spotlight"
       see_more_from_us: "See more of the D* community."
       donate: "Donate"
       keep_us_running: "Keep %{pod} running fast and buy servers their coffee fix with a monthly donation!"
       your_aspects: "Your Aspects"
-      tags_following: "Followed Tags"
       no_tags: "+ Find a tag to follow"
       unfollow_tag: "Stop following #%{tag}"
       handle_explanation: "This is your diaspora id. Like an email address, you can give this to people to reach you."
@@ -409,26 +401,26 @@ en:
       many: "%{actors} also commented on %{post_author}'s %{post_link}."
       other: "%{actors} also commented on %{post_author}'s %{post_link}."
     mentioned:
-      zero: "%{actors} has mentioned you in a %{post_link}."
+      zero: "%{actors} have mentioned you in a %{post_link}."
       one: "%{actors} has mentioned you in a %{post_link}."
-      two: "%{actors} has mentioned you in a %{post_link}."
-      few: "%{actors} has mentioned you in a %{post_link}."
-      many: "%{actors} has mentioned you in a %{post_link}."
-      other: "%{actors} has mentioned you in a %{post_link}."
+      two: "%{actors} have mentioned you in a %{post_link}."
+      few: "%{actors} have mentioned you in a %{post_link}."
+      many: "%{actors} have mentioned you in a %{post_link}."
+      other: "%{actors} have mentioned you in a %{post_link}."
     liked:
-      zero: "%{actors} has just liked your %{post_link}."
-      one: "%{actors} has just liked your %{post_link}."
-      two: "%{actors} has just liked your %{post_link}."
-      few: "%{actors} has just liked your %{post_link}."
-      many: "%{actors} has just liked your %{post_link}."
-      other: "%{actors} has just liked your %{post_link}."
+      zero: "%{actors} have liked your %{post_link}."
+      one: "%{actors} has liked your %{post_link}."
+      two: "%{actors} have liked your %{post_link}."
+      few: "%{actors} have liked your %{post_link}."
+      many: "%{actors} have liked your %{post_link}."
+      other: "%{actors} have liked your %{post_link}."
     reshared:
-      zero: "%{actors} has reshared your %{post_link}."
+      zero: "%{actors} have reshared your %{post_link}."
       one: "%{actors} has reshared your %{post_link}."
-      two: "%{actors} has reshared your %{post_link}."
-      few: "%{actors} has reshared your %{post_link}."
-      many: "%{actors} has reshared your %{post_link}."
-      other: "%{actors} has reshared your %{post_link}."
+      two: "%{actors} have reshared your %{post_link}."
+      few: "%{actors} have reshared your %{post_link}."
+      many: "%{actors} have reshared your %{post_link}."
+      other: "%{actors} have reshared your %{post_link}."
     post: "post"
     also_commented_deleted:
       zero: "%{actors} commented on a deleted post."
@@ -500,10 +492,10 @@ en:
     private_message:
         reply_to_or_view: "Reply to or view this conversation >"
     liked:
-        liked: "%{name} just liked your post"
+        liked: "%{name} liked your post"
         view_post: "View post >"
     reshared:
-        reshared: "%{name} just reshared your post"
+        reshared: "%{name} reshared your post"
         view_post: "View post >"
     confirm_email:
         subject: "Please activate your new email address %{unconfirmed_email}"
@@ -833,18 +825,36 @@ en:
       no_applications: "You haven't registered any applications yet."
 
   streams:
+    recently: "recently:"
+    commented_on: "commented on"
+    posted: "posted"
+    community_spotlight_stream: "Community Spotlight" 
+    aspects_stream: "Aspects"
+    mentioned_stream: "@Mentions"
+    followed_tags_stream: "#Followed Tags"
+
     mentions:
-      title: "Your Mentions"
+      title: "@Mentions"
       contacts_title: "People who mentioned you"
+
+    followed_tag:
+      title: "#Followed Tags"
+      contacts_title: "People who dig these tags"
+
     tags:
       title: "Posts tagged: %{tags}"
-      contacts_title: "People who dig these tags"
+      contacts_title: "People who dig this tag"
+
     public:
       title: "Public Activity"
       contacts_title: "Recent Posters"
-    soup:
-      title: "The Soup"
-      contacts_title: "People in your Soup"
+
+    multi:
+      title: "Stream"
+      contacts_title: "People in your Stream"
+
+    aspects:
+      title: "Your Aspects"
 
   users:
     logged_out:
@@ -876,6 +886,8 @@ en:
       reshared: "...someone reshares your post?"
       change: "Change"
       email_awaiting_confirmation: "We have sent you an activation link to %{unconfirmed_email}. Until you follow this link and activate the new address, we will continue to use your original address %{email}."
+      stream_preferences: "Stream Preferences"
+      show_community_spotlight: "Show Community Spotlight in Stream?"
     destroy: "Your account has been locked.  It may take 20 minutes for us to finish closing your account.  Thank you for trying Diaspora."
     getting_started:
       welcome: "Welcome!"
@@ -924,8 +936,13 @@ en:
     update:
       password_changed: "Password changed.  You can now log in with your new password."
       password_not_changed: "Password change failed"
+
       language_changed: "Language changed"
       language_not_changed: "Language change failed"
+
+      settings_updated: "Settings updated"
+      settings_not_updated: "Settings update failed"
+
       email_notifications_changed: "Email notifications changed"
       unconfirmed_email_changed: "Email changed. Needs activation."
       unconfirmed_email_not_changed: "Email change failed"

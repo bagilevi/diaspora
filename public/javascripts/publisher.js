@@ -271,7 +271,7 @@ var Publisher = {
   },
 
   determineSubmitAvailability: function(){
-    var onlyWhitespaces = (Publisher.input().val().trim() === ''),
+    var onlyWhitespaces = ($.trim(Publisher.input().val()) === ''),
         isSubmitDisabled = Publisher.submit().attr('disabled'),
         isPhotoAttached = ($("#photodropzone").children().length > 0);
 
@@ -340,8 +340,6 @@ var Publisher = {
           $("#publisher .content_creation form").append(
           '<input id="aspect_ids_" name="aspect_ids[]" type="hidden" value="'+aspectId+'">');
         };
-
-    console.log(li);
 
     if(li.hasClass('radio')){
       $.each(hiddenFields, function(index, value){

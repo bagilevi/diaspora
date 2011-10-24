@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20111018010003) do
+ActiveRecord::Schema.define(:version => 20111023230730) do
 
   create_table "aspect_memberships", :force => true do |t|
     t.integer  "aspect_id",  :null => false
@@ -246,6 +246,7 @@ ActiveRecord::Schema.define(:version => 20111018010003) do
   add_index "people", ["owner_id"], :name => "index_people_on_owner_id", :unique => true
 
   create_table "photos", :force => true do |t|
+    t.integer  "tmp_old_id"
     t.integer  "author_id",                              :null => false
     t.boolean  "public",              :default => false, :null => false
     t.string   "diaspora_handle"
@@ -415,32 +416,33 @@ ActiveRecord::Schema.define(:version => 20111018010003) do
   create_table "users", :force => true do |t|
     t.string   "username"
     t.text     "serialized_private_key"
-    t.boolean  "getting_started",                       :default => true,  :null => false
-    t.boolean  "disable_mail",                          :default => false, :null => false
+    t.boolean  "getting_started",                                   :default => true,  :null => false
+    t.boolean  "disable_mail",                                      :default => false, :null => false
     t.string   "language"
-    t.string   "email",                                 :default => "",    :null => false
-    t.string   "encrypted_password",     :limit => 128, :default => "",    :null => false
-    t.string   "invitation_token",       :limit => 60
+    t.string   "email",                                             :default => "",    :null => false
+    t.string   "encrypted_password",                 :limit => 128, :default => "",    :null => false
+    t.string   "invitation_token",                   :limit => 60
     t.datetime "invitation_sent_at"
     t.string   "reset_password_token"
     t.string   "remember_token"
     t.datetime "remember_created_at"
-    t.integer  "sign_in_count",                         :default => 0
+    t.integer  "sign_in_count",                                     :default => 0
     t.datetime "current_sign_in_at"
     t.datetime "last_sign_in_at"
     t.string   "current_sign_in_ip"
     t.string   "last_sign_in_ip"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "invitation_service",     :limit => 127
-    t.string   "invitation_identifier",  :limit => 127
+    t.string   "invitation_service",                 :limit => 127
+    t.string   "invitation_identifier",              :limit => 127
     t.integer  "invitation_limit"
     t.integer  "invited_by_id"
     t.string   "invited_by_type"
-    t.string   "authentication_token",   :limit => 30
+    t.string   "authentication_token",               :limit => 30
     t.string   "unconfirmed_email"
-    t.string   "confirm_email_token",    :limit => 30
+    t.string   "confirm_email_token",                :limit => 30
     t.datetime "locked_at"
+    t.boolean  "show_community_spotlight_in_stream",                :default => true,  :null => false
   end
 
   add_index "users", ["authentication_token"], :name => "index_users_on_authentication_token", :unique => true
