@@ -20,15 +20,58 @@ describe StatusMessage do
   describe 'scopes' do
     describe '.where_person_is_mentioned' do
       it 'returns status messages where the given person is mentioned' do
-        @bo = bob.person 
+        @bo = bob.person
         @test_string = "@{Daniel; #{@bo.diaspora_handle}} can mention people like Raph"
 
-       Factory.create(:status_message, :text => @test_string )
-       Factory.create(:status_message, :text => @test_string )
+       Factory(:status_message, :text => @test_string )
+       Factory(:status_message, :text => @test_string )
        Factory(:status_message)
 
        StatusMessage.where_person_is_mentioned(@bo).count.should == 2
       end
+    end
+
+    context "tag_streams" do
+      before do
+        @sm1 = Factory(:status_message, :text => "#hashtag" , :public => true)
+        @sm2 = Factory(:status_message, :text => "#hashtag" )
+        @sm3 = Factory(:status_message, :text => "hashtags are #awesome", :public => true )
+        @sm4 = Factory(:status_message, :text => "hashtags are #awesome" )
+
+        @tag_id = ActsAsTaggableOn::Tag.where(:name => "hashtag").first.id
+      end
+
+      describe '.tag_steam' do
+        it 'returns status messages tagged with the tag' do
+          tag_stream = StatusMessage.send(:tag_stream, [@tag_id])
+          tag_stream.should include @sm1
+          tag_stream.should include @sm2
+        end
+      end
+
+      describe '.public_tag_stream' do
+        it 'returns public status messages tagged with the tag' do
+          StatusMessage.public_tag_stream([@tag_id]).should == [@sm1]
+        end
+      end
+
+      describe '.user_tag_stream' do
+        it 'returns tag stream thats owned or visibile by' do
+          StatusMessage.should_receive(:owned_or_visible_by_user).with(bob).and_return(StatusMessage)
+          StatusMessage.should_receive(:tag_stream).with([@tag_id])
+
+          StatusMessage.user_tag_stream(bob, [@tag_id])
+        end
+      end
+    end
+  end
+
+  describe ".guids_for_author" do
+    it 'returns an array of the status_message guids' do
+      sm1 = Factory(:status_message, :author => alice.person)
+      sm2 = Factory(:status_message, :author => bob.person)
+      guids = StatusMessage.guids_for_author(alice.person)
+      guids.should == [sm1.guid]
     end
   end
 
@@ -50,8 +93,8 @@ describe StatusMessage do
 
   describe '#diaspora_handle=' do
     it 'sets #author' do
-      person = Factory.create(:person)
-      post = Factory.create(:status_message, :author => @user.person)
+      person = Factory(:person)
+      post = Factory(:status_message, :author => @user.person)
       post.diaspora_handle = person.diaspora_handle
       post.author.should == person
     end
@@ -82,12 +125,10 @@ describe StatusMessage do
     db_status.text.should == message
   end
 
-  it 'should require status messages to be less than 10000 characters' do
-    message = ''
-    10001.times{message = message +'1'}
-    status = Factory.build(:status_message, :text => message)
-
-    status.should_not be_valid
+  it 'should require status messages not be more than 65535 characters long' do
+    message = 'a' * (65535+1)
+    status_message = Factory.build(:status_message, :text => message)
+    status_message.should_not be_valid
   end
 
   describe 'mentions' do
@@ -97,7 +138,7 @@ describe StatusMessage do
 @{Raphael; #{@people[0].diaspora_handle}} can mention people like Raphael @{Ilya; #{@people[1].diaspora_handle}}
 can mention people like Raphaellike Raphael @{Daniel; #{@people[2].diaspora_handle}} can mention people like Raph
 STR
-      @sm = Factory.create(:status_message, :text => @test_string )
+      @sm = Factory(:status_message, :text => @test_string )
     end
 
     describe '#format_mentions' do
@@ -158,6 +199,14 @@ STR
         @sm.create_mentions
         @sm.mentions(true).map{|m| m.person}.to_set.should == @people.to_set
       end
+
+      it 'does not barf if it gets called twice' do
+        @sm.create_mentions
+
+        expect{
+          @sm.create_mentions
+        }.should_not raise_error
+      end
     end
     describe '#mentioned_people' do
       it 'calls create_mentions if there are no mentions in the db' do
@@ -181,7 +230,19 @@ STR
       end
 
       it 'returns false if the person was not mentioned' do
-        @sm.mentions?(Factory.create(:person)).should be_false
+        @sm.mentions?(Factory(:person)).should be_false
+      end
+    end
+
+    describe "#nsfw" do
+      it 'returns MatchObject (true) if the post contains #nsfw (however capitalised)' do
+         status  = Factory(:status_message, :text => "This message is #nSFw")
+         status.nsfw.should be_true
+      end
+
+      it 'returns nil (false) if the post does not contain #nsfw' do
+         status  = Factory(:status_message, :text => "This message is #sFW")
+         status.nsfw.should be_false
       end
     end
 
@@ -202,7 +263,7 @@ STR
 
   describe "XML" do
     before do
-      @message = Factory.create(:status_message, :text => "I hate WALRUSES!", :author => @user.person)
+      @message = Factory(:status_message, :text => "I hate WALRUSES!", :author => @user.person)
       @xml = @message.to_xml.to_s
     end
     it 'serializes the unescaped, unprocessed message' do
@@ -234,32 +295,8 @@ STR
         @marshalled.diaspora_handle.should == @message.diaspora_handle
       end
     end
-
-
-    describe '#to_activity' do
-      it 'should render a string' do
-        @message.to_activity.should_not be_blank
-      end
-    end
   end
 
-  describe 'youtube' do
-    it 'should process youtube titles on the way in' do
-      video_id = "ABYnqp-bxvg"
-      url="http://www.youtube.com/watch?v=#{video_id}&a=GxdCwVVULXdvEBKmx_f5ywvZ0zZHHHDU&list=ML&playnext=1"
-      expected_title = "UP & down & UP & down &amp;"
-
-      mock_http = mock("http")
-      Net::HTTP.stub!(:new).with('gdata.youtube.com', 80).and_return(mock_http)
-      mock_http.should_receive(:get).with('/feeds/api/videos/'+video_id+'?v=2').and_return(
-        [nil, 'Foobar <title>'+expected_title+'</title> hallo welt <asd><dasdd><a>dsd</a>'])
-
-      post = @user.build_post :status_message, :text => url, :to => @aspect.id
-
-      post.save!
-      Post.find(post.id).youtube_titles.should == {video_id => CGI::escape(expected_title)}
-    end
-  end
   describe '#after_dispatch' do
     before do
       @photos = [alice.build_post(:photo, :pending => true, :user_file=> File.open(photo_fixture_name)),
@@ -282,20 +319,25 @@ STR
       @status_message.after_dispatch(alice)
     end
   end
-  
-  describe '#contains_url_in_text?' do
-    it 'returns an array of all urls found in the raw message' do
-      sm = Factory(:status_message, :text => 'http://youtube.com is so cool.  so is https://joindiaspora.com')
-      sm.contains_oembed_url_in_text?.should_not be_nil
-      sm.oembed_url.should == 'http://youtube.com'
-    end
-  end
 
   describe 'oembed' do
+    before do
+      @youtube_url = "https://www.youtube.com/watch?v=3PtFwlKfvHI"
+      @message_text = "#{@youtube_url} is so cool. so is this link -> https://joindiaspora.com"
+    end
+
     it 'should queue a GatherOembedData if it includes a link' do
-      sm = Factory.build(:status_message, :text => 'http://youtube.com is so cool.  so is https://joindiaspora.com')
-      Resque.should_receive(:enqueue).with(Jobs::GatherOEmbedData, instance_of(Fixnum), instance_of(String)) 
+      sm = Factory.build(:status_message, :text => @message_text)
+      Resque.should_receive(:enqueue).with(Jobs::GatherOEmbedData, instance_of(Fixnum), instance_of(String))
       sm.save
+    end
+
+    describe '#contains_oembed_url_in_text?' do
+      it 'returns the oembed urls found in the raw message' do
+        sm = Factory(:status_message, :text => @message_text)
+        sm.contains_oembed_url_in_text?.should_not be_nil
+        sm.oembed_url.should == @youtube_url
+      end
     end
   end
 end

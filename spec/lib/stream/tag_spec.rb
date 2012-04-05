@@ -34,12 +34,11 @@ describe Stream::Tag do
    end
 
     it 'displays a post with a comment containing the tag search' do
-      pending "toooo slow"
+      pending "this code is way too slow. need to re-implement in a way that doesn't suck"
       other_post = bob.post(:status_message, :text => "sup y'all", :to => 'all')
       Factory(:comment, :text => "#what", :post => other_post)
       @stream.posts.should == [other_post]
     end
-
   end
 
   context 'without a user' do
@@ -89,6 +88,13 @@ describe Stream::Tag do
     it 'removes #es' do
       stream = Stream::Tag.new(nil, "#WHAT")
       stream.tag_name.should == 'what'
+    end
+  end
+  
+  describe "#publisher" do
+    it 'creates a publisher with the tag prefill' do
+      Publisher.should_receive(:new).with(anything(), anything)
+      @stream = Stream::Tag.new(alice, "what")
     end
   end
 end

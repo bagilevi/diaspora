@@ -10,7 +10,8 @@
 //});
 
 beforeEach(function() {
-  $('#jasmine_content').empty();
+  $('#jasmine_content').html(spec.readFixture("underscore_templates"));
+
   // NOTE Commented (as well as in afterEach) to keep the listeners from rails.js alive.
   //spec.clearLiveEventBindings();
   jasmine.Clock.useMock();
@@ -22,7 +23,7 @@ beforeEach(function() {
       self.directionDetector = self.instantiate("DirectionDetector");
     });
   };
-  
+
   var Page = Diaspora.Pages["TestPage"];
   $.extend(Page.prototype, Diaspora.EventBroker.extend(Diaspora.BaseWidget));
 
@@ -32,12 +33,33 @@ beforeEach(function() {
 
 afterEach(function() {
   //spec.clearLiveEventBindings();
+  $("#jasmine_content").empty()
   expect(spec.loadFixtureCount).toBeLessThan(2);
   spec.loadFixtureCount = 0;
 });
 
 var context = describe;
 var spec = {};
+
+window.stubView = function stubView(text){
+  var stubClass = Backbone.View.extend({
+    render : function(){
+      $(this.el).html(text);
+      return this
+    }
+  })
+
+  return new stubClass
+}
+
+window.loginAs = function loginAs(attrs){
+  return app.currentUser = app.user(factory.userAttrs(attrs))
+}
+
+window.logout = function logout(){
+  this.app._user = undefined
+  return app.currentUser = new app.models.User()
+}
 
 spec.clearLiveEventBindings = function() {
   var events = jQuery.data(document, "events");
@@ -61,6 +83,7 @@ spec.loadFixture = function(fixtureName) {
   // call loadFixture() more than once
   spec.loadFixtureCount++;
 };
+
 
 // Returns fixture markup as a string. Useful for fixtures that
 // represent the response text of ajax requests.
@@ -97,6 +120,6 @@ spec.retrieveFixture = function(fixtureName) {
   return xhr.responseText;
 };
 
+
 spec.loadFixtureCount = 0;
 spec.cachedFixtures = {};
-

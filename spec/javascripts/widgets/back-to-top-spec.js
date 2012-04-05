@@ -21,19 +21,6 @@ describe("Diaspora.Widgets.BackToTop", function() {
 
       expect(backToTop.backToTop).toHaveBeenCalled();
     });
-
-    it("calls toggleVisibility after a delay", function() {
-      jasmine.Clock.useMock();
-
-      backToTop.window.trigger("scroll");
-
-      expect(backToTop.toggleVisibility).not.toHaveBeenCalled();
-
-      jasmine.Clock.tick(5000);
-
-      expect(backToTop.toggleVisibility).toHaveBeenCalled();
-    });
-
   });
 
   describe("backToTop", function() {
@@ -45,18 +32,18 @@ describe("Diaspora.Widgets.BackToTop", function() {
   });
 
   describe("toggleVisibility", function() {
-    it("animates the button's opacity based on where the user is scrolled", function() {
+    it("adds a visibility class to the button", function() {
       var spy = spyOn(backToTop.body, "scrollTop").andReturn(999);
 
       backToTop.toggleVisibility();
 
-      expect(backToTop.button.css("opacity")).toEqual("0");
+      expect(backToTop.button.hasClass("visible")).toBe(false);
 
       spy.andReturn(1001);
 
       backToTop.toggleVisibility();
 
-      expect(backToTop.button.css("opacity")).toEqual("0.5");
+      expect(backToTop.button.hasClass("visible")).toBe(true);
     });
   });
 

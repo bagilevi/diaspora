@@ -1,3 +1,4 @@
+# encoding: UTF-8
 # This file is auto-generated from the current state of the database. Instead
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
@@ -10,7 +11,12 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20111023230730) do
+ActiveRecord::Schema.define(:version => 20120330144057) do
+
+  create_table "account_deletions", :force => true do |t|
+    t.string  "diaspora_handle"
+    t.integer "person_id"
+  end
 
   create_table "aspect_memberships", :force => true do |t|
     t.integer  "aspect_id",  :null => false
@@ -47,6 +53,11 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
   add_index "aspects", ["user_id", "contacts_visible"], :name => "index_aspects_on_user_id_and_contacts_visible"
   add_index "aspects", ["user_id"], :name => "index_aspects_on_user_id"
 
+  create_table "blocks", :force => true do |t|
+    t.integer "user_id"
+    t.integer "person_id"
+  end
+
   create_table "comments", :force => true do |t|
     t.text     "text",                                                      :null => false
     t.integer  "commentable_id",                                            :null => false
@@ -54,7 +65,6 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.string   "guid",                                                      :null => false
     t.text     "author_signature"
     t.text     "parent_author_signature"
-    t.text     "youtube_titles"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.integer  "likes_count",                           :default => 0,      :null => false
@@ -99,6 +109,14 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
 
   add_index "conversations", ["author_id"], :name => "conversations_author_id_fk"
 
+  create_table "invitation_codes", :force => true do |t|
+    t.string   "token"
+    t.integer  "user_id"
+    t.integer  "count"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "invitations", :force => true do |t|
     t.text     "message"
     t.integer  "sender_id"
@@ -109,6 +127,7 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.string   "service"
     t.string   "identifier"
     t.boolean  "admin",        :default => false
+    t.string   "language",     :default => "en"
   end
 
   add_index "invitations", ["aspect_id"], :name => "index_invitations_on_aspect_id"
@@ -188,17 +207,17 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
   add_index "o_embed_caches", ["url"], :name => "index_o_embed_caches_on_url", :length => {"url"=>255}
 
   create_table "oauth_access_tokens", :force => true do |t|
-    t.integer  "authorization_id",               :null => false
-    t.string   "access_token",     :limit => 32, :null => false
-    t.string   "refresh_token",    :limit => 32
+    t.integer  "authorization_id",                :null => false
+    t.string   "access_token",     :limit => 127, :null => false
+    t.string   "refresh_token",    :limit => 127
     t.datetime "expires_at"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
   create_table "oauth_authorization_codes", :force => true do |t|
-    t.integer  "authorization_id",               :null => false
-    t.string   "code",             :limit => 32, :null => false
+    t.integer  "authorization_id",                :null => false
+    t.string   "code",             :limit => 127, :null => false
     t.datetime "expires_at"
     t.datetime "created_at"
     t.datetime "updated_at"
@@ -220,25 +239,41 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.text   "description",                         :null => false
     t.string "application_base_url", :limit => 127, :null => false
     t.string "icon_url",             :limit => 127, :null => false
-    t.string "oauth_identifier",     :limit => 32,  :null => false
-    t.string "oauth_secret",         :limit => 32,  :null => false
-    t.string "nonce",                :limit => 64
+    t.string "oauth_identifier",     :limit => 127, :null => false
+    t.string "oauth_secret",         :limit => 127, :null => false
+    t.string "nonce",                :limit => 127
     t.text   "public_key",                          :null => false
     t.text   "permissions_overview",                :null => false
+    t.string "oauth_redirect_uri"
   end
 
   add_index "oauth_clients", ["application_base_url"], :name => "index_oauth_clients_on_application_base_url", :unique => true
   add_index "oauth_clients", ["name"], :name => "index_oauth_clients_on_name", :unique => true
   add_index "oauth_clients", ["nonce"], :name => "index_oauth_clients_on_nonce", :unique => true
 
+  create_table "participations", :force => true do |t|
+    t.string   "guid"
+    t.integer  "target_id"
+    t.string   "target_type",             :limit => 60, :null => false
+    t.integer  "author_id"
+    t.text     "author_signature"
+    t.text     "parent_author_signature"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "participations", ["guid"], :name => "index_participations_on_guid"
+  add_index "participations", ["target_id", "target_type", "author_id"], :name => "index_participations_on_target_id_and_target_type_and_author_id"
+
   create_table "people", :force => true do |t|
-    t.string   "guid",                  :null => false
-    t.text     "url",                   :null => false
-    t.string   "diaspora_handle",       :null => false
-    t.text     "serialized_public_key", :null => false
+    t.string   "guid",                                     :null => false
+    t.text     "url",                                      :null => false
+    t.string   "diaspora_handle",                          :null => false
+    t.text     "serialized_public_key",                    :null => false
     t.integer  "owner_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.boolean  "closed_account",        :default => false
   end
 
   add_index "people", ["diaspora_handle"], :name => "index_people_on_diaspora_handle", :unique => true
@@ -285,7 +320,6 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.string   "remote_photo_name"
     t.string   "random_string"
     t.string   "processed_image"
-    t.text     "youtube_titles"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "unprocessed_image"
@@ -301,11 +335,15 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.integer  "likes_count",                         :default => 0
     t.integer  "comments_count",                      :default => 0
     t.integer  "o_embed_cache_id"
+    t.integer  "reshares_count",                      :default => 0
+    t.datetime "interacted_at"
+    t.string   "frame_name"
   end
 
   add_index "posts", ["author_id", "root_guid"], :name => "index_posts_on_author_id_and_root_guid", :unique => true
   add_index "posts", ["author_id"], :name => "index_posts_on_person_id"
   add_index "posts", ["guid"], :name => "index_posts_on_guid", :unique => true
+  add_index "posts", ["id", "type", "created_at"], :name => "index_posts_on_id_and_type_and_created_at"
   add_index "posts", ["root_guid"], :name => "index_posts_on_root_guid"
   add_index "posts", ["status_message_guid", "pending"], :name => "index_posts_on_status_message_guid_and_pending"
   add_index "posts", ["status_message_guid"], :name => "index_posts_on_status_message_guid"
@@ -321,12 +359,13 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.date     "birthday"
     t.string   "gender"
     t.text     "bio"
-    t.boolean  "searchable",                      :default => true, :null => false
-    t.integer  "person_id",                                         :null => false
+    t.boolean  "searchable",                      :default => true,  :null => false
+    t.integer  "person_id",                                          :null => false
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "location"
     t.string   "full_name",        :limit => 70
+    t.boolean  "nsfw",                            :default => false
   end
 
   add_index "profiles", ["full_name", "searchable"], :name => "index_profiles_on_full_name_and_searchable"
@@ -384,6 +423,10 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  add_index "tag_followings", ["tag_id", "user_id"], :name => "index_tag_followings_on_tag_id_and_user_id", :unique => true
+  add_index "tag_followings", ["tag_id"], :name => "index_tag_followings_on_tag_id"
+  add_index "tag_followings", ["user_id"], :name => "index_tag_followings_on_user_id"
 
   create_table "taggings", :force => true do |t|
     t.integer  "tag_id"
@@ -443,6 +486,9 @@ ActiveRecord::Schema.define(:version => 20111023230730) do
     t.string   "confirm_email_token",                :limit => 30
     t.datetime "locked_at"
     t.boolean  "show_community_spotlight_in_stream",                :default => true,  :null => false
+    t.boolean  "auto_follow_back",                                  :default => false
+    t.integer  "auto_follow_back_aspect_id"
+    t.text     "hidden_shareables"
   end
 
   add_index "users", ["authentication_token"], :name => "index_users_on_authentication_token", :unique => true

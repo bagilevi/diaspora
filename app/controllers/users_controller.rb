@@ -3,7 +3,6 @@
 #   the COPYRIGHT file.
 
 class UsersController < ApplicationController
-  require File.join(Rails.root, 'lib/diaspora/ostatus_builder')
   require File.join(Rails.root, 'lib/diaspora/exporter')
   require File.join(Rails.root, 'lib/collect_user_photos')
 
@@ -18,6 +17,10 @@ class UsersController < ApplicationController
     @user.user_preferences.each do |pref|
       @email_prefs[pref.email_type] = false
     end
+  end
+
+  def privacy_settings
+    @blocks = current_user.blocks.includes(:person)
   end
 
   def update
@@ -41,20 +44,18 @@ class UsersController < ApplicationController
         else
           flash[:error] = I18n.t 'users.update.password_not_changed'
         end
-      elsif u[:show_community_spotlight_in_stream]
+      elsif u[:show_community_spotlight_in_stream] || u[:getting_started]
         if @user.update_attributes(u)
           flash[:notice] = I18n.t 'users.update.settings_updated'
-          redirect_to multi_path
-          return
         else
           flash[:notice] = I18n.t 'users.update.settings_not_updated'
         end
       elsif u[:language]
         if @user.update_attributes(u)
           I18n.locale = @user.language
-          flash[:notice] = I18n.t 'users.update.language_updated'
+          flash[:notice] = I18n.t 'users.update.language_changed'
         else
-          flash[:error] = I18n.t 'users.update.language_not_updated'
+          flash[:error] = I18n.t 'users.update.language_not_changed'
         end
       elsif u[:email]
         @user.unconfirmed_email = u[:email]
@@ -63,6 +64,12 @@ class UsersController < ApplicationController
           flash[:notice] = I18n.t 'users.update.unconfirmed_email_changed'
         else
           flash[:error] = I18n.t 'users.update.unconfirmed_email_not_changed'
+        end
+      elsif u[:auto_follow_back]
+        if  @user.update_attributes(u)
+          flash[:notice] = I18n.t 'users.update.follow_settings_changed'
+        else
+          flash[:error] = I18n.t 'users.update.follow_settings_not_changed'
         end
       end
     elsif aspect_order = params[:reorder_aspects]
@@ -76,27 +83,31 @@ class UsersController < ApplicationController
   end
 
   def destroy
-    Resque.enqueue(Jobs::DeleteAccount, current_user.id)
-    current_user.lock_access!
-    sign_out current_user
-    flash[:notice] = I18n.t 'users.destroy'
-    redirect_to root_path
+    if params[:user] && params[:user][:current_password] && current_user.valid_password?(params[:user][:current_password])
+      current_user.close_account!
+      sign_out current_user
+      redirect_to(stream_path, :notice => I18n.t('users.destroy.success'))
+    else
+      if params[:user].present? && params[:user][:current_password].present?
+        flash[:error] = t 'users.destroy.wrong_password'
+      else
+        flash[:error] = t 'users.destroy.no_password'
+      end
+      redirect_to :back
+    end
   end
 
   def public
-    if user = User.find_by_username(params[:username])
+    if @user = User.find_by_username(params[:username])
       respond_to do |format|
         format.atom do
-          posts = StatusMessage.where(:author_id => user.person.id, :public => true).order('created_at DESC').limit(25)
-          director = Diaspora::Director.new
-          ostatus_builder = Diaspora::OstatusBuilder.new(user, posts)
-          render :xml => director.build(ostatus_builder), :content_type => 'application/atom+xml'
+          @posts = StatusMessage.where(:author_id => @user.person.id, :public => true).order('created_at DESC').limit(25)
         end
 
-        format.any { redirect_to person_path(user.person.id) }
+        format.any { redirect_to person_path(@user.person) }
       end
     else
-      redirect_to root_url, :error => I18n.t('users.public.does_not_exist', :username => params[:username])
+      redirect_to stream_path, :error => I18n.t('users.public.does_not_exist', :username => params[:username])
     end
   end
 
@@ -105,22 +116,21 @@ class UsersController < ApplicationController
     @user     = current_user
     @person   = @user.person
     @profile  = @user.profile
-    @services = @user.services
-    @step     = 0
 
     render "users/getting_started"
   end
 
   def logged_out
+    @page = :logged_out
     if user_signed_in?
-      redirect_to root_path
+      redirect_to stream_path
     end
   end
 
   def getting_started_completed
     user = current_user
     user.update_attributes(:getting_started => false)
-    redirect_to root_path
+    redirect_to stream_path
   end
 
   def export
@@ -136,7 +146,7 @@ class UsersController < ApplicationController
   def user_photo
     username = params[:username].split('@')[0]
     user = User.find_by_username(username)
-    if user.present? 
+    if user.present?
       redirect_to user.profile.image_url
     else
       render :nothing => true, :status => 404

@@ -1,42 +1,108 @@
-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2012, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 
-el: 
-  javascripts: 
-    aspect_dropdown: 
-      add_to_aspect: "Προσθήκη σε πτυχή"
+
+el:
+  javascripts:
+    aspect_dropdown:
+      add_to_aspect: "Προσθήκη επαφής"
       all_aspects: "Όλες οι πτυχές"
-      select_aspects: "Select aspects"
-      toggle: 
+      error: "Δεν μπορεί να ξεκινήσει ο διαμοιρασμός με το χρήστη {{name}}. Μήπως τον αγνοείτε;"
+      select_aspects: "Επιλογή πτυχών"
+      started_sharing_with: "Ξεκινήσατε να διαμοιράζεστε με τον χρήστη {{name}}!"
+      stopped_sharing_with: "Σταματήσατε να διαμοιράζεστε με τον χρήστη {{name}}."
+      toggle:
         few: "Σε {{count}} πτυχές"
         many: "Σε {{count}} πτυχές"
-        one: "Σε {{count}} πτυχές"
+        one: "Σε {{count}} πτυχή"
         other: "Σε {{count}} πτυχές"
         two: "Σε {{count}} πτυχές"
-        zero: "Προσθήκη επαφής"
-    aspect_navigation: 
+        zero: "Επιλέξτε πτυχές"
+    aspect_navigation:
       deselect_all: "Εξαίρεση όλων"
-      no_aspects: "Καμία Πτυχή δεν έχει επιλεγεί "
+      no_aspects: "Καμία πτυχή δεν έχει επιλεγεί "
       select_all: "Επιλογή όλων"
-    comments: 
+    comments:
       hide: "απόκρυψη σχολίων"
       show: "προβολή όλων των σχολίων"
     confirm_dialog: "Είστε σίγουρος/η;"
+    delete: "Διαγραφή"
     failed_to_like: "Αποτυχία!"
     failed_to_post_message: "Αποτυχία δημοσίευσης μηνύματος!"
-    infinite_scroll: 
+    getting_started:
+      alright_ill_wait: "Εντάξει, θα περιμένω."
+      hey: "Γεια σου, {{name}}!"
+      no_tags: "Γεια, δεν ακολουθείς ακόμα καμία ετικέτα! Συνεχίζουμε παρ' όλ' αυτά;"
+      preparing_your_stream: "Ετοιμάζεται η προσωπική σας ροή..."
+    header:
+      admin: "Διαχείριση"
+      contacts: "Επαφές"
+      home: "Αρχική"
+      log_out: "Αποσύνδεση"
+      mark_all_as_read: "Σήμανση όλων ως διαβασμένα"
+      messages: "Μηνύματα"
+      notifications: "Ειδοποιήσεις"
+      profile: "Προφίλ"
+      recent_notifications: "Πρόσφατες Ειδοποιήσεις"
+      search: "Find people or #tags"
+      settings: "Ρυθμίσεις"
+      view_all: "Προβολή όλων"
+    ignore: "Αγνόησε:"
+    infinite_scroll:
       no_more: "Δεν υπάρχουν άλλες δημοσιεύσεις."
-    publisher: 
+    my_activity: "Η δραστηριότητα μου"
+    my_stream: "Ροή"
+    people:
+      not_found: "και κανείς δεν βρέθηκε..."
+    photo_uploader:
+      looking_good: "Ναι! Σκίζεις!"
+    publisher:
       at_least_one_aspect: "Πρέπει να κάνετε δημοσίευση σε τουλάχιστον μια πτυχή"
       limited: "Περιορισμένο - οι δημοσιεύσεις σας θα είναι ορατές μόνο από τα άτομα με τα οποία διαμοιράζεστε. "
       public: "Δημόσιο - οι δημοσιεύσεις σας θα είναι ορατές στον καθένα και θα μπορούν να βρεθούν από τις μηχανές αναζήτησης."
-    reshares: 
-      duplicate: "Έχετε ήδη κοινοποιήσει αυτή τη δημοσίευση!"
+    reshares:
+      duplicate: "Αυτό είναι τόσο καλό ε; Έχετε ήδη κοινοποιήσει αυτή τη δημοσίευση!"
     search_for: "Αναζήτηση για {{name}}"
     show_more: "Προβολή περισσότερων"
-    timeago: 
+    stream:
+      comment: "Σχόλιο"
+      follow: "Ακολουθήστε"
+      hide: "Απόκρυψη"
+      hide_nsfw_posts: "Απόκριψη των \"μη ασφαλών για εργασία\" δημοσιεύσεων"
+      like: "Μου αρέσει"
+      likes:
+        few: "<%= count %> Likes"
+        many: "<%= count %> Likes"
+        one: "<%= count %> Like"
+        other: "<%= count %> Likes"
+        two: "<%= count %> Likes"
+        zero: "<%= count %> Likes"
+      limited: "Περιορισμένο"
+      more_comments:
+        few: "Show <%= count %> more comments"
+        many: "Show <%= count %> more comments"
+        one: "Show <%= count %> more comment"
+        other: "Show <%= count %> more comments"
+        two: "Show <%= count %> more comments"
+        zero: "Show <%= count %> more comments"
+      original_post_deleted: "Η αρχική δημοσίευση διαγράφτηκε από τον δημιουργό της."
+      public: "Δημόσιο"
+      reshare: "Επαναμοιράσου"
+      reshares:
+        few: "<%= count %> Reshares"
+        many: "<%= count %> Reshares"
+        one: "<%= count %> Reshare"
+        other: "<%= count %> Reshares"
+        two: "<%= count %> Reshares"
+        zero: "<%= count %> Reshares"
+      show_nsfw_post: "Προβολή δημοσίευσης"
+      show_nsfw_posts: "Προβολή όλων"
+      unlike: "Δεν μου αρέσει"
+    tags:
+      wasnt_that_interesting: "OK, φαντάζομαι πως το #{{tagName}} δεν ήταν και τόσο ενδιαφέρον τελικά..."
+    timeago:
       day: "μία μέρα"
       days: "%d μέρες"
       hour: "περίπου μία ώρα"
@@ -45,15 +111,17 @@ el:
       minutes: "%d λεπτά"
       month: "περίπου ένα μήνα"
       months: "%d μήνες"
-      prefixAgo: "javascripts:timeago:prefixAgo"
-      prefixFromNow: "javascripts:timeago:prefixFromNow"
+      prefixAgo: ""
+      prefixFromNow: ""
       seconds: "λιγότερο από ένα λεπτό"
       suffixAgo: "πριν"
       suffixFromNow: "από τώρα"
       year: "περίπου ένα χρόνο"
       years: "%d χρόνια"
-    videos: 
+    videos:
       unknown: "Άγνωστος τύπος βίντεο"
       watch: "Δείτε το βίντεο στο {{provider}}"
-    web_sockets: 
-      disconnected: "Το websocket είναι κλειστό: οι δημοσιεύσεις δεν θα αναμεταδίδονται ζωντανά πλέον."
+    viewer:
+      like: "Μου αρέσει"
+      reshare: "Επαναμοιράσου"
+      unlike: "Δεν μου αρέσει"

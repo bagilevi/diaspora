@@ -1,10 +1,10 @@
 #   Copyright (c) 2010-2011, Diaspora Inc.  This file is
+#   t
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 class Request
-  include ROXML
-  include Diaspora::Webhooks
+  include Diaspora::Federated::Base
   include ActiveModel::Validations
 
   attr_accessor :sender, :recipient, :aspect
@@ -69,6 +69,7 @@ class Request
   end
 
   # Finds or initializes a corresponding [Contact], and will set Contact#sharing to true
+  # Follows back if user setting is set so
   # @note A [Contact] may already exist if the [Request]'s recipient is sharing with the sender
   # @return [Request]
   def receive(user, person)
@@ -77,6 +78,8 @@ class Request
     contact = user.contacts.find_or_initialize_by_person_id(self.sender.id)
     contact.sharing = true
     contact.save
+    
+    user.share_with(person, user.auto_follow_back_aspect) if user.auto_follow_back && !contact.receiving
 
     self
   end

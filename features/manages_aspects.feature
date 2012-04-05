@@ -11,9 +11,10 @@ Feature: User manages contacts
     And I fill in "Name" with "Dorm Mates" in the modal window
     And I press "Create" in the modal window
     Then I should see "Dorm Mates" within "#aspect_nav"
-    
+
   Scenario: creating an aspect from homepage
     Given I am signed in
+    And I go to the aspects page
     When I follow "Add an aspect"
     And I fill in "Name" with "losers" in the modal window
     And I press "Create" in the modal window
@@ -24,7 +25,7 @@ Feature: User manages contacts
     And I have an aspect called "People"
     When I am on the contacts page
     And I follow "People"
-    And I follow "Add contacts to People"
+    And I follow "add contacts to People"
     And I wait for the ajax to finish
     And I preemptively confirm the alert
     And I press "Delete" in the modal window
@@ -34,7 +35,7 @@ Feature: User manages contacts
   Scenario: deleting an aspect from homepage
     Given I am signed in
     And I have an aspect called "People"
-    When I am on the home page
+    When I am on the aspects page
     And I click on "People" aspect edit icon
     And I wait for the ajax to finish
     And I preemptively confirm the alert
@@ -48,7 +49,7 @@ Feature: User manages contacts
     And I have an aspect called "Cat People"
     When I am on the contacts page
     And I follow "Cat People"
-    And I follow "Add contacts to Cat People"
+    And I follow "add contacts to Cat People"
     And I wait for the ajax to finish
     And I press the first ".contact_list .button"
     And I wait for the ajax to finish
@@ -61,15 +62,12 @@ Feature: User manages contacts
   Scenario: infinite scroll on contacts index
     Given I am signed in
     And I resize my window to 800x600
-    And I have 60 contacts
+    And I have 30 contacts
     And I am on the contacts page
     Then I should see 25 contacts
 
     When I scroll down
-    Then I should see 50 contacts
-
-    When I scroll down
-    Then I should see 60 contacts
+    Then I should see 30 contacts
 
   Scenario: clicking on the contacts link in the header with zero contacts directs a user to the featured users page
     Given I am signed in
@@ -78,14 +76,6 @@ Feature: User manages contacts
 
     And I click on my name in the header
     When I follow "Contacts"
-    Then I should see "Community Spotlight" within ".span-18"
-
-  Scenario: clicking on the manage aspects link in the right nav with zero contacts directs a user to the featured users page
-    Given I am signed in
-    And I have 0 contacts
-    And I am on the home page
-
-    When I follow "Manage your aspects."
     Then I should see "Community Spotlight" within ".span-18"
 
   Scenario: clicking on the contacts link in the header with contacts does not send a user to the featured users page

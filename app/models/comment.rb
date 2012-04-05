@@ -3,22 +3,28 @@
 #   the COPYRIGHT file.
 
 class Comment < ActiveRecord::Base
-  require File.join(Rails.root, 'lib/diaspora/web_socket')
-  require File.join(Rails.root, 'lib/youtube_titles')
-  include YoutubeTitles
-  include ROXML
 
-  include Diaspora::Webhooks
+  include Diaspora::Federated::Base
+  
   include Diaspora::Guid
   include Diaspora::Relayable
 
-  include Diaspora::Socketable
   include Diaspora::Taggable
   include Diaspora::Likeable
 
   acts_as_taggable_on :tags
   extract_tags_from :text
   before_create :build_tags
+
+  # NOTE API V1 to be extracted
+  acts_as_api
+  api_accessible :backbone do |t|
+    t.add :id
+    t.add :guid
+    t.add :text
+    t.add :author
+    t.add :created_at
+  end
 
   xml_attr :text
   xml_attr :diaspora_handle
@@ -27,10 +33,11 @@ class Comment < ActiveRecord::Base
   alias_attribute :post, :commentable
   belongs_to :author, :class_name => 'Person'
 
-  validates :text, :presence => true, :length => { :maximum => 2500 }
+  validates :text, :presence => true, :length => {:maximum => 65535}
   validates :parent, :presence => true #should be in relayable (pending on fixing Message)
 
-  serialize :youtube_titles, Hash
+  scope :including_author, includes(:author => :profile)
+  scope :for_a_stream, including_author.merge(order('created_at ASC'))
 
   before_save do
     self.text.strip! unless self.text.nil?
@@ -78,4 +85,18 @@ class Comment < ActiveRecord::Base
     self.post = parent
   end
 
+  class Generator < Federated::Generator
+    def self.federated_class
+      Comment
+    end
+
+    def initialize(person, target, text)
+      @text = text
+      super(person, target)
+    end
+
+    def relayable_options
+      {:post => @target, :text => @text}
+    end
+  end
 end

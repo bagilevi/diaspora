@@ -25,15 +25,15 @@ describe Statistics do
 
   describe '#posts_count_sql' do
     it "pulls back an array of post counts and ids" do
-      Factory.create(:status_message, :author => bob.person)
+      Factory(:status_message, :author => bob.person)
       result_should_equal User.connection.select_all(@stats.posts_count_sql)
     end
   end
 
   describe '#comments_count_sql' do
     it "pulls back an array of post counts and ids" do
-      sm = Factory.create(:status_message, :author => alice.person)
-      bob.comment("sup", :post => sm)
+      status_message = Factory(:status_message, :author => alice.person)
+      bob.comment!(status_message, "sup")
       result_should_equal User.connection.select_all(@stats.comments_count_sql)
     end
   end
@@ -55,7 +55,7 @@ describe Statistics do
 
   describe '#mentions_count_sql' do
     it "pulls back an array of mentions following counts and ids" do
-      post = Factory.create(:status_message, :author => bob.person)
+      post = Factory(:status_message, :author => bob.person)
       Mention.create(:post => post, :person => bob.person)
       result_should_equal User.connection.select_all(@stats.mentions_count_sql)
     end
@@ -129,14 +129,6 @@ describe Statistics do
     end
   end
   describe "#generate_correlations" do
-
-    it 'it returns a hash of including start and end time' do
-      pending
-      hash = @stats.correlation_hash
-      hash[:start_time].should == @time
-      hash[:end_time].should == @time - 1.week
-    end
-
     it 'returns the post count (and sign_in_count) correlation' do
       bob.sign_in_count = 1
       bob.post(:status_message, :text => "here is a message")

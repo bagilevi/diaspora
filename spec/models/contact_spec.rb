@@ -44,6 +44,15 @@ describe Contact do
       contact.person = person
       contact.should_not be_valid
     end
+
+    it "validates that the person's account is not closed" do
+      person = Factory(:person, :closed_account => true)
+
+      contact = alice.contacts.new(:person=>person)
+
+      contact.should_not be_valid
+      contact.errors.full_messages.should include "Cannot be in contact with a closed account"
+    end
   end
 
   context 'scope' do
@@ -79,6 +88,16 @@ describe Contact do
         }.should change{
           Contact.receiving.count
         }.by(2)
+      end
+    end
+    
+    describe "all_contacts_of_person" do
+      it 'returns all contacts where the person is the passed in person' do
+        person = Factory(:person)
+        contact1 = Factory(:contact, :person => person)
+        contact2 = Factory(:contact)
+        contacts = Contact.all_contacts_of_person(person)
+        contacts.should == [contact1]
       end
     end
   end
@@ -147,7 +166,7 @@ describe Contact do
   context 'requesting' do
     before do
       @contact = Contact.new
-      @user = Factory.create(:user)
+      @user = Factory(:user)
       @person = Factory(:person)
 
       @contact.user = @user
@@ -172,6 +191,29 @@ describe Contact do
         Postzord::Dispatcher.should_receive(:build).and_return(m)
         @contact.dispatch_request
       end
+    end
+  end
+
+  describe "#not_blocked_user" do
+    before do
+      @contact = alice.contact_for(bob.person)
+    end
+
+    it "is called on validate" do
+      @contact.should_receive(:not_blocked_user)
+      @contact.valid?
+    end
+
+    it "adds to errors if potential contact is blocked by user" do
+      person = eve.person
+      block = alice.blocks.create(:person => person)
+      bad_contact = alice.contacts.create(:person => person)
+
+      bad_contact.send(:not_blocked_user).should be_false
+    end
+
+    it "does not add to errors" do
+      @contact.send(:not_blocked_user).should be_true
     end
   end
 end

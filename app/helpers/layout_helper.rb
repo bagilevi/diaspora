@@ -17,23 +17,80 @@ module LayoutHelper
     current_user ? current_user.name : t("application.helper.diaspora_alpha")
   end
 
-  def show_title?
-    @show_title
+  def set_asset_host
+    path = ENV['ASSET_HOST'].to_s + '/assets/'
+    content_tag(:script) do
+      <<-JS.html_safe
+        if(window.app) app.baseImageUrl("#{path}")
+      JS
+    end
   end
 
-  def stylesheet(*args)
-    content_for(:head) { stylesheet_link_tag(*args) }
+  def load_javascript_locales
+    content_tag(:script) do
+      <<-JS.html_safe
+        Diaspora.I18n.loadLocale(#{get_javascript_strings_for(I18n.locale).to_json}, "#{I18n.locale}");
+        Diaspora.Page = "#{params[:controller].camelcase}#{params[:action].camelcase}";
+      JS
+    end
   end
 
-  def javascript(*args)
-    content_for(:head) { javascript_include_tag(*args) }
+  def set_current_user_in_javascript
+    return unless user_signed_in?
+    user = UserPresenter.new(current_user).to_json
+    content_tag(:script) do
+      <<-JS.html_safe
+        window.current_user_attributes = #{user}
+      JS
+    end
   end
 
-  def new_notification_text(count)
-      t('notifications.helper.new_notifications', :count => count)
+  def current_user_atom_tag
+    return unless @person.present?
+    content_tag(:link, '', :rel => 'alternate', :href => "#{@person.public_url}.atom", :type => "application/atom+xml", :title => t('.public_feed', :name => @person.name))
   end
 
-  def new_message_text(count)
-    t('conversations.helper.new_messages', :count => count)
+  def translation_missing_warnings
+    return if Rails.env == "production"
+
+    content_tag(:style) do
+      <<-CSS
+        .translation_missing { color: purple; background-color: red; }
+      CSS
+    end
   end
+
+  def include_base_css_framework(use_bootstrap=false)
+    if use_bootstrap || @aspect == :getting_started || @page == :logged_out
+      stylesheet_link_tag 'bootstrap'
+    else
+      stylesheet_link_tag 'blueprint', :media => 'screen'
+    end
+  end
+
+  def old_browser_js_support
+    content_tag(:script) do
+      <<-JS.html_safe
+        if(Array.isArray === undefined) {
+          Array.isArray = function (arg) {
+            return Object.prototype.toString.call(arg) == '[object Array]';
+          };
+        }
+        if ((window.history) && (window.history.pushState === undefined)) {
+          window.history.pushState = function() { };
+        }
+      JS
+    end
+  end
+
+  def flash_messages
+    return if @page == :logged_out
+
+    flash.map do |name, msg|
+      content_tag(:div, :id => "flash_#{name}") do
+        content_tag(:div, msg, :class => 'message')
+      end
+    end.join(' ').html_safe
+  end
+
 end

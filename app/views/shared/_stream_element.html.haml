@@ -5,10 +5,9 @@
 
 .stream_element{:id => post.guid, :class => from_group(post)}
   .right.controls
-    - if current_user && post.author.owner_id == current_user.id
-      = link_to image_tag('deletelabel.png'), post_path(post), :confirm => t('are_you_sure'), :method => :delete, :remote => true, :class => "delete stream_element_delete", :title => t('delete')
-    - else
-      = link_to image_tag('deletelabel.png'), share_visibility_path(:id => "42", :post_id => post.id), :method => :put, :remote => true, :class => "delete stream_element_delete vis_hide", :title => t('.hide_and_mute')
+    = block_user_control(post.author)
+    = delete_or_hide_button(post)
+
     = image_tag 'ajax-loader.gif', :class => "hide_loader hidden"
 
   .undo_text.hidden
@@ -24,7 +23,7 @@
   .sm_body
     = person_image_link(post.author, :size => :thumb_small)
     .content
-      %div.post_initial_info
+      .post_initial_info
         %span.from
           = person_link(post.author, :class => 'hovercardable')
           %time.time.timeago{:datetime => post.created_at, :integer => time_for_sort(post).to_i}
@@ -33,13 +32,19 @@
           –
           %span.timeago
             = link_to(how_long_ago(post), post_path(post))
+          - if post.reshares_count > 0
+            –
+            %span.num_reshares
+              = t("reshares.reshare.reshare", :count => post.reshares.size)
 
-      - if post.activity_streams?
-        = link_to image_tag(post.image_url, 'data-small-photo' => post.image_url, 'data-full-photo' => post.image_url, :class => 'stream-photo'), post.object_url, :class => "stream-photo-link"
-      - elsif reshare?(post)
-        = render 'reshares/reshare', :reshare => post, :post => post.root
-      - else
-        = render 'status_messages/status_message', :post => post, :photos => post.photos
+      .post-content
+        = nsfw_sheild(post)
+        - if post.activity_streams?
+          = link_to image_tag(post.image_url, 'data-small-photo' => post.image_url, 'data-full-photo' => post.image_url, :class => 'stream-photo'), post.object_url, :class => "stream-photo-link"
+        - elsif reshare?(post)
+          = render 'reshares/reshare', :reshare => post, :post => post.root
+        - else
+          = render 'status_messages/status_message', :post => post, :photos => post.photos
 
       .info
         %span.via
@@ -70,7 +75,10 @@
           &ndash;
 
 
-        - unless commenting_disabled?(post)
+        - if commenting_disabled?(post)
+          %span.federated_person{:title => "#{t('.connect_to_comment')}"}
+            ="[#{t('.currently_unavailable')}]"
+        - else
           %span.like_action
             = like_action(post, current_user)
 

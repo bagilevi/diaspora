@@ -4,7 +4,6 @@
 
 class Contact < ActiveRecord::Base
   belongs_to :user
-  validates_presence_of :user
 
   belongs_to :person
   validates :person, :presence => true
@@ -15,13 +14,18 @@ class Contact < ActiveRecord::Base
   has_many :share_visibilities, :source => :shareable, :source_type => 'Post'
   has_many :posts, :through => :share_visibilities, :source => :shareable, :source_type => 'Post'
 
-  validate :not_contact_for_self
+  validate :not_contact_for_self,
+           :not_blocked_user,
+           :not_contact_with_closed_account
 
+  validates_presence_of :user
   validates_uniqueness_of :person_id, :scope => :user_id
 
   before_destroy :destroy_notifications
 
-  # contact.sharing is true when contact.person is sharing with contact.user
+  scope :all_contacts_of_person, lambda {|x| where(:person_id => x.id)}
+
+    # contact.sharing is true when contact.person is sharing with contact.user
   scope :sharing, lambda {
     where(:sharing => true)
   }
@@ -29,6 +33,11 @@ class Contact < ActiveRecord::Base
   # contact.receiving is true when contact.user is sharing with contact.person
   scope :receiving, lambda {
     where(:receiving => true)
+  }
+
+  scope :for_a_stream, lambda {
+    includes(:aspects, :person => :profile).
+        order('profiles.last_name ASC')
   }
 
   scope :only_sharing, lambda {
@@ -39,7 +48,7 @@ class Contact < ActiveRecord::Base
     Notification.where(:target_type => "Person",
                        :target_id => person_id,
                        :recipient_id => user_id,
-                      :type => "Notifications::StartedSharing").delete_all
+                       :type => "Notifications::StartedSharing").delete_all
   end
 
   def dispatch_request
@@ -56,7 +65,6 @@ class Contact < ActiveRecord::Base
 
   def receive_shareable(shareable)
     ShareVisibility.create!(:shareable_id => shareable.id, :shareable_type => shareable.class.base_class.to_s, :contact_id => self.id)
-    shareable.socket_to_user(self.user, :aspect_ids => self.aspect_ids) if shareable.respond_to? :socket_to_user
   end
 
   def contacts
@@ -85,9 +93,24 @@ class Contact < ActiveRecord::Base
   end
 
   private
+  def not_contact_with_closed_account
+    if person_id && person.closed_account?
+      errors[:base] << 'Cannot be in contact with a closed account'
+    end
+  end
+
   def not_contact_for_self
     if person_id && person.owner == user
       errors[:base] << 'Cannot create self-contact'
+    end
+  end
+
+  def not_blocked_user
+    if user && user.blocks.where(:person_id => person_id).exists?
+      errors[:base] << 'Cannot connect to an ignored user'
+      false
+    else
+      true
     end
   end
 end

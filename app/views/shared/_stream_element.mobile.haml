@@ -3,6 +3,12 @@
 -#   the COPYRIGHT file.
 
 .stream_element{:data=>{:guid=>post.id}}
+  - if post.respond_to?(:nsfw?) && post.nsfw?
+    .shield_wrapper
+      .shield
+        = t("javascripts.stream.nsfw")
+        = link_to t('javascripts.stream.show'), '#'
+  
 
   - if post.is_a?(Reshare)
     = render 'reshares/reshare', :reshare => post, :post => post.root
@@ -40,5 +46,5 @@
           = render :partial => 'comments/comment', :collection => post.comments, :locals => {:post => post}
 
           %li.comment.add_comment_bottom_link_container
-            = link_to "Add a comment", new_post_comment_path(post), :class => 'add_comment_bottom_link btn comment_action inactive'
+            = link_to t('comments.new_comment.comment'), new_post_comment_path(post), :class => 'add_comment_bottom_link btn comment_action inactive'
 

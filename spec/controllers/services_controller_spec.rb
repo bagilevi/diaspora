@@ -10,7 +10,7 @@ describe ServicesController do
   let(:omniauth_auth) {
     { 'provider' => 'twitter',
       'uid'      => '2',
-      'user_info'   => { 'nickname' => 'grimmin' },
+      'info'   => { 'nickname' => 'grimmin' },
       'credentials' => { 'token' => 'tokin', 'secret' =>"not_so_much" }
       }
   }
@@ -36,39 +36,80 @@ describe ServicesController do
   end
 
   describe '#create' do
-    it 'creates a new OmniauthService' do
-      request.env['omniauth.auth'] = omniauth_auth
-      lambda{
+    context 'when not fetching a photo' do
+      before do
+        request.env['omniauth.auth'] = omniauth_auth
+      end
+
+      it 'creates a new OmniauthService' do
+        expect {
+          post :create, :provider => 'twitter'
+        }.to change(@user.services, :count).by(1)
+      end
+
+      it 'redirects to getting started if the user is getting started' do
+        @user.getting_started = true
         post :create, :provider => 'twitter'
-      }.should change(@user.services, :count).by(1)
+        response.should redirect_to getting_started_path
+      end
+
+      it 'redirects to services url if user is not getting started' do
+        @user.getting_started = false
+        post :create, :provider => 'twitter'
+        response.should redirect_to services_url
+      end
+
+      it 'creates a twitter service' do
+        Service.delete_all
+        @user.getting_started = false
+        post :create, :provider => 'twitter'
+        @user.reload.services.first.class.name.should == "Services::Twitter"
+      end
+
+      it 'returns error if the user already a service with that uid' do
+        Services::Twitter.create!(:nickname => omniauth_auth["info"]['nickname'],
+                                  :access_token => omniauth_auth['credentials']['token'],
+                                  :access_secret => omniauth_auth['credentials']['secret'],
+                                  :uid => omniauth_auth['uid'],
+                                  :user => bob)
+        post :create, :provider => 'twitter'
+        flash[:error].include?(bob.person.profile.diaspora_handle).should be_true
+      end
     end
 
-    it 'redirects to getting started if the user is getting started' do
-      @user.getting_started = true
-      request.env['omniauth.auth'] = omniauth_auth
-      post :create, :provider => 'twitter'
-      response.should redirect_to getting_started_path
-    end
+    context 'when fetching a photo' do
+      before do
+        omniauth_auth
+        omniauth_auth["info"].merge!({"image" => "https://service.com/fallback_lowres.jpg"})
 
-    it 'redirects to services url' do
-      @user.getting_started = false
-      request.env['omniauth.auth'] = omniauth_auth
-      post :create, :provider => 'twitter'
-      response.should redirect_to services_url
-    end
+        request.env['omniauth.auth'] = omniauth_auth
+      end
 
-    it 'creates a twitter service' do
-      Service.delete_all
-      @user.getting_started = false
-      request.env['omniauth.auth'] = omniauth_auth
-      post :create, :provider => 'twitter'
-      @user.reload.services.first.class.name.should == "Services::Twitter"
+      it 'does not queue a job if the profile photo is set' do
+        profile = @user.person.profile
+        profile[:image_url] = "/non/default/image.jpg"
+        profile.save
+
+        Resque.should_not_receive(:enqueue)
+
+        post :create, :provider => 'twitter'
+      end
+
+      it 'queues a job to save user photo if the photo does not exist' do
+        profile = @user.person.profile
+        profile[:image_url] = nil
+        profile.save
+
+        Resque.should_receive(:enqueue).with(Jobs::FetchProfilePhoto, @user.id, anything(), "https://service.com/fallback_lowres.jpg")
+
+        post :create, :provider => 'twitter'
+      end
     end
   end
 
   describe '#destroy' do
     before do
-      @service1 = Factory.create(:service, :user => @user)
+      @service1 = Factory(:service, :user => @user)
     end
 
     it 'destroys a service selected by id' do
@@ -100,60 +141,6 @@ describe ServicesController do
     it 'has no translations missing' do
       get :finder, :provider => @service1.provider
       Nokogiri(response.body).css('.translation_missing').should be_empty
-    end
-  end
-
-  describe '#inviter' do
-    before do
-      @uid = "abc"
-      fb = Factory(:service, :type => "Services::Facebook", :user => @user)
-      fb = Services::Facebook.find(fb.id)
-      @su = Factory(:service_user, :service => fb, :uid => @uid)
-      @invite_params = {:provider => 'facebook', :uid => @uid, :aspect_id => @user.aspects.first.id}
-    end
-
-    it 'enqueues an invite job if the fb user has a username' do
-      pending
-      @invite_params[:provider] = "email"
-      @invite_params[:uid] = "username@facebook.com"
-      put :inviter, @invite_params
-    end
-
-    it 'redirects to a prefilled facebook message url' do
-      put :inviter, @invite_params
-      response.location.should match(/https:\/\/www\.facebook\.com\/\?compose=1&id=.*&subject=.*&message=.*&sk=messages/)
-    end
-
-    it 'creates an invitation' do
-      lambda {
-        put :inviter, @invite_params
-      }.should change(Invitation, :count).by(1)
-    end
-
-    it 'sets the invitation_id on the service_user' do
-      post :inviter, @invite_params
-      @su.reload.invitation.should_not be_nil
-    end
-
-    it 'does not create a duplicate invitation' do
-      invited_user = Factory.build(:user, :username =>nil)
-      invited_user.save(:validate => false)
-      inv = Invitation.create!(:sender => @user, :recipient => invited_user, :aspect => @user.aspects.first, :identifier => eve.email)
-      @invite_params[:invitation_id] = inv.id
-
-      lambda {
-        put :inviter, @invite_params
-      }.should_not change(Invitation, :count)
-    end
-
-    it 'disregards the amount of invites if open_invitations are enabled' do
-      open_bit = AppConfig[:open_invitations]
-      AppConfig[:open_invitations] = true
-
-      lambda {
-        put :inviter, @invite_params
-      }.should change(Invitation, :count).by(1)
-      AppConfig[:open_invitations] = open_bit
     end
   end
 end

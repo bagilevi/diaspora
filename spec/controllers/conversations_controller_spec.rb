@@ -18,8 +18,10 @@ describe ConversationsController do
       response.should be_success
     end
 
-    it "assigns a json list of contacts" do
-      assigns(:contacts_json).should include(alice.contacts.first.person.name)
+    it "assigns a json list of contacts that are sharing with the person" do
+      assigns(:contacts_json).should include(alice.contacts.where(:sharing => true).first.person.name)
+      alice.contacts << Contact.new(:person_id => eve.person.id, :user_id => alice.id, :sharing => false, :receiving => true)
+      assigns(:contacts_json).should_not include(alice.contacts.where(:sharing => false).first.person.name)
     end
 
     it "assigns a contact if passed a contact id" do
@@ -34,20 +36,30 @@ describe ConversationsController do
   end
 
   describe '#index' do
-    it 'succeeds' do
-      get :index
-      response.should be_success
-    end
-
-    it 'retrieves all conversations for a user' do
+    before do
       hash = {
         :author => alice.person,
         :participant_ids => [alice.contacts.first.person.id, alice.person.id],
         :subject => 'not spam',
         :messages_attributes => [ {:author => alice.person, :text => 'cool stuff'} ]
       }
-      3.times { Conversation.create(hash) }
-
+      @conversations = Array.new(3) { Conversation.create(hash) }
+    end
+    
+    it 'succeeds' do
+      get :index
+      response.should be_success
+      assigns[:conversations].should =~ @conversations
+    end
+    
+    it 'succeeds with json' do
+      get :index, :format => :json
+      response.should be_success
+      json = JSON.parse(response.body)
+      json.first['conversation'].should be_present
+    end
+    
+    it 'retrieves all conversations for a user' do
       get :index
       assigns[:conversations].count.should == 3
     end
@@ -78,7 +90,7 @@ describe ConversationsController do
       end
 
       it 'sets the author to the current_user' do
-        @hash[:author] = Factory.create(:user)
+        @hash[:author] = Factory(:user)
         post :create, @hash
         Message.first.author.should == alice.person
         Conversation.first.author.should == alice.person
@@ -95,7 +107,7 @@ describe ConversationsController do
         )
 
         p = Postzord::Dispatcher.build(alice, cnv)
-        Postzord::Dispatcher.stub!(:new).and_return(p)
+        p.class.stub!(:new).and_return(p)
         p.should_receive(:post)
         post :create, @hash
       end
@@ -136,13 +148,26 @@ describe ConversationsController do
       }
       @conversation = Conversation.create(hash)
     end
-
-    it 'succeeds' do
-      get :show, :id => @conversation.id
+    
+    it 'succeeds with js' do
+      get :show, :id => @conversation.id, :format => :js
       response.should be_success
       assigns[:conversation].should == @conversation
     end
+    
+    it 'succeeds with json' do
+      get :show, :id => @conversation.id, :format => :json
+      response.should be_success
+      assigns[:conversation].should == @conversation
+      response.body.should include @conversation.guid
+    end
 
+    it 'redirects to index' do
+      get :show, :id => @conversation.id
+      response.should redirect_to(conversations_path(:conversation_id => @conversation.id))
+      assigns[:conversation].should == @conversation
+    end
+    
     it 'does not let you access conversations where you are not a recipient' do
       sign_in :user, eve
 

@@ -18,7 +18,9 @@ describe Reshare do
   end
 
   it 'require public root' do
-    Factory.build(:reshare, :root => Factory.build(:status_message, :public => false)).should_not be_valid
+    reshare = Factory.build(:reshare, :root => Factory.build(:status_message, :public => false))
+    reshare.should_not be_valid
+    reshare.errors[:base].should include('Only posts which are public may be reshared.')
   end
 
   it 'forces public' do
@@ -28,7 +30,7 @@ describe Reshare do
   describe "#receive" do
     let(:receive) {@reshare.receive(@root.author.owner, @reshare.author)}
     before do
-      @reshare = Factory.create(:reshare, :root => Factory(:status_message, :author => bob.person, :public => true))
+      @reshare = Factory(:reshare, :root => Factory(:status_message, :author => bob.person, :public => true))
       @root = @reshare.root
     end
 
@@ -53,8 +55,8 @@ describe Reshare do
 
   describe '#notification_type' do
     before do
-      sm = Factory.create(:status_message, :author => alice.person, :public => true)
-      @reshare = Factory.create(:reshare, :root => sm)
+      sm = Factory(:status_message, :author => alice.person, :public => true)
+      @reshare = Factory(:reshare, :root => sm)
     end
     it 'does not return anything for non-author of the original post' do
       @reshare.notification_type(bob, @reshare.author).should be_nil
@@ -103,10 +105,24 @@ describe Reshare do
         end
       end
 
+      describe 'destroy' do
+        it 'allows you to destroy the reshare if the root post is missing' do
+          reshare = Factory(:reshare)
+          reshare.root = nil
+          
+          expect{
+            reshare.destroy
+          }.should_not raise_error
+        end
+      end
+
       context 'remote' do
         before do
           @root_object = @reshare.root
           @root_object.delete
+          @response = mock
+          @response.stub(:status).and_return(200)
+          @response.stub(:success?).and_return(true)
         end
 
         it 'fetches the root author from root_diaspora_id' do
@@ -120,19 +136,38 @@ describe Reshare do
           wf_prof_mock = mock
           wf_prof_mock.should_receive(:fetch).and_return(@original_author)
           Webfinger.should_receive(:new).and_return(wf_prof_mock)
+          
+          @response.stub(:body).and_return(@root_object.to_diaspora_xml)
 
-          response = mock
-          response.stub(:body).and_return(@root_object.to_diaspora_xml)
-
-          Faraday.default_connection.should_receive(:get).with(@original_author.url + short_post_path(@root_object.guid, :format => "xml")).and_return(response)
+          Faraday.default_connection.should_receive(:get).with(@original_author.url + short_post_path(@root_object.guid, :format => "xml")).and_return(@response)
           Reshare.from_xml(@xml)
+        end
+
+        context "fetching post" do
+          it "doesn't error out if the post is not found" do
+            @response.stub(:status).and_return(404)
+            Faraday.default_connection.should_receive(:get).and_return(@response)
+            
+            expect {
+              Reshare.from_xml(@xml)
+            }.to_not raise_error
+          end
+          
+          it "raises if there's another error receiving the post" do
+            @response.stub(:status).and_return(500)
+            @response.stub(:success?).and_return(false)
+            Faraday.default_connection.should_receive(:get).and_return(@response)
+            
+            expect {
+              Reshare.from_xml(@xml)
+            }.to raise_error RuntimeError
+          end
         end
 
         context 'saving the post' do
           before do
-            response = mock
-            response.stub(:body).and_return(@root_object.to_diaspora_xml)
-            Faraday.default_connection.stub(:get).with(@reshare.root.author.url + short_post_path(@root_object.guid, :format => "xml")).and_return(response)
+            @response.stub(:body).and_return(@root_object.to_diaspora_xml)
+            Faraday.default_connection.stub(:get).with(@reshare.root.author.url + short_post_path(@root_object.guid, :format => "xml")).and_return(@response)
           end
 
           it 'fetches the root post from root_guid' do
@@ -156,7 +191,7 @@ describe Reshare do
             @original_author = @reshare.root.author.dup
             @xml = @reshare.to_xml.to_s
 
-            different_person = Factory.create(:person)
+            different_person = Factory(:person)
 
             wf_prof_mock = mock
             wf_prof_mock.should_receive(:fetch).and_return(different_person)

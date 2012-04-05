@@ -1,59 +1,126 @@
-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2012, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 
-sk: 
-  javascripts: 
-    aspect_dropdown: 
+
+sk:
+  javascripts:
+    aspect_dropdown:
       add_to_aspect: "Pridať kontakt"
       all_aspects: "Všetky kategórie"
+      error: "<%= name %> sa nedá pridať do vašich kontaktov. Neignorujete ho (ju)?"
       select_aspects: "Vyberte si kategórie"
-      toggle: 
-        few: "V(o) {{count}} kategóriách"
-        many: "V(o) {{count}} kategóriách"
-        one: "V {{count}} kategórii"
-        other: "V(o) {{count}} kategóriách"
-        two: "V(o) {{count}} kategóriách"
+      started_sharing_with: "<%= name %> bol(a) pridaný (-á) do vašich kontaktov!"
+      stopped_sharing_with: "<%= name %> bol(a) vymazaný (-á) z vašich kontaktov."
+      toggle:
+        few: "V(o) <%= count %> kategóriách"
+        many: "V(o) <%= count %> kategóriách"
+        one: "V <%= count %> kategórii"
+        other: "V(o) <%= count %> kategóriách"
+        two: "V(o) <%= count %> kategóriách"
         zero: "Vyberte si kategórie"
-    aspect_navigation: 
+    aspect_navigation:
       deselect_all: "Odznačiť všetky"
       no_aspects: "Nevybrali ste žiadne kategórie"
       select_all: "Označiť všetky"
-    comments: 
+    comments:
       hide: "Skryť komentáre"
       show: "Zobraziť všetky komentáre"
-    confirm_dialog: "Ste si istý?"
+    confirm_dialog: "Určite?"
+    delete: "Odstrániť"
     failed_to_like: "Nepodarilo sa označiť, že sa vám to páči!"
     failed_to_post_message: "Správu sa nepodarilo poslať!"
-    infinite_scroll: 
+    getting_started:
+      alright_ill_wait: "V poriadku, počkám."
+      hey: "Hej, <%= name %>!"
+      no_tags: "Hej, nesledujete žiadne značky!  Chcete aj tak pokračovať?"
+      preparing_your_stream: "Pripravuje sa vaša upravená nástenka..."
+    header:
+      admin: "Administrátor"
+      contacts: "Kontakty"
+      home: "Úvodná stránka"
+      log_out: "Odhlásiť sa"
+      mark_all_as_read: "Označiť všetky ako prečítané"
+      messages: "Správy"
+      notifications: "Oznamy"
+      profile: "Profil"
+      recent_notifications: "Najnovšie oznamy"
+      search: "Nájsť ľudí alebo #značky"
+      settings: "Nastavenia"
+      view_all: "Zobraziť všetko"
+    ignore: "Ignorovať"
+    infinite_scroll:
       no_more: "Žiadne ďalšie príspevky."
-    publisher: 
+    my_activity: "Moja aktivita"
+    my_stream: "Nástenka"
+    people:
+      not_found: "...a nikto sa nenašiel."
+    photo_uploader:
+      looking_good: "No teda, vyzeráš super!"
+    publisher:
       at_least_one_aspect: "Musíte publikovať aspoň jednu kategóriu"
-      limited: "Obmedzené - váš príspevok uvidia len ľudia, s ktorými sa oň podelíte"
-      public: "Verejný - váš príspevok pomocou vyhľadávačov uvidí a nájde každý"
-    reshares: 
-      duplicate: "O tento príspevok ste sa už raz znova podelili!"
-    search_for: "Hľadať {{name}}"
+      limited: "Vyhradený – váš príspevok uvidia len ľudia, s ktorými sa oň podelíte"
+      public: "Verejný – váš príspevok pomocou vyhľadávačov uvidí a nájde každý"
+    reshares:
+      duplicate: "Je to dobré, čo? O tento príspevok ste sa už raz znova podelili!"
+    search_for: "Hľadať <%= name %>"
     show_more: "Zobraziť viac"
-    timeago: 
+    stream:
+      comment: "Okomentovať"
+      follow: "Sledovať"
+      hide: "Schovať"
+      hide_nsfw_posts: "Schovať príspevky #nsfw"
+      like: "Páči sa mi to"
+      likes:
+        few: "<%= count %> ľuďom sa to páči"
+        one: "<%= count %> človeku sa to páči"
+        other: "<%= count %> ľuďom sa to páči"
+        zero: "<%= count %> ľuďom sa to páči"
+      limited: "Súkromný"
+      more_comments:
+        few: "Zobraziť ďalšie <%= count %> komentáre"
+        one: "Zobraziť ďalší <%= count %> komentár"
+        other: "Zobraziť ďalších <%= count %> komentárov"
+        zero: "Zobraziť ďalších <%= count %> komentárov"
+      original_post_deleted: "Pôvodný príspevok odstránil autor."
+      public: "Verejný"
+      reshare: "Znova zdieľať"
+      reshares:
+        few: "<%= count %> opätovné zdieľania"
+        one: "<%= count %> opätovné zdieľanie"
+        other: "<%= count %> opätovných zdieľaní"
+        zero: "<%= count %> opätovných zdieľaní"
+      show_nsfw_post: "Zobraziť príspevok"
+      show_nsfw_posts: "Zobraziť všetky"
+      unfollow: "Nesledovať"
+      unlike: "Už sa mi to nepáči"
+    tags:
+      wasnt_that_interesting: "OK, značka #<%= tagName %> asi vôbec nebola veľmi zaujímavá."
+    timeago:
       day: "včera"
-      days: "%d dňami"
-      hour: "hodinou, asi"
-      hours: "%d hodinami, asi"
+      days: "pred %d dňami"
+      hour: "asi pred hodinou"
+      hours: "asi pred %d hodinami"
       minute: "asi pred minútou"
-      minutes: "%d minútami"
-      month: "mesiacom, asi"
-      months: "%d mesiacmi"
+      minutes: "pred %d minútami"
+      month: "asi pred mesiacom"
+      months: "pred %d mesiacmi"
       prefixAgo: ""
-      prefixFromNow: "pred"
-      seconds: "menej ako minútou"
+      prefixFromNow: ""
+      seconds: "pred menej ako minútou"
       suffixAgo: ""
       suffixFromNow: ""
-      year: "rokom, asi"
-      years: "%d rokmi"
-    videos: 
+      year: "asi pred rokom"
+      years: "pred %d rokmi"
+    videos:
       unknown: "Neznámy typ videa"
-      watch: "Pozrite sa na toto video na sieti {{provider}}"
-    web_sockets: 
-      disconnected: "Webová zásuvka (websocket) je odpojená; príspevky sa už viac nebudú spracúvať v reálnom čase."
+      watch: "Sledujte toto video na <%= provider %>"
+    viewer:
+      comment: "Komentár"
+      follow_post: "Sledovať príspevok"
+      like: "Páči sa mi to"
+      reshare: "Ukázať príspevok priateľom"
+      reshared: "Znova ukázané"
+      stop_following_post: "Prestať sledovať príspevok"
+      unlike: "Už sa mi to nepáči"

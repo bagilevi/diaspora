@@ -3,15 +3,13 @@
 #   the COPYRIGHT file.
 
 class PhotosController < ApplicationController
-  before_filter :authenticate_user!
-
-  helper_method :parent, :photo, :additional_photos, :next_photo, :previous_photo, :ownership
+  before_filter :authenticate_user!, :except => :show
 
   respond_to :html, :json
 
   def index
     @post_type = :photos
-    @person = Person.find_by_id(params[:person_id])
+    @person = Person.find_by_guid(params[:person_id])
 
     if @person
       @profile = @person.profile
@@ -29,9 +27,12 @@ class PhotosController < ApplicationController
         @contacts_of_contact_count = 0
       end
 
-      @posts = current_user.photos_from(@person).paginate(:page => params[:page])
-
-      render 'people/show'
+      @posts = current_user.photos_from(@person)
+      
+      respond_to do |format|
+        format.all { render 'people/show' }
+        format.json{ render_for_api :backbone, :json => @posts, :root => :photos }
+      end
 
     else
       flash[:error] = I18n.t 'people.show.does_not_exist'
@@ -40,54 +41,19 @@ class PhotosController < ApplicationController
   end
 
   def create
-    begin
-      raise unless params[:photo][:aspect_ids]
-
-      if params[:photo][:aspect_ids] == "all"
-        params[:photo][:aspect_ids] = current_user.aspects.collect{|x| x.id}
-      elsif params[:photo][:aspect_ids].is_a?(Hash)
-        params[:photo][:aspect_ids] = params[:photo][:aspect_ids].values
-      end
-
-      params[:photo][:user_file] = file_handler(params)
-
-      @photo = current_user.build_post(:photo, params[:photo])
-
-      if @photo.save
-
-        aspects = current_user.aspects_from_ids(params[:photo][:aspect_ids])
-
-        unless @photo.pending
-          current_user.add_to_streams(@photo, aspects)
-          current_user.dispatch_post(@photo, :to => params[:photo][:aspect_ids])
-        end
-
-        if params[:photo][:set_profile_photo]
-          profile_params = {:image_url => @photo.url(:thumb_large),
-                           :image_url_medium => @photo.url(:thumb_medium),
-                           :image_url_small => @photo.url(:thumb_small)}
-          current_user.update_profile(profile_params)
-        end
-
-        respond_to do |format|
-          format.json{ render(:layout => false , :json => {"success" => true, "data" => @photo}.to_json )}
+    rescuing_photo_errors do
+      if remotipart_submitted?
+        @photo = current_user.build_post(:photo, params[:photo])
+        if @photo.save
+          respond_to do |format|
+            format.json { render :json => {"success" => true, "data" => @photo.as_api_response(:backbone)} }
+          end
+        else
+          respond_with @photo, :location => photos_path, :error => message
         end
       else
-        respond_with @photo, :location => photos_path, :error => message
+        legacy_create
       end
-
-    rescue TypeError
-      message = I18n.t 'photos.create.type_error'
-      respond_with @photo, :location => photos_path, :error => message
-
-    rescue CarrierWave::IntegrityError
-      message = I18n.t 'photos.create.integrity_error'
-      respond_with @photo, :location => photos_path, :error => message
-
-    rescue RuntimeError => e
-      message = I18n.t 'photos.create.runtime_error'
-      respond_with @photo, :location => photos_path, :error => message
-      raise e
     end
   end
 
@@ -139,14 +105,6 @@ class PhotosController < ApplicationController
     end
   end
 
-  def show
-    if photo
-      respond_with photo
-    else
-      redirect_to :back
-    end
-  end
-
   def edit
     if @photo = current_user.photos.where(:id => params[:id]).first
       respond_with @photo
@@ -175,39 +133,14 @@ class PhotosController < ApplicationController
     end
   end
 
-  # helpers
-
-  def ownership
-    @ownership ||= current_user.owns? photo
-  end
-
-  def parent
-    @parent ||= StatusMessage.where(:guid => photo.status_message_guid).includes(:photos).first if photo.status_message_guid
-    @parent ||= photo
-  end
-
-  def photo
-    @photo ||= current_user.find_visible_shareable_by_id(Photo, params[:id])
-  end
-
-  def additional_photos
-    if photo.status_message_guid?
-      @additional_photos ||= photo.status_message.photos
-    end
-  end
-
-  def next_photo
-    @next_photo ||= additional_photos[additional_photos.index(photo)+1]
-    @next_photo ||= additional_photos.first
-  end
-
-  def previous_photo
-    @previous_photo ||= additional_photos[additional_photos.index(photo)-1]
-  end
-
   private
 
   def file_handler(params)
+    # For XHR file uploads, request.params[:qqfile] will be the path to the temporary file
+    # For regular form uploads (such as those made by Opera), request.params[:qqfile] will be an UploadedFile which can be returned unaltered.
+    if not request.params[:qqfile].is_a?(String)
+      params[:qqfile]
+    else
       ######################## dealing with local files #############
       # get file name
       file_name = params[:qqfile]
@@ -229,5 +162,59 @@ class PhotosController < ApplicationController
       Tempfile.send(:define_method, "content_type") {return att_content_type}
       Tempfile.send(:define_method, "original_filename") {return file_name}
       file
+    end
+  end
+
+  def legacy_create
+    if params[:photo][:aspect_ids] == "all"
+      params[:photo][:aspect_ids] = current_user.aspects.collect { |x| x.id }
+    elsif params[:photo][:aspect_ids].is_a?(Hash)
+      params[:photo][:aspect_ids] = params[:photo][:aspect_ids].values
+    end
+
+    params[:photo][:user_file] = file_handler(params)
+
+    @photo = current_user.build_post(:photo, params[:photo])
+
+    if @photo.save
+      aspects = current_user.aspects_from_ids(params[:photo][:aspect_ids])
+
+      unless @photo.pending
+        current_user.add_to_streams(@photo, aspects)
+        current_user.dispatch_post(@photo, :to => params[:photo][:aspect_ids])
+      end
+
+      if params[:photo][:set_profile_photo]
+        profile_params = {:image_url => @photo.url(:thumb_large),
+                          :image_url_medium => @photo.url(:thumb_medium),
+                          :image_url_small => @photo.url(:thumb_small)}
+        current_user.update_profile(profile_params)
+      end
+
+      respond_to do |format|
+        format.json{ render(:layout => false , :json => {"success" => true, "data" => @photo}.to_json )}
+        format.html{ render(:layout => false , :json => {"success" => true, "data" => @photo}.to_json )}
+      end
+    else
+      respond_with @photo, :location => photos_path, :error => message
+    end
+  end
+
+  def rescuing_photo_errors
+    begin
+      yield
+    rescue TypeError
+      message = I18n.t 'photos.create.type_error'
+      respond_with @photo, :location => photos_path, :error => message
+
+    rescue CarrierWave::IntegrityError
+      message = I18n.t 'photos.create.integrity_error'
+      respond_with @photo, :location => photos_path, :error => message
+
+    rescue RuntimeError => e
+      message = I18n.t 'photos.create.runtime_error'
+      respond_with @photo, :location => photos_path, :error => message
+      raise e
+    end
   end
 end

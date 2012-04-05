@@ -1,42 +1,105 @@
-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2012, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 
-de: 
-  javascripts: 
-    aspect_dropdown: 
-      add_to_aspect: "Zu Aspekt hinzufügen"
+
+de:
+  javascripts:
+    aspect_dropdown:
+      add_to_aspect: "Kontakt hinzufügen"
       all_aspects: "Alle Aspekte"
+      error: "Konnte nicht anfangen, mit <%= name %> zu teilen. Ignorierst du sie/ihn?"
       select_aspects: "Wähle Aspekte aus"
-      toggle: 
-        few: "In {{count}} Aspekten"
-        many: "In {{count}} Aspekten"
+      started_sharing_with: "Du hast angefangen, mit <%= name %> zu teilen!"
+      stopped_sharing_with: "Du hast aufgehört, mit <%= name %> zu teilen!"
+      toggle:
+        few: "In <%= count %> Aspekten"
+        many: "In <%= count %> Aspekten"
         one: "In einem Aspekt"
-        other: "In {{count}} Aspekten"
-        two: "In {{count}} Aspekten"
-        zero: "Zu Aspekt hinzufügen"
-    aspect_navigation: 
+        other: "In <%= count %> Aspekten"
+        two: "In <%= count %> Aspekten"
+        zero: "Aspekt auswählen"
+    aspect_navigation:
       deselect_all: "Auswahl aufheben"
       no_aspects: "Keine Aspekte ausgewählt"
       select_all: "Alle auswählen"
-    comments: 
+    comments:
       hide: "Kommentare verbergen"
       show: "Alle Kommentare zeigen"
     confirm_dialog: "Bist du dir sicher?"
-    failed_to_like: "Gefällt mir fehlgeschlagen."
+    delete: "Löschen"
+    failed_to_like: "Gefällt mir fehlgeschlagen!"
     failed_to_post_message: "Konnte Beitrag nicht senden!"
-    infinite_scroll: 
+    getting_started:
+      alright_ill_wait: "Alles klar, ich warte."
+      hey: "Hey, <%= name %>!"
+      no_tags: "Hey, du folgst noch keinen Tags! Trotzdem weitermachen?"
+      preparing_your_stream: "Dein persönlicher Stream wird zusammengestellt …"
+    header:
+      admin: "Admin"
+      contacts: "Kontakte"
+      home: "Startseite"
+      log_out: "Abmelden"
+      mark_all_as_read: "Alle als gelesen markieren"
+      messages: "Nachrichten"
+      notifications: "Benachrichtigungen"
+      profile: "Profil"
+      recent_notifications: "Neuste Benachrichtigungen"
+      search: "Suchen"
+      settings: "Einstellungen"
+      view_all: "Alle anzeigen"
+    ignore: "Ignorieren"
+    infinite_scroll:
       no_more: "Keine weiteren Beiträge."
-    publisher: 
+    my_activity: "Meine Aktivitäten"
+    people:
+      not_found: "und niemand wurde gefunden..."
+    photo_uploader:
+      looking_good: "OMG, du siehst toll aus!"
+    publisher:
       at_least_one_aspect: "Du musst zumindest zu einem Aspekt posten"
-      limited: "Eingeschränkt - dein Beitrag wird nur Leuten, mit denen du teilst, sichtbar sein"
+      limited: "Eingeschränkt - dein Beitrag wird nur Leuten sichtbar sein, mit denen du teilst"
       public: "Öffentlich - dein Beitrag ist für alle sichtbar und kann von Suchmaschinen gefunden werden"
-    reshares: 
-      duplicate: "Du hast diesen Beitrag bereits wiederholt!"
-    search_for: "Nach {{name}} suchen"
+    reshares:
+      duplicate: "Du hast diesen Beitrag bereits weitergesagt!"
+    search_for: "Nach <%= name %> suchen"
     show_more: "Mehr zeigen"
-    timeago: 
+    stream:
+      comment: "Kommentar"
+      follow: "Folgen"
+      hide: "Ausblenden"
+      hide_nsfw_posts: "#nsfw-Posts verstecken"
+      like: "Gefällt mir"
+      likes:
+        few: "<%= count %> Personen gefällt das"
+        many: "<%= count %> Personen gefällt das"
+        one: " Einer Person gefällt das"
+        other: "<%= count %> Personen gefällt das"
+        two: "<%= count %> Personen gefällt das"
+        zero: "Keinem gefällt das"
+      limited: "Begrenzt"
+      more_comments:
+        one: "Zeige einen weiteren Kommentar"
+        other: "Zeige <%= count %> weitere Kommentare"
+        zero: "Keine weiteren Kommentare"
+      original_post_deleted: "Originalbeitrag wurde vom Autor entfernt."
+      public: "Öffentlich"
+      reshare: "Weitersagen"
+      reshares:
+        few: "<%= count %> mal weitergesagt"
+        many: "<%= count %> mal weitergesagt"
+        one: "<%= count %> mal weitergesagt"
+        other: "<%= count %> mal weitergesagt"
+        two: "<%= count %> mal weitergesagt"
+        zero: "<%= count %> mal weitergesagt"
+      show_nsfw_post: "Beitrag anzeigen"
+      show_nsfw_posts: "Alle zeigen"
+      unfollow: "Nicht mehr folgen"
+      unlike: "Gefällt mir nicht mehr"
+    tags:
+      wasnt_that_interesting: "OK, ich nehme an, #<%= tagName %> war nicht so interessant..."
+    timeago:
       day: "einem Tag"
       days: "%d Tagen"
       hour: "etwa einer Stunde"
@@ -47,13 +110,19 @@ de:
       months: "%d Monaten"
       prefixAgo: "vor"
       prefixFromNow: "in"
-      seconds: "wenigen Sekunden"
+      seconds: "weniger als eine Minute"
       suffixAgo: ""
-      suffixFromNow: ""
+      suffixFromNow: "ab jetzt"
       year: "etwa einem Jahr"
       years: "%d Jahren"
-    videos: 
+    videos:
       unknown: "Unbekanntes Videoformat"
       watch: "Dieses Video auf {{provider}} ansehen"
-    web_sockets: 
-      disconnected: "Der Websocket ist geschlossen. Beiträge werden nicht länger in Echtzeit aktualisiert."
+    viewer:
+      comment: "Kommentar"
+      follow_post: "Diesen Beitrag verfolgen"
+      like: "Gefällt mir"
+      reshare: "Weitersagen"
+      reshared: "Weitergesagt"
+      stop_following_post: "Diesen Beitrag nicht mehr verfolgen"
+      unlike: "Gefällt mir nicht mehr"

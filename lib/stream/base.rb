@@ -1,21 +1,14 @@
+require File.join(Rails.root, "lib", "publisher")
 class Stream::Base
   TYPES_OF_POST_IN_STREAM = ['StatusMessage', 'Reshare', 'ActivityStreams::Photo']
-  attr_accessor :max_time, :order, :user
+
+  attr_accessor :max_time, :order, :user, :publisher
 
   def initialize(user, opts={})
     self.user = user
     self.max_time = opts[:max_time]
     self.order = opts[:order]
-  end
-
-  # @return [Person]
-  def random_community_spotlight_member
-    @random_community_spotlight_member ||= Person.find_by_diaspora_handle(spotlight_diaspora_id)
-  end
-
-  # @return [Boolean]
-  def has_community_spotlight?
-    random_community_spotlight_member.present?
+    self.publisher = Publisher.new(self.user, publisher_opts)
   end
 
   #requied to implement said stream
@@ -40,18 +33,22 @@ class Stream::Base
 
   # @return [ActiveRecord::Relation<Post>]
   def posts
-    []
+    Post.scoped
   end
 
-  # @return [String]
-  def publisher_prefill_text
-    ''
+  # @return [Array<Post>]
+  def stream_posts
+    self.posts.for_a_stream(max_time, order, self.user).tap do |posts|
+      like_posts_for_stream!(posts) #some sql person could probably do this with joins.
+      participation_posts_for_stream!(posts)
+    end
   end
 
   # @return [ActiveRecord::Association<Person>] AR association of people within stream's given aspects
   def people
-    people_ids = posts.map{|x| x.author_id}
-    Person.where(:id => people_ids).includes(:profile)
+    people_ids = self.stream_posts.map{|x| x.author_id}
+    Person.where(:id => people_ids).
+      includes(:profile)
   end
 
   # @return [String]
@@ -59,20 +56,14 @@ class Stream::Base
     I18n.translate('aspects.selected_contacts.view_all_contacts')
   end
 
-  # @return [String]
+  # @return [String] def contacts_title 'change me in lib/base_stream.rb!'
   def contacts_title
     'change me in lib/base_stream.rb!'
   end
 
   # @return [String]
   def contacts_link
-    '#'
-  end
-
-  #helpers
-  # @return [Boolean]
-  def ajax_stream?
-    false
+    Rails.application.routes.url_helpers.contacts_path
   end
 
   # @return [Boolean]
@@ -80,8 +71,7 @@ class Stream::Base
     true
   end
 
-
-  #NOTE: MBS bad bad methods the fact we need these means our views are foobared. please kill them and make them 
+  #NOTE: MBS bad bad methods the fact we need these means our views are foobared. please kill them and make them
   #private methods on the streams that need them
   def aspects
     user.aspects
@@ -91,9 +81,9 @@ class Stream::Base
   def aspect
     aspects.first
   end
-  
+
   def aspect_ids
-    aspects.map{|x| x.id} 
+    aspects.map{|x| x.id}
   end
 
   def max_time=(time_string)
@@ -106,7 +96,43 @@ class Stream::Base
     @order ||= 'created_at'
   end
 
-  private
+  protected
+  # @return [void]
+  def like_posts_for_stream!(posts)
+    return posts unless @user
+
+    likes = Like.where(:author_id => @user.person.id, :target_id => posts.map(&:id), :target_type => "Post")
+
+    like_hash = likes.inject({}) do |hash, like|
+      hash[like.target_id] = like
+      hash
+    end
+
+    posts.each do |post|
+      post.user_like = like_hash[post.id]
+    end
+  end
+
+  # @return [void]
+  def participation_posts_for_stream!(posts)
+    return posts unless @user
+
+    participations = Participation.where(:author_id => @user.person.id, :target_id => posts.map(&:id), :target_type => "Post")
+
+    participation_hash = participations.inject({}) do |hash, participation|
+      hash[participation.target_id] = participation
+      hash
+    end
+
+    posts.each do |post|
+      post.user_participation = participation_hash[post.id]
+    end
+  end
+
+  # @return [Hash]
+  def publisher_opts
+    {}
+  end
 
   # Memoizes all Contacts present in the Stream
   #

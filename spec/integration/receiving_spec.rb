@@ -19,16 +19,6 @@ describe 'a user receives a post' do
     @contact = alice.contact_for(bob.person)
   end
 
-  it 'streams only one message to the everyone aspect when a multi-aspected contacts posts' do
-    contact = alice.contact_for(bob.person)
-    alice.add_contact_to_aspect(contact, alice.aspects.create(:name => "villains"))
-    status = bob.build_post(:status_message, :text => "Users do things", :to => @bobs_aspect.id)
-    Diaspora::WebSocket.stub!(:is_connected?).and_return(true)
-    Diaspora::WebSocket.should_receive(:queue_to_user).exactly(:once)
-    zord = Postzord::Receiver::Private.new(alice, :object => status, :person => bob.person)
-    zord.receive_object
-  end
-
   it 'should be able to parse and store a status message from xml' do
     status_message = bob.post :status_message, :text => 'store this!', :to => @bobs_aspect.id
 
@@ -55,7 +45,6 @@ describe 'a user receives a post' do
     fantasy_resque do
       sm = bob.build_post(:status_message, :text => "hi")
       sm.save!
-      sm.stub!(:socket_to_user)
       bob.aspects.reload
       bob.add_to_streams(sm, [@bobs_aspect])
       bob.dispatch_post(sm, :to => @bobs_aspect)
@@ -70,7 +59,6 @@ describe 'a user receives a post' do
       Notification.should_receive(:notify).with(eve, anything(), bob.person)
 
       @sm = bob.build_post(:status_message, :text => "@{#{alice.name}; #{alice.diaspora_handle}} stuff @{#{eve.name}; #{eve.diaspora_handle}}")
-      @sm.stub!(:socket_to_user)
       bob.add_to_streams(@sm, [bob.aspects.first])
       @sm.save
 
@@ -82,13 +70,12 @@ describe 'a user receives a post' do
     end
 
     it 'notifies local users who are mentioned' do
-      @remote_person = Factory.create(:person, :diaspora_handle => "foobar@foobar.com")
+      @remote_person = Factory(:person, :diaspora_handle => "foobar@foobar.com")
       Contact.create!(:user => alice, :person => @remote_person, :aspects => [@alices_aspect])
 
       Notification.should_receive(:notify).with(alice, anything(), @remote_person)
 
       @sm = Factory.build(:status_message, :text => "hello @{#{alice.name}; #{alice.diaspora_handle}}", :diaspora_handle => @remote_person.diaspora_handle, :author => @remote_person)
-      @sm.stub!(:socket_to_user)
       @sm.save
 
       zord = Postzord::Receiver::Private.new(alice, :object => @sm, :person => bob.person)
@@ -99,7 +86,6 @@ describe 'a user receives a post' do
       Notification.should_not_receive(:notify).with(alice, anything(), eve.person)
 
       @sm = eve.build_post(:status_message, :text => "should not notify @{#{alice.name}; #{alice.diaspora_handle}}")
-      @sm.stub!(:socket_to_user)
       eve.add_to_streams(@sm, [eve.aspects.first])
       @sm.save
 
@@ -163,61 +149,23 @@ describe 'a user receives a post' do
       alice.visible_shareables(Post).should_not include @status_message
     end
 
-    context 'dependant delete' do
-      before do
+    context 'dependent delete' do
+      it 'deletes share_visibilities on disconnected by' do
         @person = Factory(:person)
         alice.contacts.create(:person => @person, :aspects => [@alices_aspect])
 
-        @post = Factory.create(:status_message, :author => @person)
+        @post = Factory(:status_message, :author => @person)
         @post.share_visibilities.should be_empty
         receive_with_zord(alice, @person, @post.to_diaspora_xml)
         @contact = alice.contact_for(@person)
         @contact.share_visibilities.reset
         @contact.posts(true).should include(@post)
         @post.share_visibilities.reset
-      end
 
-      it 'deletes a post if the no one links to it' do
-        lambda {
-          alice.disconnected_by(@person)
-        }.should change(Post, :count).by(-1)
-      end
-
-      it 'deletes share_visibilities on disconnected by' do
         lambda {
           alice.disconnected_by(@person)
         }.should change{@post.share_visibilities(true).count}.by(-1)
       end
-    end
-
-    it 'should keep track of user references for one person ' do
-      @status_message.reload
-      @status_message.user_refs.should == 3
-      @status_message.contacts(true).should include(@contact)
-
-      alice.remove_contact(@contact, :force => true)
-      @status_message.reload
-      @status_message.contacts(true).should_not include(@contact)
-      @status_message.share_visibilities.reset
-      @status_message.user_refs.should == 2
-    end
-
-    it 'should not override userrefs on receive by another person' do
-      new_user = Factory(:user_with_aspect)
-      @status_message.share_visibilities.reset
-      @status_message.user_refs.should == 3
-
-      new_user.contacts.create(:person => bob.person, :aspects => [new_user.aspects.first])
-      xml = @status_message.to_diaspora_xml
-
-      receive_with_zord(new_user, bob.person, xml)
-
-      @status_message.share_visibilities.reset
-      @status_message.user_refs.should == 4
-
-      alice.remove_contact(@contact, :force => true)
-      @status_message.share_visibilities.reset
-      @status_message.user_refs.should == 3
     end
   end
 
@@ -225,18 +173,20 @@ describe 'a user receives a post' do
 
     context 'remote' do
       before do
-        connect_users(alice, @alices_aspect, eve, @eves_aspect)
-        @post = alice.post(:status_message, :text => "hello", :to => @alices_aspect.id)
+        fantasy_resque do
+          connect_users(alice, @alices_aspect, eve, @eves_aspect)
+          @post = alice.post(:status_message, :text => "hello", :to => @alices_aspect.id)
 
-        xml = @post.to_diaspora_xml
+          xml = @post.to_diaspora_xml
 
-        receive_with_zord(bob, alice.person, xml)
-        receive_with_zord(eve, alice.person, xml)
+          receive_with_zord(bob, alice.person, xml)
+          receive_with_zord(eve, alice.person, xml)
 
-        comment = eve.comment('tada',:post => @post)
-        comment.parent_author_signature = comment.sign_with_key(alice.encryption_key)
-        @xml = comment.to_diaspora_xml
-        comment.delete
+          comment = eve.comment!(@post, 'tada')
+          comment.parent_author_signature = comment.sign_with_key(alice.encryption_key)
+          @xml = comment.to_diaspora_xml
+          comment.delete
+        end
       end
 
       it 'should correctly attach the user already on the pod' do
@@ -287,12 +237,14 @@ describe 'a user receives a post' do
       end
 
       it 'does not raise a `Mysql2::Error: Duplicate entry...` exception on save' do
-        @comment = bob.comment('tada',:post => @post)
-        @xml = @comment.to_diaspora_xml
+        fantasy_resque do
+          @comment = bob.comment!(@post, 'tada')
+          @xml = @comment.to_diaspora_xml
 
-        lambda {
-          receive_with_zord(alice, bob.person, @xml)
-        }.should_not raise_exception
+          lambda {
+            receive_with_zord(alice, bob.person, @xml)
+          }.should_not raise_exception
+        end
       end
     end
   end

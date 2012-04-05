@@ -2,17 +2,24 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
-require File.join(Rails.root, 'lib', 'stream', 'public')
+require Rails.root.join("app", "presenters", "post_presenter")
 
 class PostsController < ApplicationController
   before_filter :authenticate_user!, :except => :show
   before_filter :set_format_if_malformed_from_status_net, :only => :show
-  before_filter :redirect_unless_admin, :only => :index
+
+  layout 'post'
 
   respond_to :html,
              :mobile,
              :json,
              :xml
+
+  def new
+    @feature_flag = FeatureFlagger.new(current_user) #I should be a global before filter so @feature_flag is accessible
+    redirect_to "/stream" and return unless @feature_flag.new_publisher?
+    render :text => "", :layout => true
+  end
 
   def show
     key = params[:id].to_s.length <= 8 ? :id : :guid
@@ -24,6 +31,7 @@ class PostsController < ApplicationController
     end
 
     if @post
+      # @commenting_disabled = can_not_comment_on_post?
       # mark corresponding notification as read
       if user_signed_in? && notification = Notification.where(:recipient_id => current_user.id, :target_id => @post.id).first
         notification.unread = false
@@ -32,13 +40,14 @@ class PostsController < ApplicationController
 
       respond_to do |format|
         format.xml{ render :xml => @post.to_diaspora_xml }
-        format.mobile{render 'posts/show.mobile.haml'}	
+        format.mobile{render 'posts/show.mobile.haml', :layout => "application"}
+        format.json{ render :json => PostPresenter.new(@post, current_user).to_json }
         format.any{render 'posts/show.html.haml'}
       end
 
     else
       user_id = (user_signed_in? ? current_user : nil)
-      Rails.logger.info(:event => :link_to_nonexistent_post, :ref => request.env['HTTP_REFERER'], :user_id => user_id, :post_id => params[:id])
+      Rails.logger.info(":event => :link_to_nonexistent_post, :ref => #{request.env['HTTP_REFERER']}, :user_id => #{user_id}, :post_id => #{params[:id]}")
       flash[:error] = I18n.t('posts.show.not_found')
       redirect_to :back
     end
@@ -50,7 +59,8 @@ class PostsController < ApplicationController
       current_user.retract(@post)
       respond_to do |format|
         format.js {render 'destroy'}
-        format.all {redirect_to root_url}
+        format.json { render :nothing => true, :status => 204 }
+        format.all {redirect_to stream_path}
       end
     else
       Rails.logger.info "event=post_destroy status=failure user=#{current_user.diaspora_handle} reason='User does not own post'"
@@ -58,11 +68,23 @@ class PostsController < ApplicationController
     end
   end
 
-  def index
-    default_stream_action(Stream::Public)
-  end
+  private
 
   def set_format_if_malformed_from_status_net
    request.format = :html if request.format == 'application/html+xml'
+  end
+
+  def can_not_comment_on_post?
+    if !user_signed_in?
+      true
+    elsif @post.public && @post.author.local?
+      false
+    elsif current_user.contact_for(@post.author)
+      false
+    elsif current_user.owns?(@post)
+      false
+    else
+      true
+    end
   end
 end

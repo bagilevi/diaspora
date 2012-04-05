@@ -23,7 +23,7 @@
       = f.error_messages
       %p
         = f.text_field :email, :value => @user.unconfirmed_email || @user.email
-        = f.submit t('.change_email')
+        = f.submit t('.change_email'), :class => "button"
     %br
     - if @user.unconfirmed_email.present?
       %p= t('.email_awaiting_confirmation', :email => @user.email, :unconfirmed_email => @user.unconfirmed_email)
@@ -38,21 +38,20 @@
     = t('.change_password')
   = form_for 'user', :url => user_path, :html => { :method => :put } do |f|
     = f.error_messages
-
     %p
       = f.label :current_password, t('.current_password')
-      = f.password_field :current_password
+      = f.password_field :current_password, :placeholder => t('.current_password_expl')
     %p
       = f.label :password, t('.new_password')
-      = f.password_field :password
+      = f.password_field :password, :placeholder => t('.character_minimum_expl')
     %p
       = f.label :password_confirmation, t('password_confirmation')
-      = f.password_field :password_confirmation
+      = f.password_field :password_confirmation, :placeholder => t('.character_minimum_expl')
 
     .submit_block
       = link_to t('cancel'), edit_user_path
       = t('or')
-      = f.submit t('.change_password')
+      = f.submit t('.change_password'), :class => "button"
 
   %br
   %br
@@ -66,7 +65,7 @@
 
     %p
       = f.select :language, available_language_options
-      = f.submit t('.change_language')
+      = f.submit t('.change_language'), :class => "button"
 
   %br
   %br
@@ -90,7 +89,46 @@
   %br
   %hr
   %br
+  
+  %h3#auto-follow-back-preferences
+    = t('.following')
+  = form_for current_user, :url => user_path, :html => { :method => :put } do |f|
+    = f.error_messages
+  
+    %p.checkbox_select
+      = f.label :auto_follow_back, t('.auto_follow_back')
+      = f.check_box :auto_follow_back
+    %br
+    %p.checkbox_select
+      %span{:style => "color: #999"}
+        = t('.auto_follow_aspect')
+      = f.select :auto_follow_back_aspect_id, aspect_options_for_select(current_user.aspects)
+    
+    %br
+    = f.submit t('.change'), :class => 'button'
 
+  %br
+  %br
+  %hr
+  %br
+
+
+  %h3#getting-started-preferences
+    = t('.show_getting_started') 
+  = form_for current_user, :url => user_path, :html => { :method => :put } do |f|
+    = f.error_messages
+
+    %p.checkbox_select
+      = f.label :getting_started, t('.show_getting_started')
+      = f.check_box :getting_started
+
+    %br
+    = f.submit t('.change'), :class => 'button'
+
+  %br
+  %br
+  %hr
+  %br
   %h3 
     = t('.receive_email_notifications')
   = form_for 'user', :url => user_path, :html => { :method => :put } do |f|
@@ -132,7 +170,7 @@
           = type.label :reshared, t('.reshared')
           = type.check_box :reshared, {:checked =>  @email_prefs['reshared']}, false, true
     %br
-    = f.submit t('.change')
+    = f.submit t('.change'), :class => "button"
 
   %br
   %br
@@ -145,11 +183,45 @@
       = t('.export_data')
     = link_to t('.download_xml'), export_user_path, :class => "button"
     %br
-    = link_to t('.download_photos'), export_photos_user_path, :class => "button"
+    = link_to t('.download_photos'), "#", :class => "button", :id => "photo-export-button", :title => t('.photo_export_unavailable')
 
   .span-5.last
-    %h3 
-      = t('.close_account')
-    = link_to t('.close_account'), user_path,
-      :confirm => t('are_you_sure'), :method => :delete,
-        :class => "button"
+    %h3
+      = t('.close_account_text')
+    =link_to t('.close_account_text'), '#close_account_pane', :rel => 'facebox', :class => "button"
+
+    .hidden#close_account_pane{:rel => 'facebox'}
+      #inner_account_delete
+        %h1
+          = t('.close_account.dont_go')
+        %p
+          = t('.close_account.make_diaspora_better')
+        .span-10
+          = image_tag 'http://itstrulyrandom.com/wp-content/uploads/2008/03/sadcat.jpg'
+          %br
+          %small
+            %b
+              = t('.close_account.mr_wiggles')
+        .span-10.last
+          %ul
+            %li
+              = t('.close_account.what_we_delete')
+            %li
+              = t('.close_account.locked_out')
+            %li
+              = t('.close_account.lock_username')
+            %li
+              = t('.close_account.no_turning_back')
+          %p
+            %b
+              = t('.close_account.no_turning_back')
+              
+
+          = form_for 'user', :url => user_path, :html => { :method => :delete } do |f|
+            = f.error_messages
+
+            %p
+              = f.label :close_account_password, t('.current_password'), :for => :close_account_password
+              = f.password_field :current_password, :id => :close_account_password
+            %p
+              = f.submit t('.close_account_text'), :confirm => t('are_you_sure_delete_account')

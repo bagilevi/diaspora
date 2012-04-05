@@ -1,49 +1,40 @@
 module Messagebus
   class Mailer
-      unless defined?(MessagebusRubyApi::VERSION)
-        MessagebusRubyApi::VERSION = '0.4.8'
-      end
-
     def initialize(api_key)
-      @client = MessagebusRubyApi::Client.new(api_key)
-    end
+     @client = MessagebusApi::Messagebus.new(api_key)
+   end
 
     attr_accessor :settings
 
     def new(*settings)
-      self
+        self.settings = {}
+        self
     end
 
-    def deliver!(message)
-      deliver(message)
+   def from_header_parse(string)
+     string.split('<')[0].delete('"')
+   end
+   
+   def deliver(message)
+     deliver!(message)
+   end
+
+   def deliver!(message)
+    msg = {:toEmail => message.to.first, :subject => message.subject, :fromEmail => AppConfig[:smtp_sender_address], :fromName => from_header_parse(message[:from].to_s)}
+
+    if message.multipart?
+      msg[:plaintextBody] = message.text_part.body.to_s if message.text_part
+      msg[:htmlBody] = message.html_part.body.to_s if message.html_part
+    else
+      msg[:plaintextBody] = message.body.to_s
+      msg[:htmlBody] = message.body.to_s
     end
 
-    def message_parse(string)
-     string.split('<')[0] 
+    begin
+      @client.add_message(msg, true)
+    rescue => message_bus_api_error
+      raise "Messagebus API error=#{message_bus_api_error}, message=#{msg.inspect}"
     end
-
-    private
-
-    def deliver(message)
-      # here we want  = {:fromEmail => message['from'].to_s}
-      @client.send_common_info = {:fromEmail => message.from.first, :customHeaders => {"sender"=> message['from'].to_s}}
-      message.to.each do |addressee|
-        m = {:toEmail => addressee, :subject => message.subject, :fromName => message_parse(message['from'].to_s)}
-
-        if message.multipart?
-          m[:plaintextBody] = message.text_part.body.to_s if message.text_part
-          m[:htmlBody]      = message.html_part.body.to_s if message.html_part
-        else
-          m[:plaintextBody] = message.body.to_s
-          m[:htmlBody] = message.body.to_s
-        end
-
-        @client.add_message(m)
-      end
-      status = @client.flush
-      if status[:failureCount] && status[:failureCount] > 0
-        raise "Messagebus failure.  failureCount=#{failureCount}, message=#{message.inspect}"
-      end
-    end
-  end
+  end 
+end
 end

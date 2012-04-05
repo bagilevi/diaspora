@@ -10,6 +10,7 @@ describe UsersController do
     @aspect = @user.aspects.first
     @aspect1 = @user.aspects.create(:name => "super!!")
     sign_in :user, @user
+    @controller.stub(:current_user).and_return(@user)
   end
 
   describe '#export' do
@@ -44,14 +45,22 @@ describe UsersController do
       get :public, :username => @user.username, :format => :atom
       response.body.should include(sm.text)
     end
+    
+    it 'renders xml if atom is requested with clickalbe urls' do
+      sm = Factory(:status_message, :public => true, :author => @user.person)
+      @user.person.posts.each do |p|
+        p.text = "Goto http://diasporaproject.org/ now!"
+        p.save
+      end
+      get :public, :username => @user.username, :format => :atom
+      response.body.should include('&lt;a href="http://diasporaproject.org/"&gt;http://diasporaproject.org/&lt;/a&gt;')
+    end
 
     it 'redirects to a profile page if html is requested' do
-      Diaspora::OstatusBuilder.should_not_receive(:new)
       get :public, :username => @user.username
       response.should be_redirect
     end
     it 'redirects to a profile page if mobile is requested' do
-      Diaspora::OstatusBuilder.should_not_receive(:new)
       get :public, :username => @user.username, :format => :mobile
       response.should be_redirect
     end
@@ -159,6 +168,13 @@ describe UsersController do
     end
   end
 
+  describe '#privacy_settings' do
+    it "returns a 200" do
+      get 'privacy_settings'
+      response.status.should == 200
+    end
+  end
+
   describe '#edit' do
     it "returns a 200" do
       get 'edit', :id => @user.id
@@ -180,15 +196,21 @@ describe UsersController do
   end
 
   describe '#destroy' do
-    it 'enqueues a delete job' do
-      Resque.should_receive(:enqueue).with(Jobs::DeleteAccount, alice.id)
-      delete :destroy
+    it 'does nothing if the password does not match' do
+      Resque.should_not_receive(:enqueue)
+      delete :destroy, :user => { :current_password => "stuff" }
     end
 
-    it 'locks the user out' do
-      delete :destroy
-      alice.reload.access_locked?.should be_true
+    it 'closes the account' do
+      alice.should_receive(:close_account!)
+      delete :destroy, :user => { :current_password => "bluepin7" }
     end
+
+    it 'enqueues a delete job' do
+      Resque.should_receive(:enqueue).with(Jobs::DeleteAccount, anything)
+      delete :destroy, :user => { :current_password => "bluepin7" }
+    end
+
   end
 
   describe '#confirm_email' do
@@ -220,15 +242,13 @@ describe UsersController do
 
   describe 'getting_started' do
     it 'does not fail miserably' do
-    get :getting_started
-    response.should be_success
-
+      get :getting_started
+      response.should be_success
     end
 
     it 'does not fail miserably on mobile' do
-    get :getting_started, :format => :mobile
-    response.should be_success
-
+      get :getting_started, :format => :mobile
+      response.should be_success
     end
   end
 end

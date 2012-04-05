@@ -7,10 +7,9 @@ require 'spec_helper'
 describe ApplicationHelper do
   before do
     @user = alice
-    @person = Factory.create(:person)
+    @person = Factory(:person)
   end
 
- 
   describe "#contacts_link" do
     before do
       def current_user
@@ -47,6 +46,41 @@ describe ApplicationHelper do
     it 'returns false if not all networks are connected' do
       @current_user.services.delete_all
       all_services_connected?.should be_false
+    end
+  end
+
+  describe "#jquery_include_tag" do
+    describe "with google cdn" do
+      before do
+        AppConfig[:jquery_cdn] = true
+      end
+
+      it 'inclues jquery.js from google cdn' do
+        jquery_include_tag.should match(/googleapis\.com/)
+      end
+
+      it 'falls back to asset pipeline on cdn failure' do
+        jquery_include_tag.should match(/document\.write/)
+      end
+    end
+
+    describe "without google cdn" do
+      before do
+        AppConfig[:jquery_cdn] = false
+      end
+
+      it 'includes jquery.js from asset pipeline' do
+        jquery_include_tag.should match(/jquery\.js/)
+        jquery_include_tag.should_not match(/googleapis\.com/)
+      end
+    end
+
+    it 'inclues jquery_ujs.js' do
+      jquery_include_tag.should match(/jquery_ujs\.js/)
+    end
+
+    it "disables ajax caching" do
+      jquery_include_tag.should match(/jQuery\.ajaxSetup/)
     end
   end
 end

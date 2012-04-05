@@ -1,59 +1,132 @@
-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2012, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 
-es: 
-  javascripts: 
-    aspect_dropdown: 
+
+es:
+  javascripts:
+    aspect_dropdown:
       add_to_aspect: "Añadir contacto"
       all_aspects: "Todos los aspectos"
+      error: "No podrás compartir con <%= name %>. ¿Vas a ignonarle?"
       select_aspects: "Elige los aspectos"
-      toggle: 
-        few: "En {{count}} aspectos"
-        many: "En {{count}} aspectos"
-        one: "En {{count}} aspecto"
-        other: "En {{count}} aspectos"
-        two: "En {{count}} aspectos"
+      started_sharing_with: "¡Ahora sigues los mensajes públicos de <%= name %>!"
+      stopped_sharing_with: "Ya no compartes más con <%= name %>."
+      toggle:
+        few: "En <%= count %> aspectos"
+        many: "En <%= count %> aspectos"
+        one: "En <%= count %> aspecto"
+        other: "En <%= count %> aspectos"
+        two: "En <%= count %> aspectos"
         zero: "Elige los aspectos"
-    aspect_navigation: 
+    aspect_navigation:
       deselect_all: "Desmarcar todos"
       no_aspects: "No hay aspectos seleccionados"
       select_all: "Marcar todos"
-    comments: 
+    comments:
       hide: "ocultar comentarios"
       show: "ver todos los comentarios"
     confirm_dialog: "¿Estás seguro?"
+    delete: "Borrar"
     failed_to_like: "¡Ha fallado tu aprobación!"
     failed_to_post_message: "¡Fallo al publicar el mensaje!"
-    infinite_scroll: 
+    getting_started:
+      alright_ill_wait: "Está bien, esperaré."
+      hey: "¡Hola, <%= name %>!"
+      no_tags: "¡Eih, aún no sigues ninguna etiqueta! ¿Quieres continuar de todas formas?"
+      preparing_your_stream: "Preparando tus novedades personalizadas..."
+    header:
+      admin: "Administrar"
+      contacts: "Contactos"
+      home: "Inicio"
+      log_out: "Salir"
+      mark_all_as_read: "Marcar todo como leido"
+      messages: "Mensajes"
+      notifications: "Notificaciones"
+      profile: "Perfil"
+      recent_notifications: "Notificaciones recientes"
+      search: "Encuentra gente o #etiquetas"
+      settings: "Ajustes"
+      view_all: "Ver todo"
+    ignore: "Ignorar persona"
+    infinite_scroll:
       no_more: "No hay más publicaciones."
-    publisher: 
-      at_least_one_aspect: "Debes publicarlo en al menos un aspecto"
-      limited: "Limitado - tu publicación solo será visible para las personas con quien compartes"
-      public: "Público - tu publicación será visible para todos, incluyendo buscadores"
-    reshares: 
-      duplicate: "¡Ya compartiste esa publicación!"
-    search_for: "Buscar a {{name}}"
+    my_activity: "Mi Actividad"
+    my_stream: "Entrada"
+    people:
+      not_found: "...y no se encontró a nadie."
+    photo_uploader:
+      looking_good: "¡Guau, estás increíble!"
+    publisher:
+      at_least_one_aspect: "Debes publicarlo al menos en un aspecto"
+      limited: "Limitado - tu publicación solo es visible para gente con quien compartes"
+      public: "Público - tu publicación es visible para todos, incluyendo buscadores"
+    reshares:
+      duplicate: "Que bien, ¿eh? ¡Has compartido esa publicación!"
+    search_for: "Buscar a <%= name %>"
     show_more: "mostrar más"
-    timeago: 
-      day: "un día"
+    stream:
+      comment: "Comentar"
+      follow: "Seguir"
+      hide: "Ocultar publicación"
+      hide_nsfw_posts: "Ocultar publicaciones no aptas para todos los públicos"
+      like: "Me gusta"
+      likes:
+        few: "le gusta a <%= count %> personas"
+        many: "le gusta a <%= count %> personas"
+        one: "A <%= count %> persona le gusta "
+        other: "A <%= count %> personas les gusta "
+        two: "le gusta a <%= count %> personas"
+        zero: "A <%= count %> personas les gusta"
+      limited: "Restringido"
+      more_comments:
+        few: "Mostrar <%= count %> comentarios más"
+        many: "Mostrar <%= count %> comentarios más"
+        one: "Mostrar <%= count %> comentario"
+        other: "Mostrar <%= count %> comentarios más"
+        two: "Mostrar <%= count %> comentarios más"
+        zero: "Mostrar <%= count %> comentarios más"
+      original_post_deleted: "Publicación original borrada por el autor."
+      public: "Público"
+      reshare: "Compartir"
+      reshares:
+        few: "Compartido <%= count %> veces"
+        many: "Compartido <%= count %> veces"
+        one: "Compartido <%= count %> vez"
+        other: "Compartido <%= count %> veces"
+        two: "Compartido <%= count %> veces"
+        zero: "Comparido <%= count %> veces"
+      show_nsfw_post: "Mostrar publicación"
+      show_nsfw_posts: "Mostrar todas las publicaciones"
+      unfollow: "No seguir"
+      unlike: "No me gusta"
+    tags:
+      wasnt_that_interesting: "OK, supongo que #<%= tagName %> no era tan interesante..."
+    timeago:
+      day: "1 día"
       days: "%d días"
-      hour: "una hora aproximadamente"
+      hour: "1 hora aproximadamente"
       hours: "%d horas aproximadamente"
-      minute: "un minuto"
+      minute: "1 minuto aproximadamente"
       minutes: "%d minutos"
-      month: "un mes aproximadamente"
-      months: "%d meses aproximadamente"
-      prefixAgo: "hace"
-      prefixFromNow: "desde ahora"
-      seconds: "menos de un minuto"
+      month: "1 mes aproximadamente"
+      months: "%d meses"
+      prefixAgo: "Hace"
+      prefixFromNow: "dentro de"
+      seconds: "menos de 1 minuto"
       suffixAgo: ""
-      suffixFromNow: "desde ahora"
-      year: "un año aproximadamente"
+      suffixFromNow: ""
+      year: "1 año aproximadamente"
       years: "%d años"
-    videos: 
+    videos:
       unknown: "Tipo de video desconocido"
-      watch: "Ver este video con {{provider}}"
-    web_sockets: 
-      disconnected: "El canal está cerrado; las publicaciones no serán actualizadas al momento."
+      watch: "Ver este video con <%= provider %>"
+    viewer:
+      comment: "Comentar"
+      follow_post: "Seguir"
+      like: "Me gusta"
+      reshare: "Compartir"
+      reshared: "Compartido"
+      stop_following_post: "Dejar de seguir"
+      unlike: "No me gusta"

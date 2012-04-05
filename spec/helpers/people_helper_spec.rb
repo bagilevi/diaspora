@@ -7,8 +7,9 @@ require 'spec_helper'
 describe PeopleHelper do
  before do
     @user = alice
-    @person = Factory.create(:person)
+    @person = Factory(:person)
   end
+
  describe "#person_image_link" do
     it "returns an empty string if person is nil" do
       person_image_link(nil).should == ""
@@ -59,10 +60,25 @@ describe PeopleHelper do
     end
   end
 
-  describe '#person_href' do
+  describe "#person_href" do
+    it "calls local_or_remote_person_path and passes through the options" do
+      opts = {:absolute => true}
+
+      self.should_receive(:local_or_remote_person_path).with(@person, opts).exactly(1).times
+
+      person_href(@person, opts)
+    end
+
+    it "returns a href attribute" do
+      person_href(@person).should include "href="
+    end
+  end
+
+  describe '#local_or_remote_person_path' do
     before do
       @user = Factory(:user)
     end
+
     it "links by id if there is a period in the user's username" do
       @user.username = "invalid.username"
       @user.save(:validate => false).should == true
@@ -70,17 +86,16 @@ describe PeopleHelper do
       person.diaspora_handle = "#{@user.username}@#{AppConfig[:pod_uri].authority}"
       person.save!
 
-      person_href(@user.person).should include("href='/people/#{@user.person.id}'")
+      local_or_remote_person_path(@user.person).should == person_path(@user.person)
     end
 
     it 'links by username for a local user' do
-      person_href(@user.person).should include(@user.username)
+      local_or_remote_person_path(@user.person).should == user_profile_path(:username => @user.username)
     end
+
     it 'links by id for a remote person' do
-      person = Factory(:person)
-      person_href(person).should include("/people/#{person.id}")
+      local_or_remote_person_path(@person).should == person_path(@person)
     end
   end
-
 end
 

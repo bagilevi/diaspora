@@ -7,7 +7,10 @@ require 'active_support/base64'
 
 class HydraWrapper
 
-  OPTS = {:max_redirects => 3, :timeout => 5000, :method => :post}
+  OPTS = {:max_redirects => 3, :timeout => 25000, :method => :post,
+          :headers => {'Expect'            => '',
+                       'Transfer-Encoding' => ''}
+         }
 
   attr_reader :failed_people, :user, :encoded_object_xml
   attr_accessor :dispatcher_class, :people, :hydra
@@ -27,8 +30,8 @@ class HydraWrapper
   end
 
   # @return [Salmon]
-  def salmon
-    @salmon ||= @dispatcher_class.salmon(@user, Base64.decode64(@encoded_object_xml))
+  def xml_factory
+    @xml_factory ||= @dispatcher_class.salmon(@user, Base64.decode64(@encoded_object_xml))
   end
 
   # Group people on their receiving_urls
@@ -42,7 +45,7 @@ class HydraWrapper
   # Inserts jobs for all @people
   def enqueue_batch
     grouped_people.each do |receive_url, people_for_receive_url|
-      if xml = salmon.xml_for(people_for_receive_url.first)
+      if xml = xml_factory.xml_for(people_for_receive_url.first)
         self.insert_job(receive_url, xml, people_for_receive_url)
       end
     end

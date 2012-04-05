@@ -1,7 +1,13 @@
 #author_info
   .right
     - if user_signed_in? && current_user.person != person
-      = aspect_membership_dropdown(contact, person, 'right')
+      - if @block.present?
+        = link_to t('users.privacy_settings.stop_ignoring'), block_path(@block),
+          :method => :delete,
+          :class => "button"
+
+      - else
+        = aspect_membership_dropdown(contact, person, 'right')
     - elsif user_signed_in? && current_user.person == person
       = link_to t('people.profile_sidebar.edit_my_profile'), edit_profile_path, :class => 'button creation'
 
@@ -9,6 +15,7 @@
     = person.name
   %span.diaspora_handle
     = person.diaspora_handle
+    = link_to t('people.last_post'), last_post_person_path(person.to_param)
 
   .description
     - if !person.profile.tag_string.blank? && user_signed_in?

@@ -14,11 +14,11 @@ Feature: Notifications
     And I add the person to my "Besties" aspect
     And I go to the destroy user session page
     When I sign in as "alice@alice.alice"
-    And I follow "notification" in the header
+    And I follow "Notifications" in the header
     And I wait for the ajax to finish
     Then the notification dropdown should be visible
     Then I should see "started sharing with you"
-    When I follow "View all"
+    And I go to the notifications page
     Then I should see "started sharing with you"
     And I should have 1 email delivery
 
@@ -32,12 +32,10 @@ Feature: Notifications
     And I wait for the ajax to finish
     And I go to the destroy user session page
     When I sign in as "alice@alice.alice"
-    And I follow "notification" in the header
-    And I wait for the ajax to finish
+    And I follow "Notifications" in the header
+    #And I wait for the ajax to finish
     Then the notification dropdown should be visible
-    And I wait for the ajax to finish
-    Then I should see "reshared your post"
-    When I follow "View all"
+    #And I wait for the ajax to finish
     Then I should see "reshared your post"
     And I should have 1 email delivery
 
@@ -51,12 +49,10 @@ Feature: Notifications
     And I wait for the ajax to finish
     And I go to the destroy user session page
     When I sign in as "alice@alice.alice"
-    And I follow "notification" in the header
+    And I follow "Notifications" in the header
     And I wait for the ajax to finish
     Then the notification dropdown should be visible
     And I wait for the ajax to finish
-    Then I should see "liked your post"
-    When I follow "View all"
     Then I should see "liked your post"
     And I should have 1 email delivery
 
@@ -66,29 +62,23 @@ Feature: Notifications
     When I sign in as "bob@bob.bob"
     And I am on "alice@alice.alice"'s page
     And I focus the comment field
-    And I fill in "Comment" with "great post!"
+    And I fill in "text" with "great post!"
     And I press "Comment"
     And I wait for the ajax to finish
     And I go to the destroy user session page
     When I sign in as "alice@alice.alice"
-    And I follow "notification" in the header
-    And I wait for the ajax to finish
+    And I follow "Notifications" in the header
     Then the notification dropdown should be visible
-    And I wait for the ajax to finish
-    Then I should see "commented on your post"
-    When I follow "View all"
     Then I should see "commented on your post"
     And I should have 1 email delivery
 
-  Scenario: someone mentioned you on his post
+  Scenario: someone mentioned me in their post
     Given a user with email "bob@bob.bob" is connected with "alice@alice.alice"
     And Alice has a post mentioning Bob
     When I sign in as "bob@bob.bob"
-    And I follow "notification" in the header
+    And I follow "Notifications" in the header
     And I wait for the ajax to finish
     Then the notification dropdown should be visible
     And I wait for the ajax to finish
-    Then I should see "mentioned you in a post"
-    When I follow "View all"
     Then I should see "mentioned you in a post"
     And I should have 1 email delivery

@@ -18,18 +18,31 @@ describe Notifier do
       mail.body.encoded.should match /Welcome to bureaucracy!/
       mail.body.encoded.should match /#{bob.username}/
     end
-    it 'mails a bunch of users' do
-      users = []
-      5.times do
-        users << Factory.create(:user)
+
+    context 'mails a bunch of users' do
+      before do
+        @users = []
+        5.times do
+          @users << Factory(:user)
+        end
       end
-      mails = Notifier.admin("Welcome to bureaucracy!", users)
-      mails.length.should == 5
-      mails.each{|mail|
-        this_user = users.detect{|u| mail.to == [u.email]}
-        mail.body.encoded.should match /Welcome to bureaucracy!/
-        mail.body.encoded.should match /#{this_user.username}/
-      }
+      it 'has a body' do
+        mails = Notifier.admin("Welcome to bureaucracy!", @users)
+        mails.length.should == 5
+        mails.each{|mail|
+          this_user = @users.detect{|u| mail.to == [u.email]}
+          mail.body.encoded.should match /Welcome to bureaucracy!/
+          mail.body.encoded.should match /#{this_user.username}/
+        }
+      end
+
+      it "has attachments" do
+        mails = Notifier.admin("Welcome to bureaucracy!", @users, :attachments => [{:name => "retention stats", :file => "here is some file content"}])
+        mails.length.should == 5
+        mails.each{|mail|
+          mail.attachments.count.should == 1
+        }
+      end
     end
   end
 
@@ -44,6 +57,11 @@ describe Notifier do
     it 'has the layout' do
       mail = Notifier.single_admin("Welcome to bureaucracy!", bob)
       mail.body.encoded.should match /change your notification settings/
+    end
+
+    it 'has an optional attachment' do
+      mail = Notifier.single_admin("Welcome to bureaucracy!", bob, :attachments => [{:name => "retention stats", :file => "here is some file content"}])
+      mail.attachments.length.should == 1
     end
   end
 
@@ -127,8 +145,8 @@ describe Notifier do
 
   describe ".reshared" do
     before do
-      @sm = Factory.create(:status_message, :author => alice.person, :public => true)
-      @reshare = Factory.create(:reshare, :root => @sm, :author => bob.person)
+      @sm = Factory(:status_message, :author => alice.person, :public => true)
+      @reshare = Factory(:reshare, :root => @sm, :author => bob.person)
       @mail = Notifier.reshared(alice.id, @reshare.author.id, @reshare.id)
     end
 
@@ -197,7 +215,7 @@ describe Notifier do
 
   context "comments" do
     let(:commented_post) {bob.post(:status_message, :text => "It's really sunny outside today, and this is a super long status message!  #notreally", :to => :all)}
-    let(:comment) { eve.comment("Totally is", :post => commented_post)}
+    let(:comment) { eve.comment!(commented_post, "Totally is")}
 
     describe ".comment_on_post" do
       let(:comment_mail) {Notifier.comment_on_post(bob.id, person.id, comment.id).deliver}

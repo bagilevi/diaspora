@@ -14,7 +14,7 @@ describe AdminsController do
     context 'admin not signed in' do
       it 'is behind redirect_unless_admin' do
         get :user_search
-        response.should redirect_to root_url
+        response.should redirect_to stream_path
       end
     end
 
@@ -64,18 +64,13 @@ describe AdminsController do
     context 'admin not signed in' do
       it 'is behind redirect_unless_admin' do
         get :admin_inviter
-        response.should redirect_to root_url
+        response.should redirect_to stream_path
       end
     end
 
     context 'admin signed in' do
       before do
         AppConfig[:admins] = [@user.username]
-      end
-
-      it 'succeeds' do
-        get :admin_inviter, :identifier => 'bob@moms.com'
-        response.should be_redirect
       end
 
       it 'does not die if you do it twice' do
@@ -85,7 +80,7 @@ describe AdminsController do
       end
 
       it 'invites a new user' do
-        Invitation.should_receive(:create)
+        EmailInviter.should_receive(:new).and_return(stub.as_null_object)
         get :admin_inviter, :identifier => 'bob@moms.com'
         response.should redirect_to user_search_path
         flash.notice.should include("invitation sent")

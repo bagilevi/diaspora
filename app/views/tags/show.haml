@@ -10,7 +10,7 @@
     = t('.whatup', :pod => @pod_url)
 
 - content_for :head do
-  = include_javascripts :home
+  = javascript_include_tag :home
   :javascript
     $(document).ready(function(){
       // Change the text and color of the "follow this tag" button on hover.
@@ -67,10 +67,6 @@
     %hr
 
     #main_stream.stream
-      - if @stream.posts.length > 0
-        = render 'shared/stream', :posts => @stream.posts
-        #pagination
-          =link_to(t('more'), next_page_path, :class => 'paginate')
-      - else
-        = t('.nobody_talking', :tag => @stream.display_tag_name)
+
+    #paginate
 

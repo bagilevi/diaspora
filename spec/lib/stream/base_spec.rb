@@ -5,6 +5,36 @@ describe Stream::Base do
     @stream = Stream::Base.new(alice)
   end
 
+  describe '#contacts_link' do
+    it 'should default to your contacts page' do
+      @stream.contacts_link.should =~ /contacts/
+    end
+  end
+
+  describe '#stream_posts' do
+    it "should returns the posts.for_a_stream" do
+      posts = mock
+      @stream.stub(:posts).and_return(posts)
+      @stream.stub(:like_posts_for_stream!)
+      @stream.stub(:participation_posts_for_stream!)
+
+      posts.should_receive(:for_a_stream).with(anything, anything, alice).and_return(posts)
+      @stream.stream_posts
+    end
+
+    context "when alice has liked some posts" do
+      before do
+        bob.post(:status_message, :text => "sup", :to => bob.aspects.first.id)
+        @liked_status = bob.posts.last
+        @like = Factory(:like, :target => @liked_status, :author => alice.person)
+      end
+
+      it "marks the posts as liked" do
+        @stream.stream_posts.first.user_like.id.should == @like.id
+      end
+    end
+  end
+
   describe '.can_comment?' do
     before do
       @person = Factory(:person)
@@ -35,6 +65,13 @@ describe Stream::Base do
     it 'returns false if person is remote and not a contact' do
       post = Factory(:status_message, :author => @person)
       @stream.can_comment?(post).should be_false
+    end
+  end
+
+  describe '#people' do
+    it 'excludes blocked people' do
+      @stream.should_receive(:stream_posts).and_return(stub.as_null_object)
+      @stream.people
     end
   end
 

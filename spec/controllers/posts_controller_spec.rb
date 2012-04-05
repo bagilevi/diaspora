@@ -30,6 +30,10 @@ describe PostsController do
         response.should be_success
       end
 
+      it 'renders the application layout on mobile' do
+        get :show, :id => @message.id, :format => :mobile
+        response.should render_template('layouts/application')
+      end
 
       it 'succeeds on mobile with a reshare' do
         get :show, "id" => Factory(:reshare, :author => alice.person).id, :format => :mobile
@@ -37,9 +41,8 @@ describe PostsController do
       end
 
       it 'marks a corresponding notification as read' do
-        alice.comment("comment after me", :post => @message)
-        bob.comment("here you go", :post => @message)
-        note = Notification.where(:recipient_id => alice.id, :target_id => @message.id).first
+        note = Notification.create(:recipient => alice, :target => @message, :unread => true)
+
         lambda{
           get :show, :id => @message.id
           note.reload
@@ -51,42 +54,40 @@ describe PostsController do
         get :show, :id => photo.id
         response.should be_success
       end
+
+      it 'redirects if the post is missing' do
+        get :show, :id => 1234567
+        response.should be_redirect
+      end
     end
 
     context 'user not signed in' do
+      context 'given a public post' do
+        before :each do
+          @status = alice.post(:status_message, :text => "hello", :public => true, :to => 'all')
+        end
 
-      it 'shows a public post' do
-        status = alice.post(:status_message, :text => "hello", :public => true, :to => 'all')
+        it 'shows a public post' do
+          get :show, :id => @status.id
+          response.status.should == 200
+        end
 
-        get :show, :id => status.id
-        response.status.should == 200
-      end
+        it 'succeeds for statusnet' do
+          @request.env["HTTP_ACCEPT"] = "application/html+xml,text/html"
+          get :show, :id => @status.id
+          response.should be_success
+        end
 
-      it 'succeeds for statusnet' do
-        status = alice.post(:status_message, :text => "hello", :public => true, :to => 'all')
-        @request.env["HTTP_ACCEPT"] = "application/html+xml,text/html"
-        get :show, :id => status.id
-        response.should be_success
-      end
-
-      it 'shows a public photo' do
-        pending
-        status = Factory(:status_message_with_photo, :public => true, :author => alice.person)
-        photo = status.photos.first
-        get :show, :id => photo.id
-        response.status.should == 200
+        it 'responds with diaspora xml if format is xml' do
+          get :show, :id => @status.guid, :format => :xml
+          response.body.should == @status.to_diaspora_xml
+        end
       end
 
       it 'does not show a private post' do
         status = alice.post(:status_message, :text => "hello", :public => false, :to => 'all')
         get :show, :id => status.id
         response.status = 302
-      end
-
-      it 'responds with diaspora xml if format is xml' do
-        status = alice.post(:status_message, :text => "hello", :public => true, :to => 'all')
-        get :show, :id => status.guid, :format => :xml
-        response.body.should == status.to_diaspora_xml
       end
 
       # We want to be using guids from now on for this post route, but do not want to break
@@ -98,15 +99,15 @@ describe PostsController do
         end
 
         it 'assumes guids less than 8 chars are ids and not guids' do
-          Post.should_receive(:where).with(hash_including(:id => @status.id)).and_return(Post)
+          Post.should_receive(:where).with(hash_including(:id => @status.id.to_s)).and_return(Post)
           get :show, :id => @status.id
-          response.status= 200
+          response.should be_success
         end
 
         it 'assumes guids more than (or equal to) 8 chars are actually guids' do
           Post.should_receive(:where).with(hash_including(:guid => @status.guid)).and_return(Post)
           get :show, :id => @status.guid
-          response.status= 200
+          response.should be_success
         end
       end
     end
@@ -145,24 +146,5 @@ describe PostsController do
       response.should_not be_success
       StatusMessage.exists?(message.id).should be_true
     end
-  end
-
-  describe '#index' do
-    before do
-      sign_in alice
-    end
-    
-    it 'will succeed if admin' do
-      AppConfig[:admins] = [alice.username]
-      get :index
-      response.should be_success
-    end
-
-    it 'will redirect if not' do
-      AppConfig[:admins] = []
-      get :index
-      response.should be_redirect
-    end
-
   end
 end

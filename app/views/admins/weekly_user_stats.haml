@@ -5,9 +5,16 @@
 %br
 
 .span-24.last
-  %h1
-    = "Users per week (Current server date is: #{Time.now.to_date}) "
-  %ul
-    - @created_users_by_week.keys.sort.each do |k|
-      %li
-        = "Week stating on #{k} , #{@created_users_by_week[k]}"
+  %h2
+    = "Current server date is: #{Time.now.to_date}) "
+
+= form_tag('/admins/weekly_user_stats', :method => 'get') do
+  = select_tag(:week, options_for_select(@created_users_by_week.keys))
+  = submit_tag 'go'
+
+amount of new users this week:
+= @counter
+%br
+- @created_users_by_week[(params[:week])].each do |m|
+  = link_to m, "/u/#{m}"
+  %br

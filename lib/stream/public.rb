@@ -13,9 +13,8 @@ class Stream::Public < Stream::Base
 
   # @return [ActiveRecord::Association<Post>] AR association of posts
   def posts
-    @posts ||= Post.all_public.for_a_stream(max_time, order) 
+    @posts ||= Post.all_public
   end
-
 
   def contacts_title
     I18n.translate("streams.public.contacts_title")

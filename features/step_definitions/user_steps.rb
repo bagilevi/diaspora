@@ -7,40 +7,40 @@ Given /^a user with username "([^\"]*)" and password "([^\"]*)"$/ do |username, 
 end
 
 Given /^a user with email "([^\"]*)"$/ do |email|
-  user = Factory(:user, :email => email, :password => 'password',
-                 :password_confirmation => 'password', :getting_started => false)
-  user.aspects.create(:name => "Besties")
-  user.aspects.create(:name => "Unicorns")
+  create_user(:email => email)
 end
 
 Given /^a user with username "([^\"]*)"$/ do |username|
-  user = Factory(:user, :email => username + "@" + username + '.' + username, :username => username,
-                 :password => 'password', :password_confirmation => 'password', :getting_started => false)
-  user.aspects.create(:name => "Besties")
-  user.aspects.create(:name => "Unicorns")
+  create_user(:email => username + "@" + username + '.' + username, :username => username)
 end
 
 Given /^a user named "([^\"]*)" with email "([^\"]*)"$/ do |name, email|
   first, last = name.split
-  username = "#{first}_#{last}" if first
-  user = Factory.create(:user, :email => email, :password => 'password', :username => "#{first}_#{last}",
-                 :password_confirmation => 'password', :getting_started => false)
-
+  user = create_user(:email => email, :username => "#{first}_#{last}")
   user.profile.update_attributes!(:first_name => first, :last_name => last) if first
-  user.aspects.create!(:name => "Besties")
-  user.aspects.create!(:name => "Unicorns")
+end
+
+Given /^a nsfw user with email "([^\"]*)"$/ do |email|
+  user = create_user(:email => email)
+  user.profile.update_attributes(:nsfw => true)
 end
 
 Given /^I have been invited by an admin$/ do
-  i = Invitation.create!(:admin => true, :service => 'email', :identifier => "new_invitee@example.com")
-  @me = i.attach_recipient!
+  admin = Factory(:user)
+  admin.invitation_code
+  i = EmailInviter.new("new_invitee@example.com", admin)
+  i.send!
 end
 
-Given /^I have been invited by a user$/ do
-  @inviter = Factory(:user)
-  aspect = @inviter.aspects.create(:name => "Rocket Scientists")
-  i =  Invitation.create!(:aspect => aspect, :sender => @inviter, :service => 'email', :identifier => "new_invitee@example.com", :message =>"Hey, tell me about your rockets!")
-  @me = i.attach_recipient!
+Given /^I have been invited by bob$/ do
+  @inviter = Factory(:user, :email => 'bob@bob.bob')
+  @inviter_invite_count = @inviter.invitation_code.count
+  i = EmailInviter.new("new_invitee@example.com", @inviter)
+  i.send!
+end
+
+When /^I should see one less invite$/ do
+  step "I should see \"#{@inviter_invite_count -1} invites left\""
 end
 
 When /^I click on my name$/ do
@@ -72,7 +72,7 @@ end
 
 Given /^there is a user "([^\"]*)" who's tagged "([^\"]*)"$/ do |full_name, tag|
   username = full_name.gsub(/\W/, "").underscore
-  Given "a user named \"#{full_name}\" with email \"#{username}@example.com\""
+  step "a user named \"#{full_name}\" with email \"#{username}@example.com\""
   user = User.find_by_username(username)
   user.profile.tag_string = tag
   user.profile.build_tags
@@ -85,7 +85,7 @@ Given /^many posts from alice for bob$/ do
   connect_users_with_aspects(alice, bob)
   time_fulcrum = Time.now - 40000
   time_interval = 1000
-  (1..40).each do |n|
+  (1..30).each do |n|
     post = alice.post :status_message, :text => "#{alice.username} - #{n} - #seeded", :to => alice.aspects.where(:name => "generic").first.id
     post.created_at = time_fulcrum - time_interval
     post.updated_at = time_fulcrum + time_interval
@@ -99,11 +99,10 @@ Then /^I should have (\d) contacts? in "([^"]*)"$/ do |n_contacts, aspect_name|
 end
 
 When /^I (?:add|remove) the person (?:to|from) my "([^\"]*)" aspect$/ do |aspect_name|
-  steps %Q{
-    And I press the first ".toggle.button"
-    And I click on selector ".dropdown.active .dropdown_list li[data-aspect_id=#{@me.aspects.where(:name => aspect_name).first.id}]"
-    And I press the first ".toggle.button"
-  }
+    aspects_dropdown = find(".aspect_membership .toggle.button:first")
+    aspects_dropdown.click
+    find(".dropdown.active .dropdown_list li:contains('#{aspect_name}')").click
+    aspects_dropdown.click
 end
 
 When /^I post a status with the text "([^\"]*)"$/ do |text|
@@ -151,7 +150,7 @@ Given /^I have (\d+) contacts$/ do |n|
   aspect_memberships = []
 
   count.times do
-    person = Factory.create(:person)
+    person = Factory(:person)
     people << person
   end
 
@@ -166,4 +165,29 @@ Given /^I have (\d+) contacts$/ do |n|
     aspect_memberships << AspectMembership.new(:contact_id => contact.id, :aspect_id => aspect_id)
   end
   AspectMembership.import(aspect_memberships)
+end
+
+When /^I view "([^\"]*)"'s first post$/ do |email|
+  user = User.find_by_email(email)
+  post = user.posts.first
+  visit post_path(post)
+end
+
+Given /^I visit alice's invitation code url$/ do
+  @alice ||= Factory(:user, :username => 'alice', :getting_started => false)
+  invite_code  = InvitationCode.find_or_create_by_user_id(@alice.id)
+  visit invite_code_path(invite_code)
+end
+
+When /^I fill in the new user form$/ do
+  step 'I fill in "user_username" with "ohai"'
+  step 'I fill in "user_email" with "ohai@example.com"'
+  step 'I fill in "user_password" with "secret"'
+  step 'I fill in "user_password_confirmation" with "secret"'
+end
+
+And /^I should be able to friend Alice$/ do
+  alice = User.find_by_username 'alice'
+  step 'I should see "Add contact"'
+  step "I should see \"#{alice.name}\""
 end

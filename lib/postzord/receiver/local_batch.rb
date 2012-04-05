@@ -10,9 +10,11 @@ class Postzord::Receiver::LocalBatch < Postzord::Receiver
     @object = object
     @recipient_user_ids = recipient_user_ids
     @users = User.where(:id => @recipient_user_ids)
+
   end
 
   def receive!
+    FEDERATION_LOGGER.info("receiving local batch for #{@object.inspect}")
     if @object.respond_to?(:relayable?)
       receive_relayable
     else
@@ -21,21 +23,10 @@ class Postzord::Receiver::LocalBatch < Postzord::Receiver
     notify_mentioned_users if @object.respond_to?(:mentions)
 
     # 09/27/11 this is slow
-    #socket_to_users if @object.respond_to?(:socket_to_user)
     notify_users
 
+    FEDERATION_LOGGER.info("receiving local batch completed for #{@object.inspect}")
     true
-  end
-
-  def update_cache!
-    @users.each do |user|
-      # (NOTE) this can be optimized furter to not use n-query
-      contact = user.contact_for(object.author)
-      if contact && contact.aspect_memberships.size > 0
-        cache = RedisCache.new(user, "created_at")
-        cache.add(@object.created_at.to_i, @object.id)
-      end
-    end
   end
 
   # NOTE(copied over from receiver public)
@@ -65,15 +56,6 @@ class Postzord::Receiver::LocalBatch < Postzord::Receiver
   end
 
   #NOTE(these methods should be in their own module, included in this class)
-
-  # Issue websocket requests to all specified recipients
-  # @return [void]
-  def socket_to_users
-    @users.each do |user|
-      @object.socket_to_user(user)
-    end
-  end
-
   # Notify users of the new object
   # return [void]
   def notify_users

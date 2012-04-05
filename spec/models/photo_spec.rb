@@ -55,16 +55,42 @@ describe Photo do
 
   describe '#diaspora_initialize' do
     before do
-      image = File.open(@fixture_name)
+      @image = File.open(@fixture_name)
       @photo = Photo.diaspora_initialize(
-                :author => @user.person, :user_file => image)
+                :author => @user.person, :user_file => @image)
     end
+
     it 'sets the persons diaspora handle' do
-      @photo2.diaspora_handle.should == @user.person.diaspora_handle
+      @photo.diaspora_handle.should == @user.person.diaspora_handle
     end
-    it 'builds the photo without saving' do
-      @photo.created_at.nil?.should be_true
-      @photo.unprocessed_image.read.nil?.should be_false
+
+    it 'sets the random prefix' do
+      photo_stub = stub.as_null_object
+      photo_stub.should_receive(:random_string=)
+      Photo.stub(:new).and_return(photo_stub)
+
+      Photo.diaspora_initialize(
+        :author => @user.person, :user_file => @image)
+    end
+
+    context "with user file" do
+      it 'builds the photo without saving' do
+        @photo.created_at.nil?.should be_true
+        @photo.unprocessed_image.read.nil?.should be_false
+      end
+    end
+
+    context "with a url" do
+      it 'saves the photo' do
+        url = "https://service.com/user/profile_image"
+
+        photo_stub = stub.as_null_object
+        photo_stub.should_receive(:remote_unprocessed_image_url=).with(url)
+        Photo.stub(:new).and_return(photo_stub)
+
+        Photo.diaspora_initialize(
+                :author => @user.person, :image_url => url)
+      end
     end
   end
 
@@ -154,7 +180,7 @@ describe Photo do
 
     it 'should set the remote_photo on marshalling' do
       #security hax
-      user2 = Factory.create(:user)
+      user2 = Factory(:user)
       aspect2 = user2.aspects.create(:name => "foobars")
       connect_users(@user, @aspect, user2, aspect2)
 
@@ -176,7 +202,7 @@ describe Photo do
 
   context "commenting" do
     it "accepts comments if there is no parent status message" do
-      proc{ @user.comment("big willy style", :post => @photo) }.should change(@photo.comments, :count).by(1)
+      proc{ @user.comment!(@photo, "big willy style") }.should change(@photo.comments, :count).by(1)
     end
   end
 
@@ -201,17 +227,19 @@ describe Photo do
       }.should change(Photo, :count).by(-1)
     end
 
-    it 'will delete parent status message iff message is otherwise empty' do
+    it 'will delete parent status message if message is otherwise empty' do
       expect {
         @photo2.destroy
       }.should change(StatusMessage, :count).by(-1)
     end
 
-    it 'will not delete parent status message iff message had other content' do
+    it 'will not delete parent status message if message had other content' do
+      @status_message.text = "Some text"
+      @status_message.save
+      @status_message.reload
+
       expect {
-        @status_message.text = "Some text"
-        @status_message.save
-        @status_message.reload
+        @photo2.status_message.reload
         @photo2.destroy
       }.should_not change(StatusMessage, :count)
     end

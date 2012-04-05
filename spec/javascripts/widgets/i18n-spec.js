@@ -6,40 +6,54 @@
 describe("Diaspora", function() {
   describe("widgets", function() {
     describe("i18n", function() {
+      var locale = {namespace: {
+          message: "hey",
+          template: "<%= myVar %>",
+          otherNamespace: {
+            message: "hello from another namespace",
+            otherMessage: {
+              zero: "none",
+              one: "just one",
+              few: "just a few",
+              many: "way too many",
+              other: "what?"
+            }
+          }
+        }
+      };
+
       describe("loadLocale", function() {
         it("sets the class's locale variable", function() {
-          Diaspora.I18n.loadLocale({sup: "hi"});
-          expect(Diaspora.I18n.locale).toEqual({sup: "hi"});
+          Diaspora.I18n.loadLocale(locale);
+
+          expect(Diaspora.I18n.locale).toEqual(locale);
         });
       });
+
       describe("t", function() {
+        var translation;
+        beforeEach(function() { Diaspora.I18n.loadLocale(locale); });
+
         it("returns the specified translation", function() {
-          Diaspora.I18n.loadLocale({yo: "sup"}, "en");
-          var translation = Diaspora.I18n.t("yo");
-          expect(translation).toEqual("sup");
+          translation = Diaspora.I18n.t("namespace.message");
+
+          expect(translation).toEqual("hey");
         });
+
         it("will go through a infinitely deep object", function() {
-          Diaspora.I18n.loadLocale({
-            yo: {
-              hi: {
-                sup: {
-                  test: "test"
-                }
-              }
-            },
-            more: {
-              another: "i hope this spec is green"
-            }
-          });
-         expect(Diaspora.I18n.t("yo.hi.sup.test")).toEqual("test");
-         expect(Diaspora.I18n.t("more.another")).toEqual("i hope this spec is green");
+         translation = Diaspora.I18n.t("namespace.otherNamespace.message");
+
+         expect(translation).toEqual("hello from another namespace");
         });
+
         it("can render a mustache template", function() {
-          Diaspora.I18n.loadLocale({yo: "{{yo}}"}, "en");
-          expect(Diaspora.I18n.t("yo", {yo: "it works!"})).toEqual("it works!");
+          translation = Diaspora.I18n.t("namespace.template", { myVar: "it works!" });
+
+          expect(translation).toEqual("it works!");
         });
+
         it("returns an empty string if the translation is not found", function() {
-          expect(Diaspora.I18n.t("thisstringdoesnotexist")).toEqual("");
+          expect(Diaspora.I18n.t("missing.locale")).toEqual("");
         });
       });
     });

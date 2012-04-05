@@ -3,6 +3,22 @@
 # the COPYRIGHT file.
 
 namespace :migrations do
+
+  desc 'copy all hidden share visibilities from share_visibilities to users. Can be run with the site still up.'
+  task :copy_hidden_share_visibilities_to_users => [:environment] do
+    require File.join(Rails.root, 'lib', 'share_visibility_converter')
+    ShareVisibilityConverter.copy_hidden_share_visibilities_to_users
+  end
+
+  desc 'puts out information about old invited users'
+  task :invitations => [:environment] do
+    puts "email, invitation_token, :invited_by_id, :invitation_identifier"
+    User.where('username is NULL').select([:id, :email, :invitation_token, :invited_by_id, :invitation_identifier]).find_in_batches do |users|
+      users.each{|x| puts "#{x.email}, #{x.invitation_token}, #{x.invited_by_id}, #{x.invitation_identifier}" }
+    end
+    puts "done"
+  end
+
   desc 'absolutify all existing image references'
   task :absolutify_image_references do
     require File.join(File.dirname(__FILE__), '..', '..', 'config', 'environment')
@@ -50,7 +66,7 @@ namespace :migrations do
           key.public_link();
           puts "Uploaded #{current} of #{count}"
           current += 1
-        rescue Exception => e
+        rescue => e
           puts "error #{e} on #{current} (#{file_name}), retrying"
           retry
         end

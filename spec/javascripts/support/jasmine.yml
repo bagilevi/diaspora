@@ -3,7 +3,6 @@
 # Return an array of filepaths relative to src_dir to include before jasmine specs.
 # Default: []
 #
-# EXAMPLE:
 #
 # src_files:
 #   - lib/source1.js
@@ -11,38 +10,9 @@
 #   - dist/**/*.js
 #
 src_files:
-  - public/javascripts/vendor/jquery162.min.js
-  - public/javascripts/vendor/jquery-ui-1.8.9.custom.min.js
-  - public/javascripts/vendor/jquery.tipsy.js
-  - public/javascripts/vendor/jquery.infinitescroll.min.js
-  - public/javascripts/vendor/jquery.autoresize.min.js
-  - public/javascripts/vendor/jquery.expander.js
-  - public/javascripts/vendor/jquery-debounce.js
-  - public/javascripts/vendor/Mustache.js
-  - public/javascripts/vendor/jquery.charcount.js
-  - public/javascripts/vendor/timeago.js
-  - public/javascripts/vendor/facebox.js
-  - public/javascripts/jquery.infieldlabel-custom.js
-  - public/javascripts/fileuploader-custom.js
-  - public/javascripts/jquery.autocomplete-custom.js
-  - public/javascripts/diaspora.js
-  - public/javascripts/keycodes.js
+  # Precompile all scripts together for the test environment
+  - assets/jasmine-load-all.js
 
-  - public/javascripts/pages/*
-  - public/javascripts/helpers/*
-  - public/javascripts/widgets/*
-  
-  - public/javascripts/mobile.js
-  - public/javascripts/contact-list.js
-  - public/javascripts/web-socket-receiver.js
-  - public/javascripts/view.js
-  - public/javascripts/publisher.js
-  - public/javascripts/stream.js
-  - public/javascripts/validation.js
-  - public/javascripts/rails.js
-  - public/javascripts/aspects-dropdown.js
-  - public/javascripts/content-updater.js
-  - public/javascripts/tag-followings.js
 # stylesheets
 #
 # Return an array of stylesheet filepaths relative to src_dir to include before jasmine specs.
@@ -55,7 +25,13 @@ src_files:
 #   - stylesheets/*.css
 #
 stylesheets:
-  - stylesheets/**/*.css
+  - assets/blueprint.css
+  - assets/bootstrap.css
+  - assets/default.css
+  - assets/login.css
+  #- assets/mobile.css
+  - assets/new-templates.css
+  #- assets/rtl.css
 
 # helpers
 #

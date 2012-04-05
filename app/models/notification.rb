@@ -3,9 +3,6 @@
 #   the COPYRIGHT file.
 #
 class Notification < ActiveRecord::Base
-  require File.join(Rails.root, 'lib/diaspora/web_socket')
-  include Diaspora::Socketable
-
   belongs_to :recipient, :class_name => 'User'
   has_many :notification_actors, :dependent => :destroy
   has_many :actors, :class_name => 'Person', :through => :notification_actors, :source => :person
@@ -18,16 +15,16 @@ class Notification < ActiveRecord::Base
   def self.notify(recipient, target, actor)
     if target.respond_to? :notification_type
       if note_type = target.notification_type(recipient, actor)
-        if(target.is_a? Comment) || (target.is_a? Like) 
+        if(target.is_a? Comment) || (target.is_a? Like)
           n = note_type.concatenate_or_create(recipient, target.parent, actor, note_type)
         elsif(target.is_a? Reshare)
           n = note_type.concatenate_or_create(recipient, target.root, actor, note_type)
         else
           n = note_type.make_notification(recipient, target, actor, note_type)
         end
+
         if n
-          n.email_the_user(target, actor) if n
-          n.socket_to_user(recipient, :actor => actor) if n
+          n.email_the_user(target, actor)
           n
         else
           nil
@@ -40,14 +37,22 @@ class Notification < ActiveRecord::Base
     self.recipient.mail(self.mail_job, self.recipient_id, actor.id, target.id)
   end
 
+  def set_read_state( read_state )
+    self.update_attributes( :unread => !read_state )
+  end
 
   def mail_job
     raise NotImplementedError.new('Subclass this.')
   end
 
+  def effective_target
+    self.popup_translation_key == "notifications.mentioned" ? self.target.post : self.target
+  end
+
 private
   def self.concatenate_or_create(recipient, target, actor, notification_type)
-    return nil if share_visiblity_is_hidden?(recipient, target)
+    return nil if suppress_notification?(recipient, target)
+
     if n = notification_type.where(:target_id => target.id,
                                    :target_type => target.class.base_class,
                                    :recipient_id => recipient.id,
@@ -68,22 +73,16 @@ private
 
 
   def self.make_notification(recipient, target, actor, notification_type)
-    return nil if share_visiblity_is_hidden?(recipient, target)
+    return nil if suppress_notification?(recipient, target)
     n = notification_type.new(:target => target,
-                               :recipient_id => recipient.id)
+                              :recipient_id => recipient.id)
     n.actors = n.actors | [actor]
     n.unread = false if target.is_a? Request
     n.save!
     n
   end
 
-  #horrible hack that should not be here!
-  def self.share_visiblity_is_hidden?(recipient, post)
-    return false unless post.is_a?(Post)
-
-    contact = recipient.contact_for(post.author)
-    return false unless contact && recipient && post
-    pv = ShareVisibility.where(:contact_id => contact.id, :shareable_id => post.id, :shareable_type => post.class.base_class.to_s).first
-    pv.present? ? pv.hidden? : false
+  def self.suppress_notification?(recipient, post)
+    post.is_a?(Post) && recipient.is_shareable_hidden?(post)
   end
 end

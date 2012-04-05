@@ -36,12 +36,19 @@ describe Profile do
 
       it 'outputs a hash that can update a diaspora profile' do
         profile = Profile.new
-        profile.from_omniauth_hash(@from_omniauth)['first_name'].should == 'bob'
+        profile.from_omniauth_hash(@from_omniauth)['bio'].should == 'this is my bio'
       end
 
       it 'does not overwrite any exsisting profile fields' do
         profile = Profile.new(:first_name => 'maxwell')
         profile.from_omniauth_hash(@from_omniauth)['first_name'].should == 'maxwell'
+      end
+
+      it 'sets full name to first name' do
+        @from_omniauth = {'name' => 'bob jones', 'description' => 'this is my bio', 'location' => 'sf', 'image' => 'http://cats.com/gif.gif'}
+        
+        profile = Profile.new
+        profile.from_omniauth_hash(@from_omniauth)['first_name'].should == 'bob jones'
       end
     end
 
@@ -140,7 +147,7 @@ describe Profile do
   end
   
   describe 'serialization' do
-    let(:person) {Factory.create(:person,:diaspora_handle => "foobar" )}
+    let(:person) {Factory(:person,:diaspora_handle => "foobar" )}
 
     it 'should include persons diaspora handle' do
       xml = person.profile.to_diaspora_xml
@@ -237,7 +244,7 @@ describe Profile do
 
   describe 'tags' do
     before do
-      person = Factory.create(:person)
+      person = Factory(:person)
       @object = person.profile
     end
     it 'allows 5 tags' do
@@ -257,7 +264,6 @@ describe Profile do
   end
 
   describe '#receive' do
-    
     it 'updates the profile in place' do
       local_luke, local_leia, remote_raphael = set_up_friends
       new_profile = Factory.build :profile
@@ -267,5 +273,45 @@ describe Profile do
       remote_raphael.last_name.should == new_profile.last_name
     end
 
+  end
+
+  describe "#tombstone!" do
+    before do
+      @profile = bob.person.profile
+    end
+    it "clears the profile fields" do
+      attributes = @profile.send(:clearable_fields)
+
+      @profile.tombstone!
+      @profile.reload
+      attributes.each{ |attr|
+        @profile[attr.to_sym].should be_blank
+      }
+    end
+
+    it 'removes all the tags from the profile' do
+      @profile.taggings.should_receive(:delete_all)
+      @profile.tombstone!
+    end
+  end
+
+  describe "#clearable_fields" do
+    it 'returns the current profile fields' do
+      profile = Factory.build :profile
+      profile.send(:clearable_fields).sort.should == 
+      ["diaspora_handle",
+      "first_name",
+      "last_name",
+      "image_url",
+      "image_url_small",
+      "image_url_medium",
+      "birthday",
+      "gender",
+      "bio",
+      "searchable",
+      "nsfw",
+      "location",
+      "full_name"].sort
+    end
   end
 end

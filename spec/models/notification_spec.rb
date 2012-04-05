@@ -17,8 +17,6 @@ describe Notification do
       :actors => [@person],
       :recipient_id => @user.id}
     @note = Notification.new(@opts)
-    @note.type = 'Notifications::CommentOnPost'
-    @note.actors =[ @person]
   end
 
   it 'destoys the associated notification_actor' do
@@ -28,7 +26,7 @@ describe Notification do
 
   describe '.for' do
     it 'returns all of a users notifications' do
-      user2 = Factory.create(:user)
+      user2 = Factory(:user)
       4.times do
         Notification.create(@opts)
       end
@@ -40,6 +38,21 @@ describe Notification do
     end
   end
 
+  describe 'set_read_state method' do
+    it "should set an unread notification to read" do
+      @note.unread = true
+      @note.set_read_state( true )
+      @note.unread.should == false
+    end
+    it "should set an read notification to unread" do
+      @note.unread = false
+      @note.set_read_state( false )
+      @note.unread.should == true
+    end
+
+  end
+
+
   describe '.concatenate_or_create' do
     it 'creates a new notificiation if the notification does not exist, or if it is unread' do
       @note.unread = false
@@ -50,18 +63,6 @@ describe Notification do
     end
   end
   describe '.notify' do
-    it 'does not call Notification.create if the object does not have a notification_type' do
-      Notification.should_not_receive(:make_notificatin)
-      Notification.notify(@user, @sm, @person)
-    end
-
-    it 'does not create a notification if the post visibility is hidden' do
-      Notification.stub(:share_visiblity_is_hidden).and_return(true)
-      expect{
-        Notification.notify(@user, @sm, @person)
-      }.to change(Notification, :count).by(0)
-    end
-
     context 'with a request' do
       before do
         @request = Request.diaspora_initialize(:from => @user.person, :to => @user2.person, :into => @aspect)
@@ -69,19 +70,6 @@ describe Notification do
 
       it 'calls Notification.create if the object has a notification_type' do
         Notification.should_receive(:make_notification).once
-        Notification.notify(@user, @request, @person)
-      end
-
-      it 'sockets to the recipient' do
-        opts = {:target_id => @request.sender.id,
-          :target_type => "Request",
-          :actors => [@person],
-          :recipient_id => @user.id}
-
-        n = @request.notification_type(@user, @person).create(opts)
-        Notification.stub!(:make_notification).and_return n
-
-        n.should_receive(:socket_to_user).once
         Notification.notify(@user, @request, @person)
       end
 
@@ -123,8 +111,8 @@ describe Notification do
         before do
           @user3 = bob
           @sm = @user3.post(:status_message, :text => "comment!", :to => :all)
-          Postzord::Receiver::Private.new(@user3, :person => @user2.person, :object => @user2.comment("hey", :post => @sm)).receive_object
-          Postzord::Receiver::Private.new(@user3, :person => @user.person, :object => @user.comment("hey", :post => @sm)).receive_object
+          Postzord::Receiver::Private.new(@user3, :person => @user2.person, :object => @user2.comment!(@sm, "hey")).receive_object
+          Postzord::Receiver::Private.new(@user3, :person => @user.person, :object => @user.comment!(@sm, "hey")).receive_object
         end
 
         it "updates the notification with a more people if one already exists" do
@@ -132,7 +120,7 @@ describe Notification do
         end
 
         it 'handles double comments from the same person without raising' do
-          Postzord::Receiver::Private.new(@user3, :person => @user2.person, :object => @user2.comment("hey", :post => @sm)).receive_object
+          Postzord::Receiver::Private.new(@user3, :person => @user2.person, :object => @user2.comment!(@sm, "hey")).receive_object
           Notification.where(:recipient_id => @user3.id, :target_type => @sm.class.base_class, :target_id => @sm.id).first.actors.count.should == 2
         end
       end

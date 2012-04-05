@@ -4,19 +4,30 @@
 
 namespace :db do
   desc "rebuild and prepare test db"
-  task :rebuild => [:drop, :drop_integration, :create, :migrate, :seed, 'db:test:prepare']
+  task :rebuild  do
+    Rake::Task['db:drop'].invoke
+    Rake::Task['db:drop_integration'].invoke
+    Rake::Task['db:create'].invoke
+    Rake::Task['db:migrate'].invoke
+    puts "seeding users, this will take awhile"
+    `rake db:seed` #ghetto hax as we have active record garbage in our models
+    puts "seeded!"
+    Rake::Task['db:test:prepare'].invoke
+  end
 
   namespace :integration do
     # desc 'Check for pending migrations and load the integration schema'
     task :prepare => :environment do
       abcs = ActiveRecord::Base.configurations
       envs = abcs.keys.select{ |k| k.include?("integration") }
+      puts envs.inspect
       envs.each do |env|
-        ActiveRecord::Base.establish_connection(env)
-        ActiveRecord::Base.connection.drop_database(abcs[env]["database"])
-        ActiveRecord::Base.connection.create_database(abcs[env]["database"])
-        ActiveRecord::Base.establish_connection(env)
-        ActiveRecord::Migrator.migrate("db/migrate", nil)
+        puts "dropping #{env}..."
+        `cd "#{Rails.root}" && RAILS_ENV=#{env} bundle exec rake db:drop`
+        puts "creating #{env}..."
+        `cd "#{Rails.root}" && RAILS_ENV=#{env} bundle exec rake db:create`
+        puts "migrating #{env}..."
+        `cd "#{Rails.root}" && RAILS_ENV=#{env} bundle exec rake db:migrate`
       end
     end
   end

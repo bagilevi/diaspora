@@ -4,7 +4,9 @@
 
 
 - content_for :head do
-  = include_javascripts :people
+  = javascript_include_tag :people
+  :javascript
+    Mentions.options.prefillMention = #{@person.to_json};
 
 - content_for :page_title do
   = @person.name
@@ -26,17 +28,9 @@
   .stream_container
     = render 'people/sub_header', :person => @person, :contact => @contact
 
-    - if @posts.length > 0
-      -if @post_type == :photos
-        = render 'photos/index', :photos => @posts
-      - else
-        #main_stream.stream
-          = render 'shared/stream', :posts => @posts
-          #pagination
-            =link_to(t('more'), next_page_path, :class => 'paginate')
-
-    - else
-      #main_stream
+    #main_stream.stream
+      - if @block.present?
         %div{:style=>"text-align:center;", :class => "dull"}
-          = t('.has_not_shared_with_you_yet', :name => @person.first_name)
-
+          = t('.ignoring', :name => @person.first_name)
+          
+    #paginate

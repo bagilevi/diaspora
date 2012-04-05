@@ -3,10 +3,8 @@
 #   the COPYRIGHT file.
 
 class Profile < ActiveRecord::Base
-  require File.join(Rails.root, 'lib/diaspora/webhooks')
-  include Diaspora::Webhooks
+  include Diaspora::Federated::Base
   include Diaspora::Taggable
-  include ROXML
 
   attr_accessor :tag_string
 
@@ -25,21 +23,22 @@ class Profile < ActiveRecord::Base
   xml_attr :bio
   xml_attr :location
   xml_attr :searchable
+  xml_attr :nsfw
   xml_attr :tag_string
 
   before_save :strip_names
   after_validation :strip_names
-  
+
   validates :first_name, :length => { :maximum => 32 }
   validates :last_name, :length => { :maximum => 32 }
-  
+
   validates_format_of :first_name, :with => /\A[^;]+\z/, :allow_blank => true
   validates_format_of :last_name, :with => /\A[^;]+\z/, :allow_blank => true
   validate :max_tags
   validate :valid_birthday
 
   attr_accessible :first_name, :last_name, :image_url, :image_url_medium,
-    :image_url_small, :birthday, :gender, :bio, :location, :searchable, :date, :tag_string
+    :image_url_small, :birthday, :gender, :bio, :location, :searchable, :date, :tag_string, :nsfw
 
   belongs_to :person
   before_validation do
@@ -75,22 +74,15 @@ class Profile < ActiveRecord::Base
              else
                self[:image_url]
              end
-    result || '/images/user/default.png'
+    result || '/assets/user/default.png'
   end
 
   def from_omniauth_hash(omniauth_user_hash)
     mappings = {"description" => "bio",
                'image' => 'image_url', 
-               'first_name' => 'first_name',  
-               'last_name' => 'last_name', 
+               'name' => 'first_name',  
                'location' =>  'location',
-               'name' => 'full_name'
                 }
-    if(omniauth_user_hash['first_name'].blank? || omniauth_user_hash['last_name'].blank?) && omniauth_user_hash['name'].present?
-      first, last = omniauth_user_hash['name'].split
-      omniauth_user_hash['first_name'] ||= first
-      omniauth_user_hash['last_name'] ||= last
-    end
 
     update_hash = Hash[omniauth_user_hash.map {|k, v| [mappings[k], v] }]
     
@@ -153,6 +145,15 @@ class Profile < ActiveRecord::Base
     self.full_name
   end
 
+  def tombstone!
+    self.taggings.delete_all
+    clearable_fields.each do |field|
+      self[field] = nil
+    end
+    self[:searchable] = false
+    self.save
+  end
+
   protected
   def strip_names
     self.first_name.strip! if self.first_name
@@ -173,6 +174,10 @@ class Profile < ActiveRecord::Base
   end
 
   private
+  def clearable_fields
+    self.attributes.keys - Profile.protected_attributes.to_a - ["created_at", "updated_at", "person_id"]
+  end
+
   def absolutify_local_url url
     pod_url = AppConfig[:pod_url].dup
     pod_url.chop! if AppConfig[:pod_url][-1,1] == '/'

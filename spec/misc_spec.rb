@@ -6,7 +6,7 @@ require 'spec_helper'
 
 describe 'making sure the spec runner works' do
   it 'factory creates a user with a person saved' do
-    user = Factory.create(:user)
+    user = Factory(:user)
     loaded_user = User.find(user.id)
     loaded_user.person.owner_id.should == user.id
   end
@@ -50,15 +50,21 @@ describe 'making sure the spec runner works' do
     end
   end
 
-  describe '#comment' do
-    it "should send a user's comment on a person's post to that person" do
-      person = Factory.create(:person)
-      person_status = Factory.create(:status_message, :author => person)
-      m = mock()
-      m.stub!(:post)
-      Postzord::Dispatcher.should_receive(:build).and_return(m)
+  describe '#post' do
+    it 'creates a notification with a mention' do
+      lambda{
+        alice.post(:status_message, :text => "@{Bob Grimn; #{bob.person.diaspora_handle}} you are silly", :to => alice.aspects.find_by_name('generic'))
+      }.should change(Notification, :count).by(1)
+    end
+  end
 
-      alice.comment "yo", :post => person_status
+  describe "#create_conversation_with_message" do
+    it 'creates a conversation and a message' do
+      conversation = create_conversation_with_message(alice, bob.person, "Subject", "Hey Bob")
+
+      conversation.participants.should == [alice.person, bob.person]
+      conversation.subject.should == "Subject"
+      conversation.messages.first.text.should == "Hey Bob"
     end
   end
 end

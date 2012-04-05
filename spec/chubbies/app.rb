@@ -60,6 +60,7 @@ module Chubbies
   end
 
   class App < DiasporaClient::App
+    set :views, File.join(File.dirname(__FILE__), 'views')
     def current_user
       @user = User.first
     end
@@ -87,7 +88,7 @@ module Chubbies
           begin
             @resource_response = user.access_token.token.get("/api/v0/me")
             haml :response
-          rescue OAuth2::AccessDenied
+          rescue OAuth2::Error
             "Token invalid"
           end
         else

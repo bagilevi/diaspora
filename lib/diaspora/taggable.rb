@@ -2,10 +2,10 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
+require File.join(Rails.root, "app", "models", "acts_as_taggable_on", "tag")
+
 module Diaspora
   module Taggable
-    VALID_TAG_BODY = /[^_,\s#*\[\]()\@\/"'\.%]+\b/
-
     def self.included(model)
       model.class_eval do
         cattr_accessor :field_with_tags
@@ -27,10 +27,11 @@ module Diaspora
     end
 
     def tag_strings
-      regex = /(?:^|\s)#(#{VALID_TAG_BODY})/
-      matches = self.send(self.class.field_with_tags).scan(regex).map do |match|
-        match.last
-      end
+      regex = /(?:^|\s)#([#{ActsAsTaggableOn::Tag.tag_text_regexp}]+|<3)/u
+      matches = self.
+        send( self.class.field_with_tags ).
+        scan(regex).
+        map { |match| match[0] }
       unique_matches = matches.inject(Hash.new) do |h,element|
         h[element.downcase] = element unless h[element.downcase]
         h
@@ -40,12 +41,19 @@ module Diaspora
 
     def self.format_tags(text, opts={})
       return text if opts[:plain_text]
+
       text = ERB::Util.h(text) unless opts[:no_escape]
-      regex = /(^|\s|>)#(#{VALID_TAG_BODY})/
-      form_message = text.to_str.gsub(regex) do |matched_string|
-        "#{$~[1]}<a href=\"/tags/#{$~[2]}\" class=\"tag\">##{$~[2]}</a>"
-      end
-      form_message.html_safe
+      regex =/(^|\s|>)#([#{ActsAsTaggableOn::Tag.tag_text_regexp}]+|&lt;3)/u
+
+      text.to_str.gsub(regex) { |matched_string|
+        pre, url_bit, clickable = $1, $2, "##{$2}"
+        if $2 == '&lt;3'
+          # Special case for love, because the world needs more love.
+          url_bit = '<3'
+        end
+
+        %{#{pre}<a href="/tags/#{url_bit}" class="tag">#{clickable}</a>}
+      }.html_safe
     end
   end
 end

@@ -43,6 +43,8 @@ describe AspectMembershipsController do
     end
 
     it 'creates a contact' do
+      #argggg why?
+      alice.contacts.reload
       lambda {
         post :create,
           :format => 'js',
@@ -122,17 +124,6 @@ describe AspectMembershipsController do
         response.should_not be_success
         response.body.should include "Could not find the selected person in that aspect"
       end
-    end
-  end
-
-  describe "#update" do
-    it 'calls the move_contact method' do
-      @controller.stub!(:current_user).and_return(alice)
-      alice.should_receive(:move_contact)
-      put :update, :id => 123,
-                   :person_id => alice.person.id,
-                   :aspect_id => @aspect0.id,
-                   :to => @aspect1.id
     end
   end
 end

@@ -7,18 +7,19 @@ public/images/ball.png
 config/app_config.yml
 config/app.yml
 config/application.yml
+config/heroku.yml
 config/script_server*.yml
 config/fb_config.yml
 config/oauth_keys.yml
 config/initializers/secret_token.rb
 config/redis.conf
 config/deploy_config.yml
-config/newrelic.yml
 .bundle
 vendor/bundle/*
 vendor/cache/*
 config/database.yml
 .rvmrc_custom
+.rvmrc.local
 
 #Mailing list stuff
 config/email_offset
@@ -41,6 +42,7 @@ doc/
 public/uploads/*
 public/assets/*
 public/source.tar*
+public/.well-known
 tmp/**/*
 tmp/*
 *.sqlite3
@@ -64,3 +66,7 @@ dump.rdb
 
 #Rubinius's JIT
 *.rbc
+
+# Ignore precompiled assets
+# Heroku or Capistrano can and should regenerate them on every deploy
+public/assets

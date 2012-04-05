@@ -16,6 +16,34 @@ describe PhotosController do
 
   describe '#create' do
     before do
+      @params = {
+        :photo => {:aspect_ids => "all"},
+        :qqfile => Rack::Test::UploadedFile.new(
+          File.join( Rails.root, "spec/fixtures/button.png" ),
+          "image/png"
+        )
+      }
+    end
+
+    it 'accepts a photo from a regular form submission' do
+      lambda {
+        post :create, @params
+      }.should change(Photo, :count).by(1)
+    end
+
+    it 'returns application/json when possible' do
+      request.env['HTTP_ACCEPT'] = 'application/json'
+      post(:create, @params).headers['Content-Type'].should match 'application/json.*'
+    end
+
+    it 'returns text/html by default' do
+      request.env['HTTP_ACCEPT'] = 'text/html,*/*'
+      post(:create, @params).headers['Content-Type'].should match 'text/html.*'
+    end
+  end
+
+  describe '#create' do
+    before do
       @controller.stub!(:file_handler).and_return(uploaded_photo)
       @params = {:photo => {:user_file => uploaded_photo, :aspect_ids => "all"} }
     end
@@ -35,91 +63,30 @@ describe PhotosController do
   end
 
   describe '#index' do
+    it "succeeds without any available pictures" do
+      get :index, :person_id => Factory(:person).guid.to_s
+
+      response.should be_success
+    end
+
     it "displays the logged in user's pictures" do
-      get :index, :person_id => alice.person.id.to_s
+      get :index, :person_id => alice.person.guid.to_s
       assigns[:person].should == alice.person
       assigns[:posts].should == [@alices_photo]
     end
 
     it "displays another person's pictures" do
-      get :index, :person_id => bob.person.id.to_s
+      get :index, :person_id => bob.person.guid.to_s
       assigns[:person].should == bob.person
       assigns[:posts].should == [@bobs_photo]
     end
-  end
 
-  describe '#show' do
-    context "user's own photo" do
-      before do
-        get :show, :id => @alices_photo.id
-      end
+    it "returns json when requested" do
+      request.env['HTTP_ACCEPT'] = 'application/json'
+      get :index, :person_id => alice.person.guid.to_s
 
-      it "succeeds" do
-        response.should be_success
-      end
-
-      it "assigns the photo" do
-        assigns[:photo].should == @alices_photo
-        @controller.ownership.should be_true
-      end
-    end
-
-    context "private photo user can see" do
-      it "succeeds" do
-        get :show, :id => @bobs_photo.id
-        response.should be_success
-      end
-
-      it "assigns the photo" do
-        get :show, :id => @bobs_photo.id
-        assigns[:photo].should == @bobs_photo
-        @controller.ownership.should be_false
-      end
-
-      it 'succeeds with a like present' do
-        sm = bob.post(:status_message, :text => 'parent post', :to => 'all')
-        @bobs_photo.status_message_guid = sm.guid
-        @bobs_photo.save!
-        alice.like(1, :target => @bobs_photo.status_message)
-        get :show, :id => @bobs_photo.id
-        response.should be_success
-      end
-    end
-
-    context "private photo user cannot see" do
-      before do
-        user3 = Factory(:user_with_aspect)
-        @photo = user3.post(:photo, :user_file => uploaded_photo, :to => user3.aspects.first.id)
-      end
-
-      it "redirects to the referrer" do
-        request.env["HTTP_REFERER"] = "http://google.com"
-        get :show, :id => @photo.to_param
-        response.should redirect_to("http://google.com")
-      end
-
-      it "redirects to the aspects page if there's no referrer" do
-        request.env.delete("HTTP_REFERER")
-        get :show, :id => @photo.to_param
-        response.should redirect_to(aspects_path)
-      end
-    end
-
-    context "public photo" do
-      before do
-        user3 = Factory(:user_with_aspect)
-        @photo = user3.post(:photo, :user_file => uploaded_photo, :to => user3.aspects.first.id, :public => true)
-        get :show, :id => @photo.to_param
-      end
-
-      it "succeeds" do
-        response.should be_success
-      end
-
-      it "assigns the photo" do
-        assigns[:photo].should == @photo
-        @controller.ownership.should be_false
-      end
+      response.headers['Content-Type'].should match 'application/json.*'
+      save_fixture(response.body, "photos_json")
     end
   end
 
@@ -131,10 +98,9 @@ describe PhotosController do
 
     it "redirects when the user does not own the photo" do
       get :edit, :id => @bobs_photo.id
-      response.should redirect_to(:action => :index, :person_id => alice.person.id.to_s)
+      response.should redirect_to(:action => :index, :person_id => alice.person.guid.to_s)
     end
   end
-
 
   describe '#destroy' do
     it 'let a user delete his message' do
@@ -172,7 +138,7 @@ describe PhotosController do
     end
 
     it "doesn't overwrite random attributes" do
-      new_user = Factory.create(:user)
+      new_user = Factory(:user)
       params = { :text => "now with lasers!", :author_id => new_user.id }
       put :update, :id => @alices_photo.id, :photo => params
       @alices_photo.reload.author_id.should == alice.person.id
@@ -181,7 +147,7 @@ describe PhotosController do
     it 'redirects if you do not have access to the post' do
       params = { :text => "now with lasers!" }
       put :update, :id => @bobs_photo.id, :photo => params
-      response.should redirect_to(:action => :index, :person_id => alice.person.id.to_s)
+      response.should redirect_to(:action => :index, :person_id => alice.person.guid.to_s)
     end
   end
 
@@ -197,59 +163,4 @@ describe PhotosController do
     end
   end
 
-
-  describe 'data helpers' do
-    describe '.ownership' do
-      it 'is true if current user owns the photo' do
-        get :show, :id => @alices_photo.id
-        @controller.ownership.should be_true
-      end
-
-      it 'is true if current user owns the photo' do
-        get :show, :id => @bobs_photo.id
-        @controller.ownership.should be_false
-      end
-    end
-
-    describe 'parent' do
-      it 'grabs the status message of the photo if a parent exsists' do
-        sm = alice.post(:status_message, :text => 'yes', :to => alice.aspects.first)
-        @alices_photo.status_message = sm
-        @alices_photo.save
-        get :show, :id => @alices_photo.id
-        @controller.parent.id.should == sm.id
-      end
-
-      it 'uses the photo if no status_message exsists' do
-        get :show, :id => @alices_photo.id
-        @controller.parent.id.should == @alices_photo.id
-      end
-    end
-
-    describe '.photo' do
-      it 'returns a visible photo, based on the :id param' do
-        get :show, :id => @alices_photo.id
-        @controller.photo.id.should == @alices_photo.id
-
-      end
-    end
-
-    describe '.additional_photos' do
-      it 'finds all of a parent status messages photos' do
-        sm = alice.post(:status_message, :text => 'yes', :to => alice.aspects.first)
-        @alices_photo.status_message = sm
-        @alices_photo.save
-        get :show, :id => @alices_photo.id
-        @controller.additional_photos.should include(@alices_photo)
-      end
-    end
-
-    describe '.next_photo' do
-
-    end
-
-    describe '.previous_photo' do
-
-    end
-  end
 end

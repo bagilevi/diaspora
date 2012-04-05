@@ -1,7 +1,7 @@
 @javascript
 Feature: following and being followed
 
-  Background: 
+  Background:
     Given a user with email "bob@bob.bob"
     And a user with email "alice@alice.alice"
 
@@ -14,7 +14,7 @@ Feature: following and being followed
     And I fill in "status_message_fake_text" with "I am following you"
     And I press "Share"
     Then I go to the destroy user session page
-    
+
   Scenario: seeing a follower's posts on their profile page, but not in your stream
     When I sign in as "alice@alice.alice"
     And I am on "bob@bob.bob"'s page
@@ -45,6 +45,7 @@ Feature: following and being followed
     And I am on "bob@bob.bob"'s page
 
     And I add the person to my "Besties" aspect
+    And I wait for the ajax to finish
     And I add the person to my "Unicorns" aspect
 
     When I go to the home page
@@ -73,7 +74,7 @@ Feature: following and being followed
     And I wait for the ajax to finish
 
     And I fill in "Name" with "Super People" in the modal window
-    And I press "aspect_submit" in the modal window
+    And I press "Create" in the modal window
     And I wait for the ajax to finish
 
     When I go to the home page
@@ -89,15 +90,15 @@ Feature: following and being followed
 
     Then I should see "Besties"
     Then I should see "Mention"
-    Then I should not see "Message"
+    Then I should not see "Message" within "#profile"
 
   Scenario: interacting with the profile page of someone who follows you but who you do not follow
     Given I sign in as "alice@alice.alice"
     And I am on "bob@bob.bob"'s page
 
     Then I should see "Add contact"
-    And I should not see "Mention"
-    And I should not see "Message"
+    Then I should not see "Mention" within "#profile"
+    Then I should not see "Message" within "#profile"
 
   Scenario: interacting with the profile page of someone you follow who also follows you
     Given I sign in as "alice@alice.alice"

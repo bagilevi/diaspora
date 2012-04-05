@@ -4,16 +4,8 @@
 */
 
 describe("View", function() {
-  it("is the object that helps the UI", function() { 
+  it("is the object that helps the UI", function() {
     expect(typeof View === "object").toBeTruthy();
-  });
-
-  describe("initialize", function() {
-    it("is called on DOM ready", function() {
-      spyOn(View, "initialize");
-      $(View.initialize);
-      expect(View.initialize).toHaveBeenCalled();
-    });
   });
 
   describe("publisher", function() {
@@ -46,19 +38,6 @@ describe("View", function() {
         View.initialize();
         $(View.search.selector).focus().blur();
         expect($(View.search.selector)).not.toHaveClass("active");
-      });
-    });
-  });
-
-  describe("tooltips", function() {
-    describe("bindAll", function() {
-      //Someone shorten this plz <3
-      it("enumerates through the tooltips object, called the method 'bind' on any sibling that is not the bindAll method", function() {
-        spyOn($, "noop");
-        View.initialize();
-        View.tooltips.myToolTip = { bind: $.noop };
-        View.tooltips.bindAll();
-        expect($.noop).toHaveBeenCalled();
       });
     });
   });

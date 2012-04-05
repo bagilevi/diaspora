@@ -8,6 +8,7 @@ describe AppConfig do
 
   after do
     AppConfig.reload!
+    AppConfig.setup!
   end
 
   describe ".load!" do
@@ -40,7 +41,7 @@ describe AppConfig do
 
       context "when source config file (i.e. config/application.yml) does not exist" do
         before do
-          application_yml = File.join(Rails.root, "config", "application.yml.example")
+          application_yml = AppConfig.source_file_name
           @app_yml = File.join(Rails.root, "config", "app.yml")
           @app_config_yml = File.join(Rails.root, "config", "app_config.yml")
           File.should_receive(:exists?).with(application_yml).at_least(:once).and_return(false)
@@ -88,15 +89,17 @@ describe AppConfig do
           end
         end
       end
-
     end
+  end
+  
+  describe '.setup!' do
     it "calls normalize_pod_url" do
-      AppConfig.should_receive(:normalize_pod_url).twice # apparently should_receive counts stuff in after blocks...WTF?
-      AppConfig.load!
+      AppConfig.should_receive(:normalize_pod_url).twice
+      AppConfig.setup!
     end
     it "calls normalize_admins" do
       AppConfig.should_receive(:normalize_admins).twice
-      AppConfig.load!
+      AppConfig.setup!
     end
   end
 
@@ -139,6 +142,14 @@ describe AppConfig do
       AppConfig.normalize_pod_url
       AppConfig[:pod_url].should == "https://example.org/"
     end
+
+  end
+
+  describe '.bare_pod_uri' do
+    it 'is AppConfig[:pod_uri].authority stripping www.' do
+      AppConfig[:pod_url] = "https://www.example.org/"
+      AppConfig.bare_pod_uri.should == 'example.org'
+    end
   end
 
   describe ".pod_uri" do
@@ -148,6 +159,22 @@ describe AppConfig do
       pod_uri = AppConfig[:pod_uri]
       pod_uri.scheme.should == "http"
       pod_uri.host.should == "example.org"
+    end
+  end
+
+  describe '.normalize_services' do
+    before do
+      @services = SERVICES
+      Object.send(:remove_const, :SERVICES)
+    end
+
+    after do
+      SERVICES = @services
+    end
+
+    it 'sets configured_services to an empty array if SERVICES is not defined' do
+      AppConfig.normalize_pod_services
+      AppConfig.configured_services.should == []
     end
   end
 

@@ -2,8 +2,11 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
+require File.join(Rails.root, "lib", 'stream', "person")
+
 class PeopleController < ApplicationController
-  before_filter :authenticate_user!, :except => [:show]
+  before_filter :authenticate_user!, :except => [:show, :last_post]
+  before_filter :redirect_if_tag_search, :only => [:index]
 
   respond_to :html, :except => [:tag_index]
   respond_to :json, :only => [:index, :show]
@@ -13,47 +16,48 @@ class PeopleController < ApplicationController
     render :file => "#{Rails.root}/public/404.html", :layout => false, :status => 404
   end
 
+  helper_method :search_query
+
   def index
     @aspect = :search
-    params[:q] ||= params[:term] || ''
-
-    if (params[:q][0] == 35 || params[:q][0] == '#') && params[:q].length > 1
-      redirect_to tag_path(:name => params[:q].gsub(/[#\.]/, ''), :q => params[:q])
-      return
-    end
-
     limit = params[:limit] ? params[:limit].to_i : 15
+
+    @people = Person.search(search_query, current_user)
 
     respond_to do |format|
       format.json do
-        @people = Person.search(params[:q], current_user).limit(limit)
+        @people = @people.limit(limit)
         render :json => @people
       end
 
-      format.html do
+      format.any(:html, :mobile) do
         #only do it if it is an email address
-        if diaspora_id?(params[:q])
-          people = Person.where(:diaspora_handle => params[:q].downcase)
-          webfinger(params[:q]) if people.empty?
-        else
-          people = Person.search(params[:q], current_user)
+        if diaspora_id?(search_query)
+          @people =  Person.where(:diaspora_handle => search_query.downcase)
+          if @people.empty?
+            Webfinger.in_background(search_query) 
+            @background_query = search_query.downcase
+          end
         end
-        @people = people.paginate( :page => params[:page], :per_page => 15)
-        @hashes = hashes_for_people(@people, @aspects)
-      end
-      format.mobile do
-        #only do it if it is an email address
-        if diaspora_id?(params[:q])
-          people = Person.where(:diaspora_handle => params[:q])
-          webfinger(params[:q]) if people.empty?
-        else
-          people = Person.search(params[:q], current_user)
-        end
-        @people = people.paginate( :page => params[:page], :per_page => 15)
+        @people = @people.paginate(:page => params[:page], :per_page => 15)
         @hashes = hashes_for_people(@people, @aspects)
       end
     end
   end
+
+  def refresh_search
+    @aspect = :search
+    @people =  Person.where(:diaspora_handle => search_query.downcase)
+    @answer_html = ""
+    unless @people.empty?
+      @hashes = hashes_for_people(@people, @aspects)
+
+      self.formats = self.formats + [:html]
+      @answer_html = render_to_string :partial => 'people/person', :locals => @hashes.first
+    end
+    render :json => { :search_count => @people.count, :search_html => @answer_html }.to_json
+  end
+
 
   def tag_index
     profiles = Profile.tagged_with(params[:name]).where(:searchable => true).select('profiles.id, profiles.person_id')
@@ -61,7 +65,7 @@ class PeopleController < ApplicationController
     respond_with @people
   end
 
-  def hashes_for_people people, aspects
+  def hashes_for_people(people, aspects)
     ids = people.map{|p| p.id}
     contacts = {}
     Contact.unscoped.where(:user_id => current_user.id, :person_id => ids).each do |contact|
@@ -76,21 +80,29 @@ class PeopleController < ApplicationController
   end
 
   def show
-    @person = Person.find_from_id_or_username(params)
+    @person = Person.find_from_guid_or_username(params)
 
     if remote_profile_with_no_user_session?
       raise ActiveRecord::RecordNotFound
+    end
+
+    if @person.closed_account?
+      redirect_to :back, :notice => t("people.show.closed_account")
+      return
     end
 
     @post_type = :all
     @aspect = :profile
     @share_with = (params[:share_with] == 'true')
 
-    max_time = params[:max_time] ? Time.at(params[:max_time].to_i) : Time.now
+    @stream = Stream::Person.new(current_user, @person,
+                                 :max_time => max_time)
+
     @profile = @person.profile
 
     unless params[:format] == "json" # hovercard
       if current_user
+        @block = current_user.blocks.where(:person_id => @person.id).first
         @contact = current_user.contact_for(@person)
         @aspects_with_person = []
         if @contact && !params[:only_posts]
@@ -104,36 +116,24 @@ class PeopleController < ApplicationController
           @contacts_of_contact_count = 0
           @contacts_of_contact = []
         end
-
-        if (@person != current_user.person) && !@contact.persisted?
-          @commenting_disabled = true
-        else
-          @commenting_disabled = false
-        end
-        @posts = current_user.posts_from(@person).where(:type => ["StatusMessage", "Reshare", "ActivityStreams::Photo"]).includes(:comments).limit(15).where(StatusMessage.arel_table[:created_at].lt(max_time))
-      else
-        @commenting_disabled = true
-        @posts = @person.posts.where(:type => ["StatusMessage", "Reshare", "ActivityStreams::Photo"], :public => true).includes(:comments).limit(15).where(StatusMessage.arel_table[:created_at].lt(max_time)).order('posts.created_at DESC')
-      end
-      @posts.includes(:author => :profile)
-    end
-
-    if params[:only_posts]
-      render :partial => 'shared/stream', :locals => {:posts => @posts}
-    else
-      respond_to do |format|
-        format.all { respond_with @person, :locals => {:post_type => :all} }
-        format.json {
-          render :json => @person.to_json(:includes => params[:includes])
-        }
       end
     end
 
+    respond_to do |format|
+      format.all { respond_with @person, :locals => {:post_type => :all} }
+      format.json{ render_for_api :backbone, :json => @stream.stream_posts, :root => :posts }
+    end
+  end
+
+  def last_post
+    @person = Person.find_from_guid_or_username(params)
+    last_post = Post.visible_from_author(@person, current_user).order('posts.created_at DESC').first
+    redirect_to post_path(last_post)
   end
 
   def retrieve_remote
     if params[:diaspora_handle]
-      webfinger(params[:diaspora_handle], :single_aspect_form => true)
+      Webfinger.in_background(params[:diaspora_handle], :single_aspect_form => true)
       render :nothing => true
     else
       render :nothing => true, :status => 422
@@ -141,7 +141,7 @@ class PeopleController < ApplicationController
   end
 
   def contacts
-    @person = Person.find_by_id(params[:person_id])
+    @person = Person.find_by_guid(params[:person_id])
     if @person
       @contact = current_user.contact_for(@person)
       @aspect = :profile
@@ -156,7 +156,7 @@ class PeopleController < ApplicationController
   end
 
   def aspect_membership_dropdown
-    @person = Person.find(params[:person_id])
+    @person = Person.find_by_guid(params[:person_id])
     if @person == current_user.person
       render :text => I18n.t('people.person.thats_you')
     else
@@ -169,14 +169,24 @@ class PeopleController < ApplicationController
     !query.try(:match, /^(\w)*@([a-zA-Z0-9]|[-]|[.]|[:])*$/).nil?
   end
 
-  private
-  def webfinger(account, opts = {})
-    Resque.enqueue(Jobs::SocketWebfinger, current_user.id, account, opts)
+  def search_query
+    @search_query ||= params[:q] || params[:term] || ''
   end
+
+  def redirect_if_tag_search
+    if search_query.starts_with?('#')
+      if search_query.length > 1
+        redirect_to tag_path(:name => search_query.delete('#.'), :q => search_query)
+      else
+        flash[:error] = I18n.t('tags.show.none', :name => search_query)
+        redirect_to :back
+      end
+    end
+  end
+
+  private
 
   def remote_profile_with_no_user_session?
     @person && @person.remote? && !user_signed_in?
   end
-
-
 end

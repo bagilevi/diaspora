@@ -1,42 +1,101 @@
-#   Copyright (c) 2010-2011, Diaspora Inc.  This file is
+#   Copyright (c) 2010-2012, Diaspora Inc.  This file is
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
 
-nl: 
-  javascripts: 
-    aspect_dropdown: 
-      add_to_aspect: "Voeg toe aan aspect"
+
+nl:
+  javascripts:
+    aspect_dropdown:
+      add_to_aspect: "Voeg contact toe"
       all_aspects: "Alle aspecten"
-      select_aspects: "Select aspects"
-      toggle: 
-        few: "In {{count}} aspecten"
-        many: "In {{count}} aspecten"
-        one: "In {{count}} aspect"
-        other: "In {{count}} aspecten"
-        two: "In {{count}} aspecten"
-        zero: "Voeg toe aan aspect"
-    aspect_navigation: 
-      deselect_all: "Deselect all"
-      no_aspects: "No aspects selected"
-      select_all: "Select all"
-    comments: 
+      error: "Je kan niet delen met <%= name %>.  Negeer je hem?"
+      select_aspects: "Selecteer aspecten"
+      started_sharing_with: "Je deelt nu met <%= name %>!"
+      stopped_sharing_with: "Je deelt niet meer met <%= name %>."
+      toggle:
+        few: "In <%= count %> aspecten"
+        many: "In <%= count %> aspecten"
+        one: "In <%= count %> aspect"
+        other: "In <%= count %> aspecten"
+        two: "In <%= count %> aspecten"
+        zero: "Aspecten selecteren"
+    aspect_navigation:
+      deselect_all: "Alles deselecteren"
+      no_aspects: "Geen aspecten geselecteerd"
+      select_all: "Alles selecteren"
+    comments:
       hide: "verberg reacties"
       show: "laat reacties zien"
     confirm_dialog: "Weet je het zeker?"
+    delete: "Verwijder"
     failed_to_like: "Leuk vinden mislukt!"
     failed_to_post_message: "Bericht plaatsen mislukt!"
-    infinite_scroll: 
-      no_more: "Geen posts meer."
-    publisher: 
+    getting_started:
+      alright_ill_wait: "Prima, ik wacht wel."
+      hey: "Hallo, <%= name %>!"
+      no_tags: "He, je volgt geen tags! Toch doorgaan?"
+      preparing_your_stream: "Je gepersonaliseerde stream klaarmaken..."
+    header:
+      admin: "Beheer"
+      contacts: "Contacten"
+      home: "Home"
+      log_out: "Uitloggen"
+      mark_all_as_read: "Markeer alles gelezen"
+      messages: "Berichten"
+      notifications: "Notificaties"
+      profile: "Profiel"
+      recent_notifications: "Recente Notificaties"
+      search: "Zoek"
+      settings: "Instellingen"
+      view_all: "Bekijk alle"
+    ignore: "Negeer"
+    infinite_scroll:
+      no_more: "Geen berichten meer."
+    my_activity: "Mijn activiteit"
+    my_stream: "Stream"
+    photo_uploader:
+      looking_good: "Wow, wat ben je knap!"
+    publisher:
       at_least_one_aspect: "Je moet op zijn minst één aspect publiceren"
       limited: "Gelimiteerd - je post is alleen zichtbaar voor de mensen waarmee je hem deelt"
       public: "Openbaar - je post is zichtbaar voor iedereen en kan gevonden worden door zoekmachines"
-    reshares: 
-      duplicate: "Je hebt deze post al doorgegeven!"
-    search_for: "Zoek naar {{name}}"
+    reshares:
+      duplicate: "Je hebt dit bericht al doorgegeven! Is hij echt zo goed?"
+    search_for: "Zoek naar <%= name %>"
     show_more: "laat meer zien"
-    timeago: 
+    stream:
+      comment: "Reageren"
+      follow: "Volgen"
+      hide: "Verberg"
+      hide_nsfw_posts: "Verberg #nsfw berichten"
+      like: "Vind ik leuk"
+      likes:
+        one: "<%= count %> persoon vind dit leuk"
+        other: "<%= count %> mensen vinden dit leuk"
+        zero: "<%= count %> mensen vinden dit leuk"
+      limited: "Beperkt zichtbaar"
+      more_comments:
+        few: "Toon nog <%= count %> reacties"
+        many: "Toon nog <%= count %> reacties"
+        one: "Toon nog <%= count %> reacties"
+        other: "Toon nog <%= count %> reacties"
+        two: "Toon nog <%= count %> reacties"
+        zero: "Toon nog <%= count %> reacties"
+      original_post_deleted: "Originele bericht verwijderd door de auteur."
+      public: "Openbaar"
+      reshare: "Doorgeven"
+      reshares:
+        one: "<%= count %>x gedeeld"
+        other: "<%= count %>x gedeeld"
+        zero: "<%= count %>x gedeeld"
+      show_nsfw_post: "Toon bericht"
+      show_nsfw_posts: "Toon alles"
+      unfollow: "Niet meer volgen"
+      unlike: "Loslaten"
+    tags:
+      wasnt_that_interesting: "#<%= tagName %> zal dan toch niet zo interessant geweest zijn..."
+    timeago:
       day: "een dag"
       days: "%d dagen"
       hour: "ongeveer een uur"
@@ -52,8 +111,14 @@ nl:
       suffixFromNow: "vanaf nu"
       year: "ongeveer een jaar"
       years: "%d jaar"
-    videos: 
+    videos:
       unknown: "Onbekend video type"
-      watch: "Bekijk deze video op {{provider}}"
-    web_sockets: 
-      disconnected: "De websocket is gesloten; posts worden niet langer live gestreamd."
+      watch: "Bekijk deze video op <%= provider %>"
+    viewer:
+      comment: "Reageren"
+      follow_post: "Volgen"
+      like: "Vind ik leuk"
+      reshare: "Doorgeven"
+      reshared: "Doorgegeven"
+      stop_following_post: "Niet meer volgen"
+      unlike: "Niet meer leuk"

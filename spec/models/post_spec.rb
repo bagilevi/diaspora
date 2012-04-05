@@ -24,7 +24,7 @@ describe Post do
         StatusMessage.owned_or_visible_by_user(@you).should include(@post_from_contact)
       end
 
-      it 'returns your posts' do 
+      it 'returns your posts' do
         StatusMessage.owned_or_visible_by_user(@you).should include(@your_post)
       end
 
@@ -57,6 +57,54 @@ describe Post do
       it 'calls includes_for_a_stream' do
         Post.should_receive(:includes_for_a_stream)
         Post.for_a_stream(stub, stub)
+      end
+
+      it 'calls excluding_blocks if a user is present' do
+        Post.should_receive(:excluding_blocks).with(alice).and_return(Post)
+        Post.for_a_stream(stub, stub, alice)
+      end
+    end
+
+    describe '.excluding_blocks' do
+      before do
+        @post = Factory(:status_message, :author => alice.person)
+        @other_post = Factory(:status_message, :author => eve.person)
+
+        bob.blocks.create(:person => alice.person)
+      end
+
+      it 'does not included blocked users posts' do
+        Post.excluding_blocks(bob).should_not include(@post)
+      end
+
+      it 'includes not blocked users posts' do
+        Post.excluding_blocks(bob).should include(@other_post)
+      end
+
+      it 'returns posts if you dont have any blocks' do
+        Post.excluding_blocks(alice).count.should == 2
+      end
+    end
+
+    describe '.excluding_hidden_shareables' do
+      before do
+        @post = Factory(:status_message, :author => alice.person)
+        @other_post = Factory(:status_message, :author => eve.person)
+        bob.toggle_hidden_shareable(@post)
+      end
+      it 'excludes posts the user has hidden' do
+        Post.excluding_hidden_shareables(bob).should_not include(@post)
+      end
+      it 'includes posts the user has not hidden' do
+        Post.excluding_hidden_shareables(bob).should include(@other_post)
+      end
+    end
+
+    describe '.excluding_hidden_content' do
+      it 'calls excluding_blocks and excluding_hidden_shareables' do
+        Post.should_receive(:excluding_blocks).and_return(Post)
+        Post.should_receive(:excluding_hidden_shareables)
+        Post.excluding_hidden_content(bob)
       end
     end
 
@@ -101,17 +149,9 @@ describe Post do
           Post.for_visible_shareable_sql(Time.now + 1, "created_at")
         end
 
-        it 'respects the type option'
       end
-
-      describe 'includes for a stream' do
-        it 'inclues author profile and mentions'
-        it 'should include photos and root of reshares(but does not)'
-      end
-
     end
   end
-
 
   describe 'validations' do
     it 'validates uniqueness of guid and does not throw a db error' do
@@ -120,10 +160,17 @@ describe Post do
     end
   end
 
+  describe 'post_type' do
+    it 'returns the class constant' do
+      status_message = Factory(:status_message)
+      status_message.post_type.should == "StatusMessage"
+    end
+  end
+
   describe 'deletion' do
     it 'should delete a posts comments on delete' do
-      post = Factory.create(:status_message, :author => @user.person)
-      @user.comment "hey", :post => post
+      post = Factory(:status_message, :author => @user.person)
+      @user.comment!(post, "hey")
       post.destroy
       Post.where(:id => post.id).empty?.should == true
       Comment.where(:text => "hey").empty?.should == true
@@ -168,40 +215,10 @@ describe Post do
     end
   end
 
-  describe '#comments' do
-    it 'returns the comments of a post in created_at order' do
-      post = bob.post :status_message, :text => "hello", :to => 'all'
-      created_at = Time.now - 100
-
-      # Posts are created out of time order.
-      # i.e. id order is not created_at order
-      alice.comment 'comment a', :post => post, :created_at => created_at + 10
-      eve.comment   'comment d', :post => post, :created_at => created_at + 50
-      bob.comment   'comment b', :post => post, :created_at => created_at + 30
-      alice.comment 'comment e', :post => post, :created_at => created_at + 90
-      eve.comment   'comment c', :post => post, :created_at => created_at + 40
-
-      post.comments.map(&:text).should == [
-        'comment a',
-        'comment b',
-        'comment c',
-        'comment d',
-        'comment e',
-      ]
-      post.comments.map(&:author).should == [
-        alice.person,
-        bob.person,
-        eve.person,
-        eve.person,
-        alice.person,
-      ]
-    end
-  end
-
   describe 'Likeable#update_likes_counter' do
     before do
       @post = bob.post :status_message, :text => "hello", :to => 'all'
-      bob.like(1, :target => @post)
+      bob.like!(@post)
     end
     it 'does not update updated_at' do
       old_time = Time.zone.now - 10000
@@ -209,74 +226,6 @@ describe Post do
       @post.reload.updated_at.to_i.should == old_time.to_i
       @post.update_likes_counter
       @post.reload.updated_at.to_i.should == old_time.to_i
-    end
-  end
-
-  describe "triggers_caching?" do
-    it 'returns true' do
-      Post.new.triggers_caching?.should be_true
-    end
-  end
-
-  describe "after_create" do
-    it "calls cache_for_author only on create" do
-      post = Factory.build(:status_message, :author => bob.person)
-      post.should_receive(:cache_for_author).once
-      post.save
-      post.save
-    end
-  end
-
-  describe '#cache_for_author' do
-    before do
-      @post = Factory.build(:status_message, :author => bob.person)
-      @post.stub(:should_cache_for_author?).and_return(true)
-    end
-
-    it 'caches with valid conditions' do
-      cache = mock.as_null_object
-      RedisCache.should_receive(:new).and_return(cache)
-      cache.should_receive(:add)
-      @post.cache_for_author
-    end
-
-    it 'does nothing if should not cache' do
-      @post.stub(:should_cache_for_author?).and_return(false)
-      RedisCache.should_not_receive(:new)
-      @post.cache_for_author
-    end
-  end
-
-  describe "#should_cache_for_author?" do
-    before do
-      @post = Factory.build(:status_message, :author => bob.person)
-      RedisCache.stub(:configured?).and_return(true)
-      RedisCache.stub(:acceptable_types).and_return(['StatusMessage'])
-      @post.stub(:triggers_caching?).and_return(true)
-    end
-
-    it 'returns true under valid conditions' do
-      @post.should_cache_for_author?.should be_true
-    end
-
-    it 'does not cache if the author is not a local user' do
-      @post.author = Factory(:person)
-      @post.should_cache_for_author?.should be_false
-    end
-
-    it 'does not cache if the cache is not configured' do
-      RedisCache.stub(:configured?).and_return(false)
-      @post.should_cache_for_author?.should be_false
-    end
-
-    it 'does not cache if the object does not triggers caching' do
-      @post.stub(:triggers_caching?).and_return(false)
-      @post.should_cache_for_author?.should be_false
-    end
-
-    it 'does not cache if the object is not of an acceptable cache type' do
-      @post.stub(:type).and_return("Photo")
-      @post.should_cache_for_author?.should be_false
     end
   end
 
@@ -358,4 +307,54 @@ describe Post do
       end
     end
   end
+
+  describe '#reshares_count' do
+    before :each do
+      @post = @user.post :status_message, :text => "hello", :to => @aspect.id, :public => true
+      @post.reshares.size.should == 0
+    end
+
+    describe 'when post has not been reshared' do
+      it 'returns zero' do
+        @post.reshares_count.should == 0
+      end
+    end
+
+    describe 'when post has been reshared exactly 1 time' do
+      before :each do
+        @post.reshares.size.should == 0
+        @reshare = Factory(:reshare, :root => @post)
+        @post.reload
+        @post.reshares.size.should == 1
+      end
+
+      it 'returns 1' do
+        @post.reshares_count.should == 1
+      end
+    end
+
+    describe 'when post has been reshared more than once' do
+      before :each do
+        @post.reshares.size.should == 0
+        Factory(:reshare, :root => @post)
+        Factory(:reshare, :root => @post)
+        Factory(:reshare, :root => @post)
+        @post.reload
+        @post.reshares.size.should == 3
+      end
+
+      it 'returns the number of reshares' do
+        @post.reshares_count.should == 3
+      end
+    end
+  end
+
+  describe "#after_create" do
+    it "sets #interacted_at" do
+      post = Factory(:status_message)
+      post.interacted_at.should_not be_blank
+    end
+  end
+
+
 end

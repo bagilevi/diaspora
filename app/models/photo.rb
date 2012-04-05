@@ -5,8 +5,23 @@
 class Photo < ActiveRecord::Base
   require 'carrierwave/orm/activerecord'
 
+  include Diaspora::Federated::Shareable
   include Diaspora::Commentable
   include Diaspora::Shareable
+
+  # NOTE API V1 to be extracted
+  acts_as_api
+  api_accessible :backbone do |t|
+    t.add :id
+    t.add :guid
+    t.add :created_at
+    t.add :author
+    t.add lambda { |photo|
+      { :small => photo.url(:thumb_small),
+        :medium => photo.url(:thumb_medium),
+        :large => photo.url(:scaled_full) }
+    }, :as => :sizes
+  end
 
   mount_uploader :processed_image, ProcessedImage
   mount_uploader :unprocessed_image, UnprocessedImage
@@ -18,13 +33,17 @@ class Photo < ActiveRecord::Base
   xml_attr :status_message_guid
 
   belongs_to :status_message, :foreign_key => :status_message_guid, :primary_key => :guid
+  validates_associated :status_message
 
   attr_accessible :text, :pending
   validate :ownership_of_status_message
 
   before_destroy :ensure_user_picture
   after_destroy :clear_empty_status_message
-  after_create :queue_processing_job
+
+  after_create do
+    queue_processing_job if self.author.local?
+  end
 
   def clear_empty_status_message
     if self.status_message_guid && self.status_message.text_and_photos_blank?
@@ -50,10 +69,19 @@ class Photo < ActiveRecord::Base
     photo.pending = params[:pending] if params[:pending]
     photo.diaspora_handle = photo.author.diaspora_handle
 
-    image_file = params.delete(:user_file)
-    photo.random_string = ActiveSupport::SecureRandom.hex(10)
-    photo.unprocessed_image.store! image_file
+    photo.random_string = SecureRandom.hex(10)
+
+    if params[:user_file]
+      image_file = params.delete(:user_file)
+      photo.unprocessed_image.store! image_file
+
+    elsif params[:image_url]
+      photo.remote_unprocessed_image_url = params[:image_url]
+      photo.unprocessed_image.store!
+    end
+
     photo.update_remote_path
+
     photo
   end
 

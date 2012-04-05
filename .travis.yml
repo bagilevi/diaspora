@@ -1,19 +1,24 @@
 branches:
   only:
     - 'master'
-
+    - 'rails3.2'
+    
+language: ruby
 rvm:
-  - 1.8.7
   - ree
   - 1.9.2
 
 env:
-  - DB=postgres
-  - DB=mysql
+  # - DB=postgres BUILD_TYPE=other
+  - DB=mysql BUILD_TYPE=other
+  # - DB=postgres BUILD_TYPE=cucumber
+  - DB=mysql BUILD_TYPE=cucumber
 
+before_install: 
+  - "./script/ci/before_install.sh"
 
-bundler_args: "--without development production"
-before_script: "./config/ci/before-travis.sh"
+bundler_args: "--without development production heroku"
+before_script: "./script/ci/before.sh"
 script: "bundle exec rake travis"
 
 

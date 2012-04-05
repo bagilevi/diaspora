@@ -2,30 +2,35 @@
 -#   licensed under the Affero General Public License version 3 or later.  See
 -#   the COPYRIGHT file.
 
-:javascript
-  $(function() {
-    $(".question_mark").tipsy({trigger: 'hover', gravity: 'n'});
-    $(".service_icon").tipsy({trigger: 'hover', gravity: 'n'});
-    $(".public_icon").tipsy({trigger: 'hover', gravity: 'n'});
-  });
+-if publisher_explain
+  :javascript
+    $(document).ready(function() {
+        Publisher.triggerGettingStarted();
+      });
 
-#publisher.closed{:class => ((aspect == :profile)? 'mention_popup' : nil )}
+#publisher{:class => ((aspect == :profile || publisher_open) ? "mention_popup" : "closed")}
   .content_creation
-    = form_for(StatusMessage.new, :remote => remote?, :html => {"data-type" => "json"}) do |status|
+    = form_for(StatusMessage.new) do |status|
       = status.error_messages
-      %p
+      %div
         %params
           #publisher_textarea_wrapper
             = link_to( image_tag('deletelabel.png'), "#", :id => "hide_publisher", :title => t('.discard_post'))
             %ul#photodropzone
-            = status.text_area :fake_text, :rows => 2, :value => h(publisher_prefill_text), :tabindex => 1, :placeholder => t('.whats_on_your_mind')
-            = status.hidden_field :text, :value => '', :class => 'clear_on_submit'
+            - if current_user.getting_started?
+              = status.text_area :fake_text, :rows => 2, :value => h(publisher_formatted_text), :tabindex => 1, :placeholder => "#{t('contacts.index.start_a_conversation')}...",
+                :title => popover_with_close_html( '1. ' + t('shared.public_explain.share') ),
+                'data-content' => t('shared.public_explain.new_user_welcome_message')
+            - else
+              = status.text_area :fake_text, :rows => 2, :value => h(publisher_formatted_text), :tabindex => 1, :placeholder => "#{t('contacts.index.start_a_conversation')}..."
+            = status.hidden_field :text, :value => h(publisher_hidden_text), :class => 'clear_on_submit'
 
             #file-upload{:title => t('.upload_photos')}
-              = image_tag 'icons/camera.svg', :height => 14
+              = image_tag 'icons/camera.png', :alt => t('.upload_photos').titleize
 
-
-      - if all_aspects_selected?(selected_aspects)
+      - if publisher_public
+        = hidden_field_tag 'aspect_ids[]', "public"
+      - elsif all_aspects_selected?(selected_aspects)
         = hidden_field_tag 'aspect_ids[]', "all_aspects"
       - else
         - for aspect_id in aspect_ids
@@ -39,30 +44,30 @@
                 = image_tag "social_media_logos/#{service.provider}-16x16.png", :title => service.provider.titleize, :class => "service_icon dim", :id =>"#{service.provider}", :maxchar => "#{service.class::MAX_CHARACTERS}"
             = link_to (image_tag "icons/monotone_wrench_settings.png"), "#question_mark_pane", :class => 'question_mark', :rel => 'facebox', :title => t('shared.public_explain.manage')
 
-
-          // NOTE(dropdown special casing to DRY up -- taken from the aspect_dropdown partial)
-          .dropdown{:class => "hang_right"}
+          .dropdown{ ! current_user.getting_started? ? {:class => "hang_right"} : { :class => "hang_right", :title => popover_with_close_html("2. #{t('shared.public_explain.control_your_audience')}"), 'data-content'=> t('shared.public_explain.visibility_dropdown')} }
             .button.toggle.publisher
-              - if selected_aspects.size == all_aspects.size
+              - if publisher_public
+                = t('public')
+              - elsif all_aspects_selected?(selected_aspects)
                 = t('all_aspects')
               - elsif selected_aspects.size == 1
                 = selected_aspects.first.name
               - else
-                = t('.toggle', :count => selected_aspects.size)
+                = t('shared.aspect_dropdown.toggle', :count => selected_aspects.size)
               &#9660;
 
             .wrapper
               %ul.dropdown_list{:unSelectable => 'on', 'data-person_id' => (person.id if defined?(person) && person), 'data-service_uid' => (service_uid if defined?(service_uid))}
-                %li.public.radio{"data-aspect_id" => "public"}
-                  Public
+                %li.public.radio{"data-aspect_id" => "public", :class => ("selected" if publisher_public)}
+                  = t('public')
 
-                %li.divider.all_aspects.radio{:style => "border-bottom: 1px solid #ddd;", "data-aspect_id" => "all_aspects", :class => ("selected" if all_aspects_selected?(selected_aspects))}
-                  All Aspects
+                %li.divider.all_aspects.radio{:style => "border-bottom: 1px solid #ddd;", "data-aspect_id" => "all_aspects", :class => ("selected" if (!publisher_public && all_aspects_selected?(selected_aspects)))}
+                  = t('all_aspects')
 
                 - for aspect in all_aspects
                   = aspect_dropdown_list_item(aspect, !all_aspects_selected?(selected_aspects) && selected_aspects.include?(aspect) )
 
-          = status.submit t('.share'), :disable_with => t('.posting'), :class => 'button creation', :tabindex => 2
+          = status.submit t('.share'), :disabled => publisher_hidden_text.blank?, :class => 'button creation', :tabindex => 2
 
           .facebox_content
             #question_mark_pane
