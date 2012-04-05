@@ -5,13 +5,8 @@
 .container{:style => "position:relative;"}
   %a#logo{ :href => root_path, :class => (current_user ? 'small' : nil) }
     <span class="a">London</span><span class="b">DIASPORA</span> <span class="alpha">alpha</span>
+
   - if !current_user
-    .right
-      %ul#landing_nav
-        %li= link_to '@joindiaspora', "http://twitter.com/joindiaspora"
-        %li= link_to 'github', "https://github.com/diaspora/diaspora"
-        %li= link_to t('.blog'), 'http://blog.joindiaspora.com/'
-        %li= link_to t('.login'), new_user_session_path, :class => 'login'
 
   - elsif (current_user || !@landing_page)
     #global_search
@@ -77,12 +72,6 @@
       -if current_user.admin?
         %li= link_to t('.admin'), user_search_path
       %li= link_to t('.logout'), destroy_user_session_path
-
-
-
-
-
-  = link_to image_tag('branding/logo_small.png', :height => "16px", :width => "161px", :style => 'position:relative;top:5px;'), root_path
 
   %ul#landing_nav
     %li= link_to '@joindiaspora', "http://twitter.com/joindiaspora"
