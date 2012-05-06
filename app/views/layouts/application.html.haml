@@ -11,6 +11,7 @@
 
     %meta{:name => "description", :content => "Diaspora*"}
     %meta{:name => "author", :content => "Diaspora, Inc."}
+    = og_site_name
 
     %link{:rel => 'shortcut icon', :href => "#{image_path('favicon.png')}" }
     %link{:rel => 'apple-touch-icon', :href => "#{image_path('apple-touch-icon.png')}"}
@@ -19,6 +20,8 @@
 
     %title
       = page_title yield(:page_title)
+
+    = chartbeat_head_block
 
     = include_base_css_framework
     = stylesheet_link_tag 'login', 'application', 'default'
@@ -41,6 +44,7 @@
     = set_current_user_in_javascript
     = translation_missing_warnings
     = current_user_atom_tag
+    = include_google_analytics
 
     = yield(:head)
     = csrf_meta_tag
@@ -53,7 +57,7 @@
         = render 'layouts/header'
 
     .container
-      - if @aspect == :getting_started || @page == :logged_out
+      - if @aspect == :getting_started
         = yield
       - else
         .span-24.last
@@ -73,3 +77,5 @@
           %li= link_to t('.whats_new'), 'https://github.com/diaspora/diaspora/wiki/Changelog'
           %li= link_to(t('layouts.application.toggle'), toggle_mobile_path)  if is_mobile_device?
         = image_tag 'branding/powered_by_diaspora.png', :height => "11px", :width => "145px"
+
+    = include_chartbeat

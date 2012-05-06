@@ -3,11 +3,12 @@
 #   the COPYRIGHT file.
 
 class Profile < ActiveRecord::Base
+  self.include_root_in_json = false
+
   include Diaspora::Federated::Base
   include Diaspora::Taggable
 
   attr_accessor :tag_string
-
   acts_as_taggable_on :tags
   extract_tags_from :tag_string
   validates :tag_list, :length => { :maximum => 5 }
@@ -128,6 +129,11 @@ class Profile < ActiveRecord::Base
       self.birthday = nil
     end
   end
+
+  def formatted_birthday
+    birthday.to_s(:long).gsub(', 1000', '') if birthday.present?
+  end
+
 
   def tag_string
     if @tag_string

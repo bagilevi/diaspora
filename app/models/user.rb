@@ -33,7 +33,7 @@ class User < ActiveRecord::Base
   serialize :hidden_shareables, Hash
 
   has_one :person, :foreign_key => :owner_id
-  delegate :public_key, :posts, :photos, :owns?, :diaspora_handle, :name, :public_url, :profile, :first_name, :last_name, :participations, :to => :person
+  delegate :guid, :public_key, :posts, :photos, :owns?, :diaspora_handle, :name, :public_url, :profile, :first_name, :last_name, :participations, :to => :person
 
   has_many :invitations_from_me, :class_name => 'Invitation', :foreign_key => :sender_id
   has_many :invitations_to_me, :class_name => 'Invitation', :foreign_key => :recipient_id
@@ -104,6 +104,10 @@ class User < ActiveRecord::Base
 
   def unread_message_count
     ConversationVisibility.sum(:unread, :conditions => "person_id = #{self.person.id}")
+  end
+
+  def beta?
+    Role.is_beta?(self.person)
   end
 
   #@deprecated
@@ -430,7 +434,12 @@ class User < ActiveRecord::Base
   end
 
   def admin?
-    AppConfig[:admins].present? && AppConfig[:admins].include?(self.username)
+    Role.is_admin?(self.person)
+  end
+
+  def role_name
+    role = Role.find_by_person_id_and_name(self.person.id, 'beta')
+    role ? role.name : 'user'
   end
 
   def guard_unconfirmed_email

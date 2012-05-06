@@ -1,4 +1,4 @@
-app.forms.Picture = app.forms.Base.extend({
+app.forms.Picture = app.views.Base.extend({
   templateName : "picture-form",
 
   events : {
@@ -19,6 +19,7 @@ app.forms.Picture = app.forms.Base.extend({
 
   submitForm : function (){
     this.$("form").submit();
+    this.$(".photos").append($('<span class="loader" style="margin-left: 80px;"></span>'))
   },
 
   photoUploaded : function(evt, xhr) {

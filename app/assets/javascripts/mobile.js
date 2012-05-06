@@ -3,6 +3,8 @@
  *   the COPYRIGHT file.
  */
 //= require jquery.charcount
+//= require mbp-modernizr-custom
+//= require mbp-respond.min
 //= require mbp-helper
 $(document).ready(function(){
 
@@ -174,8 +176,6 @@ $(document).ready(function(){
 
           container.hide();
           parent.append(data);
-
-          console.log($(this).closest(".stream_element").find('textarea'));
 
           MBP.autogrow(textarea($(this)));
         }

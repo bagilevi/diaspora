@@ -25,6 +25,7 @@ gem 'omniauth-tumblr'
 gem 'omniauth-twitter'
 
 gem 'twitter', '2.0.2'
+gem 'rails_admin'
 
 # mail
 
@@ -36,7 +37,6 @@ gem "rpm_contrib", "~> 2.1.7"
 group :production do # we don't install these on travis to speed up test runs
   gem 'rack-ssl', :require => 'rack/ssl'
   gem 'rack-rewrite', '~> 1.2.1', :require => false
-  gem 'rack-google-analytics', :require => 'rack/google-analytics'
   gem 'rack-piwik', :require => 'rack/piwik'
 end
 
@@ -76,7 +76,7 @@ gem 'rails-i18n'
 
 # parsing
 
-gem 'nokogiri', '1.5.0'
+gem 'nokogiri', '1.5.2'
 gem 'redcarpet', "2.0.1"
 gem 'roxml', :git => 'git://github.com/Empact/roxml.git', :ref => '7ea9a9ffd2338aaef5b0'
 gem 'ruby-oembed', '~> 0.8.7'
@@ -89,7 +89,7 @@ gem 'SystemTimer', '1.2.3', :platforms => :ruby_18
 
 # tags
 
-gem 'acts-as-taggable-on', :git => 'git://github.com/diaspora/acts-as-taggable-on.git'
+gem 'acts-as-taggable-on', '~> 2.2.2'
 
 # URIs and HTTP
 
@@ -104,11 +104,13 @@ gem 'mobile-fu'
 
 gem 'will_paginate'
 gem 'client_side_validations'
+gem 'gon'
 
 # assets
 
 group :assets do
   gem 'sass-rails', '3.1.4'
+  gem 'bootstrap-sass', '~> 2.0.2'
 
   # Windows and OSX have an execjs compatible runtime built-in, Linux users should
   # install Node.js or use 'therubyracer'.
@@ -132,14 +134,13 @@ gem 'faraday'
 gem 'faraday-stack'
 gem 'em-synchrony', '1.0.0', :platforms => :ruby_19
 
-# jazzy jasmine
 
-# Use the latest Jasmine from github for asset pipeline compatibility
 gem 'jasmine', :git => 'git://github.com/pivotal/jasmine-gem.git'
-
 ### GROUPS ####
 
 group :test do
+
+
   gem 'capybara', '~> 1.1.2'
   gem 'cucumber-rails', '1.3.0', :require => false
   gem 'database_cleaner', '0.7.1'
@@ -148,14 +149,14 @@ group :test do
   gem 'timecop'
                           #"0.1.0", #:path => '~/workspace/diaspora-client'
   gem 'factory_girl_rails', '1.7.0'
-  gem 'fixture_builder', '0.3.1'
-  gem 'fuubar', '0.0.6'
+  gem 'fixture_builder', '0.3.3'
+  gem 'fuubar', '>= 1.0'
   gem 'mongrel', :require => false, :platforms => :ruby_18
   gem 'rspec', '>= 2.0.0'
   gem 'rspec-core', '~> 2.9.0'
   gem 'rspec-instafail', '>= 0.1.7', :require => false
   gem "rspec-rails", "~> 2.9.0" 
-  gem 'selenium-webdriver', '~> 2.19.0'
+  gem 'selenium-webdriver'
 
   gem 'webmock', :require => false
   gem 'sqlite3'
@@ -167,17 +168,21 @@ group :test do
   gem 'guard-cucumber'
 end
 
-group :development do
-  gem 'heroku'
-  gem 'heroku_san'
-  gem 'capistrano', '~> 2.9.0', :require => false
-  gem 'capistrano_colors', :require => false
-  gem 'capistrano-ext', '1.2.1', :require => false
-  gem 'linecache', '0.46', :platforms => :mri_18
-  gem 'parallel_tests', :require => false
+group :test, :development do
+  # Use the latest Jasmine from github for asset pipeline compatibility
   gem 'ruby-debug-base19', '0.11.23' if RUBY_VERSION.include? '1.9.1'
   gem 'ruby-debug19', :platforms => :ruby_19
   gem 'ruby-debug', :platforms => :mri_18
+end
+
+group :development do
+  gem 'heroku'
+  gem 'heroku_san', :platforms => :mri_19
+  gem 'capistrano', :require => false
+  gem 'capistrano_colors', :require => false
+  gem 'capistrano-ext', :require => false
+  gem 'linecache', '0.46', :platforms => :mri_18
+  gem 'parallel_tests', :require => false
   gem 'yard', :require => false
 
   # rails 3.2 goodness

@@ -117,7 +117,6 @@ nl:
         tag_question: "vraag"
         tutorials_wiki_and_forum: "%{tutorial} & %{wiki} & %{forum}: Community-gedreven tutorials, instructies, en nieuws."
       introduce_yourself: "Dit is jouw Stream.  Spring erin en introduceer jezelf."
-      keep_us_running: "Houd %{pod} snel door bij te dragen aan de maandelijkse koffie kosten!"
       new_here:
         follow: "Volg %{link} en verwelkom nieuwe Diaspora* gebruikers!"
         learn_more: "Meer informatie"
@@ -299,7 +298,6 @@ nl:
       already_invited: "De volgende mensen hebben je uitnodiging niet geaccepteerd:"
       aspect: "Aspect"
       check_out_diaspora: "Kijk eens naar Diaspora!"
-      comma_seperated_plz: "Je kunt meerdere e-mailadressen invullen, gescheiden door komma's."
       if_they_accept_info: "als hij of zij accepteert zal hij of zij toegevoegd worden aan het aspect waarvoor je hem of haar uitgenodigd hebt."
       invite_someone_to_join: "Nodig iemand uit om lid te worden op Diaspora!"
       language: "Taal"

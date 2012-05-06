@@ -16,8 +16,11 @@
     %meta{:name => "MobileOptimized", :content => "320"}
     %meta{:name => "viewport", :content => "initial-scale=1, maximum-scale=1"}
 
-    %link{:rel => 'shortcut icon', :href => '/favicon.png'}
-    %link{:rel => 'apple-touch-icon', :href => '/apple-touch-icon.png'}
+    %link{:rel => 'shortcut icon', :href => "#{image_path('favicon.png')}" }
+    %link{:rel => 'apple-touch-icon', :href => "#{image_path('apple-touch-icon.png')}"}
+
+    = og_site_name
+    = chartbeat_head_block
 
     %title
       = page_title yield(:page_title)
@@ -44,12 +47,21 @@
     = set_asset_host
     = translation_missing_warnings
     = current_user_atom_tag
+    = include_google_analytics
+
+    - if @post.present?
+      %link{:rel => 'alternate', :type => "application/json+oembed", :href => "#{oembed_url(:url => post_url(@post))}"}
+      = og_page_specific_tags(@post)
 
     = yield(:head)
     = csrf_meta_tag
 
+    = include_gon(:camel_case => true, :namespace => :preloads)
+
   %body
     = flash_messages
     #container
-
     = yield
+
+
+    = include_chartbeat

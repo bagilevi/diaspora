@@ -3,10 +3,34 @@
 #   the COPYRIGHT file.
 
 class ProfilesController < ApplicationController
-  before_filter :authenticate_user!
+  before_filter :authenticate_user!, :except => ['show']
 
-  respond_to :html
+  respond_to :html, :except => [:show]
   respond_to :js, :only => :update
+
+  # this is terrible because we're actually serving up the associated person here;
+  # however, this is the effect that we want for now
+  def show
+    @person = Person.find_by_guid!(params[:id])
+
+    respond_to do |format|
+      format.json {
+        public_json = @person.as_api_response(:backbone)
+        extra_json = {}
+
+        if(current_user && (current_user.person == @person || current_user.contacts.receiving.where(:person_id => @person.id).first))
+          extra_json = {
+              :location => @person.profile.location,
+              :birthday => @person.profile.formatted_birthday,
+              :bio => @person.profile.bio
+          }
+        end
+
+        render :json => public_json.merge(extra_json)
+      }
+    end
+  end
+
   def edit
     @person = current_user.person
     @aspect  = :person_edit

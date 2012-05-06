@@ -113,7 +113,6 @@ fi:
         need_help: "Tarvitsetko apua?"
         tutorials_wiki_and_forum: "%{tutorial} & %{wiki} & %{forum}: Yhteisön laatimia oppaita, ohjeita ja uutisia"
       introduce_yourself: "Tämä on virtasi. Hyppää sekaan ja esittele itsesi."
-      keep_us_running: "Pidä %{pod} vauhdissa tarjoamalla palvelimille kupponen kahvia kuukausittaisella lahjoituksella!"
       new_here:
         follow: "Seuraa tagia %{link} ja toivota uudet käyttäjät tervetulleiksi Diasporaan!"
         learn_more: "Lue lisää"
@@ -293,7 +292,6 @@ fi:
     new:
       already_invited: "Seuraavat ihmiset eivät ole hyväksyneet kutsuasi:"
       aspect: "Näkymä"
-      comma_seperated_plz: "Voit syöttää useita sähköpostiosoitteita pilkuilla erotettuna."
       if_they_accept_info: "jos he hyväksyvät kutsun, heidät lisätään siihen näkymään, johon heidät kutsuit."
       invite_someone_to_join: "Kutsu joku Diasporan käyttäjäksi!"
       language: "Kieli"

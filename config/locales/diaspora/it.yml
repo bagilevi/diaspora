@@ -50,6 +50,14 @@ it:
       weekly_user_stats: "Statistiche settimanali utenti"
     correlations:
       correlations_count: "Correlazioni con il numero di login"
+    user_search:
+      add_invites: "aggiungi inviti"
+      email_to: "Email per l'invito"
+      users:
+        one: "trovato %{count} utente"
+        other: "trovati %{count} utenti"
+        zero: "trovati %{count} utenti"
+      you_currently: "al momento hai %{user_invitation} inviti a disposizione %{link}"
   ago: "%{time} fa"
   all_aspects: "Tutti gli aspetti"
   application:
@@ -127,7 +135,8 @@ it:
         tag_question: "domanda"
         tutorials_wiki_and_forum: "%{tutorial} & %{wiki} & %{forum}: Per le ultime notizie, le guide e i suggerimenti della comunità"
       introduce_yourself: "Questo è il tuo stream. Sali a bordo e presentati!"
-      keep_us_running: "Mantieni %{pod} veloce e scattante, la tua donazione mensile sarà il caffè per i nostri server!"
+      keep_diaspora_running: "Fai andare veloce lo sviluppo di Diaspora con una donazione mensile!"
+      keep_pod_running: "Mantieni %{pod} veloce e scattante, la tua donazione mensile sarà il caffè per i nostri server!"
       new_here:
         follow: "Segui %{link} per dare il benvenuto ai nuovi iscritti su Diaspora*!"
         learn_more: "Scopri i dettagli"
@@ -179,6 +188,10 @@ it:
     index:
       no_applications: "Non hai ancora autorizzato nessuna applicazione."
       revoke_access: "Revoca l'autorizzazione"
+    new:
+      authorize: "Autorizza"
+      cubbies_will: "Cubbies potrà pubblicare le foto sul tuo account"
+      nope: "No"
   back: "Indietro"
   blocks:
     create:
@@ -315,7 +328,7 @@ it:
         one: "Ti resta 1 invito"
         other: "Ti restano %{count} inviti"
         zero: "Ti restano 0 inviti"
-      comma_seperated_plz: "Puoi inserire più indirizzi email separati da virgole."
+      comma_separated_plz: "Puoi inserire più indirizzi di posta separati da virgole."
       if_they_accept_info: "se accettano, saranno aggiunti all'aspetto in cui li hai invitati."
       invite_someone_to_join: "Invita qualcuno ad entrare in Diaspora!"
       language: "Lingua"
@@ -477,10 +490,9 @@ it:
 
           Hai ricevuto un invito per entrare in Diaspora*!
 
-          Clicca questo indirizzo per cominciare
+          Clicca questo link per cominciare
 
           %{invite_url}
-          <%= invite_code_url(@invitation_code)%>
 
 
           Con affetto,
@@ -819,7 +831,7 @@ it:
       show: "mostra"
       unlike: "Non mi piace più"
       via: "via %{link}"
-      via_mobile: "tramite dispositivo mobile"
+      via_mobile: "via mobile"
       viewable_to_anyone: "Questo post è visibile a tutti sul web"
   status_messages:
     create:

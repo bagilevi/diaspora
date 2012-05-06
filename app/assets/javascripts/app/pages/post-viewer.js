@@ -1,23 +1,17 @@
 app.pages.PostViewer = app.views.Base.extend({
-
   templateName: "post-viewer",
 
   subviews : {
     "#post-content" : "postView",
     "#post-nav" : "navView",
     "#post-interactions" : "interactionsView",
-    "#header-container" : "authorView"
+    "#author-info" : "authorView"
   },
 
   initialize : function(options) {
     this.model = new app.models.Post({ id : options.id });
-    this.model.fetch().success(_.bind(this.initViews, this));
-
-    this.prepIdleHooks();
-
-    $(document).bind("keypress", _.bind(this.commentAnywhere, this))
-    $(document).bind("keypress", _.bind(this.invokePane, this))
-    $(document).bind("keyup", _.bind(this.closePane, this))
+    this.model.preloadOrFetch().done(_.bind(this.initViews, this));
+    this.bindEvents()
   },
 
   initViews : function() {
@@ -28,6 +22,23 @@ app.pages.PostViewer = app.views.Base.extend({
     this.postView = app.views.Post.showFactory(this.model)
 
     this.render();
+  },
+
+  bindEvents : function(){
+    this.prepIdleHooks();
+    this.bindNavHooks();
+
+    $(document).bind("keypress", _.bind(this.commentAnywhere, this))
+    $(document).bind("keypress", _.bind(this.invokePane, this))
+    $(document).bind("keyup", _.bind(this.closePane, this))
+  },
+
+  unbind : function(){
+    $(document).unbind("idle.idleTimer")
+    $(document).unbind("active.idleTimer")
+    $(document).unbind('keydown')
+    $(document).unbind('keypress')
+    $(document).unbind('keyup')
   },
 
   prepIdleHooks : function () {
@@ -42,37 +53,25 @@ app.pages.PostViewer = app.views.Base.extend({
     });
   },
 
-  postRenderTemplate : function() {
-    /* set the document title */
-    document.title = this.model.get("title");
-
-    this.bindNavHooks();
-  },
-
   bindNavHooks : function() {
-    /* navagation hooks */
-    var nextPostLocation = this.model.get("next_post");
-    var previousPostLocation = this.model.get("previous_post");
-
-
+    var model = this.model;
     $(document).keydown(function(evt){
-      /* prevent nav from happening if the user is using the arrow
-       * keys to navigate through their comment text */
+      // prevent nav from happening if the user is using the arrow keys to navigate through their comment text
       if($(evt.target).is("textarea")) { return }
 
       switch(evt.keyCode) {
         case 37:
-          navigate(nextPostLocation); break;
+          app.router.navigate(model.get("next_post"), true); break;
         case 39:
-          navigate(previousPostLocation); break;
+          app.router.navigate(model.get("previous_post"), true); break;
         default:
           break;
       }
     })
+  },
 
-    function navigate(loc) {
-      loc ? window.location = loc : null
-    }
+  postRenderTemplate : function() {
+    if(this.model.get("title")){ document.title = this.model.get("title"); }
   },
 
   commentAnywhere : function(evt) {
@@ -92,5 +91,4 @@ app.pages.PostViewer = app.views.Base.extend({
     if(evt.keyCode != 27) { return }
     this.interactionsView.hidePane();
   }
-
 });

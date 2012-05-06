@@ -1,4 +1,4 @@
-app.models.Post = Backbone.Model.extend({
+app.models.Post = Backbone.Model.extend(_.extend({}, app.models.formatDateMixin, {
   urlRoot : "/posts",
 
   initialize : function() {
@@ -12,16 +12,13 @@ app.models.Post = Backbone.Model.extend({
     this.participations = this.participations || new app.collections.Participations([], {post : this}); // load in the user like initially
   },
 
-  createdAt : function() {
-    return this.timeOf("created_at");
+  setFrameName : function(){
+    var templatePicker = new app.models.Post.TemplatePicker(this)
+    this.set({frame_name : templatePicker.getFrameName()})
   },
 
   interactedAt : function() {
     return this.timeOf("interacted_at");
-  },
-
-  timeOf: function(field) {
-    return app.helpers.dateFormatter.parse(this.get(field)) / 1000;
   },
 
   createReshareUrl : "/reshares",
@@ -34,34 +31,6 @@ app.models.Post = Backbone.Model.extend({
     return this.get("author")
   },
 
-  toggleFollow : function() {
-    var userParticipation = this.get("user_participation");
-    if(userParticipation) {
-      this.unfollow();
-    } else {
-      this.follow();
-    }
-  },
-
-  follow : function() {
-    var self = this;
-    this.participations.create({}, {success : function(resp){
-      self.set(resp)
-      self.trigger('interacted', self)
-    }});
-  },
-
-  unfollow : function() {
-    var self = this;
-    var participationModel = new app.models.Participation(this.get("user_participation"));
-    participationModel.url = this.participations.url + "/" + participationModel.id;
-
-    participationModel.destroy({success : function(model, resp){
-      self.set(resp);
-      self.trigger('interacted', this)
-    }});
-  },
-
   toggleLike : function() {
     var userLike = this.get("user_like")
     if(userLike) {
@@ -69,6 +38,13 @@ app.models.Post = Backbone.Model.extend({
     } else {
       this.like()
     }
+  },
+
+  toggleFavorite : function(options){
+    this.set({favorite : !this.get("favorite")})
+
+    /* guard against attempting to save a model that a user doesn't own */
+    if(options.save){ this.save() }
   },
 
   like : function() {
@@ -115,8 +91,14 @@ app.models.Post = Backbone.Model.extend({
     var body = this.get("text").trim()
       , newlineIdx = body.indexOf("\n")
     return (newlineIdx > 0 ) ? body.substr(newlineIdx+1, body.length) : ""
+  },
+
+  //returns a promise
+  preloadOrFetch : function(){
+    var action = app.hasPreload("post") ? this.set(app.parsePreload("post")) : this.fetch()
+    return $.when(action)
   }
-}, {
+}), {
   headlineLimit : 118,
 
   frameMoods : [

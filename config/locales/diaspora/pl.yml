@@ -50,6 +50,15 @@ pl:
       weekly_user_stats: "Tygodniowe statystyki użytkownika"
     correlations:
       correlations_count: "Współzależności z licznikiem logowań:"
+    user_search:
+      add_invites: "dodaj zaproszenia"
+      email_to: "Zaproś przez e-mail"
+      users:
+        few: "%{count} znalezionych użytkowników"
+        one: "%{count} znaleziony użytkownik"
+        other: "%{count} znalezieni użytkownicy"
+        zero: "Nikogo nie znaleziono"
+      you_currently: "Pozostało Ci jeszcze %{user_invitation} zaproszeń %{link}"
   ago: "%{time} temu"
   all_aspects: "Wszystkie aspekty"
   application:
@@ -127,7 +136,8 @@ pl:
         tag_question: "pytanie"
         tutorials_wiki_and_forum: "%{tutorial} & %{wiki} & %{forum}: Samouczki, instrukcje i aktualności dostarczane przez Społeczność"
       introduce_yourself: "Oto Twoj strumień. Wskocz do niego i przedstaw się."
-      keep_us_running: "Aby %{pod} działał szybko podaruj serwerom dawkę kofeiny w postaci miesięcznej darowizny!"
+      keep_diaspora_running: "Ułatw sprawny rozwój Diaspory dzięki miesięcznej darowiźnie!"
+      keep_pod_running: "Aby %{pod} działał szybko podaruj serwerom dawkę kofeiny w postaci miesięcznej darowizny!"
       new_here:
         follow: "Obserwuj %{link} i powitaj nowych użytkowników Diaspory*!"
         learn_more: "Dowiedz się więcej"
@@ -179,6 +189,10 @@ pl:
     index:
       no_applications: "Nie zarejstrowa@{m:łeś|f:łaś|n:ano} jeszcze żadnej aplikacji!"
       revoke_access: "Zablokuj dostęp"
+    new:
+      authorize: "Autoryzuj"
+      cubbies_will: "Usługa Cubbies będzie mogła zamieszczać zdjęcia w Twoim imieniu"
+      nope: "Nie"
   back: "Powrót"
   blocks:
     create:
@@ -319,7 +333,7 @@ pl:
         one: "Jedno zaproszenie na ten kod"
         other: "%{count} zaproszeń na ten kod"
         zero: "Brak zaproszeń na ten kod"
-      comma_seperated_plz: "Możesz podać kilka adresów e-mail, oddzielając je przecinkami."
+      comma_separated_plz: "Można wprowadzić wiele adresów e-mail oddzielonych przecinkami."
       if_they_accept_info: "Jeśli wybrana osoba przyjmie zaproszenie, zostanie dodana do aspektów, do których ją zapros@{m:iłeś|f:iłaś|n:zono}."
       invite_someone_to_join: "Zaproś kogoś do Diaspory!"
       language: "Język"
@@ -487,16 +501,16 @@ pl:
       message: |-
           Cześć!
 
-          Zapraszamy Cię do dołączenia do Diaspory*!
+          Ktoś zaprosił Cię do dołączenia do Diaspory*!
 
-          Kliknij to łącze, aby dołączyć
+          Kliknij to łącze, aby rozpocząć
 
           %{invite_url}
-          <%= invite_code_url(@invitation_code)%>
 
-          Pozdrawiam,
 
-          Robot e-mail Diaspory*
+          Z poważaniem,
+
+          Robot e-mail projektu Diaspora*!
     invited_you: "%{name} zaprasza Cię do Diaspory*"
     liked:
       liked: "%{name} polubi@{m:ł|f:ła|n:ł/ła} Twój wpis"
@@ -807,7 +821,7 @@ pl:
       discard_post: "Porzuć wpis"
       make_public: "upublicznij"
       new_user_prefill:
-        hello: "Witajcie wszyscy, jestem #%{new_user_tag}. "
+        hello: "Witajcie wszyscy, jestem tutaj nowy/a! #%{new_user_tag}. "
         i_like: "Interesują mnie %{tags}."
         invited_by: "Dzięki za zaproszenie,"
         newhere: "NowiTutaj"
@@ -942,7 +956,7 @@ pl:
       change_email: "Zmiana adresu e-mail"
       change_language: "Zmiana języka"
       change_password: "Zmiana hasła"
-      character_minimum_expl: "musi składać się z przynajmniej sześciu znaków"
+      character_minimum_expl: "minimum 6 znaków"
       close_account:
         dont_go: "Prosimy, nie odchodź!"
         if_you_want_this: "Jeśli naprawdę tego chcesz, wpisz swoje hasło poniżej i kliknij \"Zamknij konto\"."

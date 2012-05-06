@@ -3,12 +3,19 @@
 #   the COPYRIGHT file.
 
 Diaspora::Application.routes.draw do
+  mount RailsAdmin::Engine => '/admin_panel', :as => 'rails_admin'
+
+  get 'oembed' => 'posts#oembed', :as => 'oembed'
   # Posting and Reading
   resources :reshares
 
   resources :status_messages, :only => [:new, :create]
 
-  resources :posts, :only => [:show, :new, :destroy] do
+  resources :posts do
+    member do
+      get :next
+      get :previous
+    end
     resources :likes, :only => [:create, :destroy, :index]
     resources :participations, :only => [:create, :destroy, :index]
     resources :comments, :only => [:new, :create, :destroy, :index]
@@ -17,6 +24,8 @@ Diaspora::Application.routes.draw do
   match "/framer" => redirect("/posts/new")
 
   get 'p/:id' => 'posts#show', :as => 'short_post'
+  get 'posts/:id/iframe' => 'posts#iframe', :as => 'iframe'
+
   # roll up likes into a nested resource above
   resources :comments, :only => [:create, :destroy] do
     resources :likes, :only => [:create, :destroy, :index]
@@ -118,6 +127,8 @@ Diaspora::Application.routes.draw do
   end
 
   resource :profile, :only => [:edit, :update]
+  resources :profiles, :only => [:show]
+
 
   resources :contacts,           :except => [:update, :create] do
     get :sharing, :on => :collection
@@ -205,9 +216,6 @@ Diaspora::Application.routes.draw do
   if AppConfig[:mount_resque_web]
     mount Resque::Server.new, :at => '/resque-jobs', :as => "resque_web"
   end
-
-  # Logout Page (go mobile)
-  get 'logged_out' => 'users#logged_out', :as => 'logged_out'
 
   # Startpage
   root :to => 'home#show'

@@ -23,14 +23,16 @@ Feature: Creating a new post
     Then I should see "This is super skrunkle" as the first post in my stream
     Then "This is super skrunkle" should be a limited post in my stream
 
-  @wip
   Scenario: Mention a contact
    Given a user named "Alice Smith" with email "alice@alice.alice"
    And a user with email "bob@bob.bob" is connected with "alice@alice.alice"
-   And I mention "alice@alice.alice"
-   And I go through the default composer
-   And I go to "/stream"
-   Then the first post should mention "Alice Smith"
+   And I trumpet
+   And I wait for the ajax to finish
+   And I type "@a" to mention "Alice Smith"
+   And I start the framing process
+   Then the post should mention "Alice Smith"
+   When I finalize my frame
+   Then the post should mention "Alice Smith"
 
   Scenario: Uploading multiple photos
     When I write "check out these pictures"
@@ -45,19 +47,20 @@ Feature: Creating a new post
     And I upload a fixture picture with filename "button.gif"
 
     And I start the framing process
+    #defaults to the prettiest mood
+    Then the post's default mood should be "Wallpaper"
+    Then it should be a wallpaper frame with the background "button.gif"
     Then I should see "This is hella customized" in the framer preview
-  #### Will test the template picker being ported to JS ####
-  # Then the default mood for the post should be "Wallpaper"
-  # And I should see the image "button.gif" background
     When I select the mood "Day"
     Then the post's mood should be "Day"
     And "button.gif" should be in the post's picture viewer
     And I should see "This is hella customized" in the framer preview
 
     When I finalize my frame
-    And I go to "/stream"
-    Then "This is hella customized" should be post 1
-    And I click the show page link for "This is hella customized"
+    #on stream
+    Then "This is hella customized" should be the first canvas frame
+    When I click the "This is hella customized" post
+    #on show page
     And the post's mood should still be "Day"
 
   Scenario: The Wallpaper mood

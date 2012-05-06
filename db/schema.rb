@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120330144057) do
+ActiveRecord::Schema.define(:version => 20120427152648) do
 
   create_table "account_deletions", :force => true do |t|
     t.string  "diaspora_handle"
@@ -297,6 +297,8 @@ ActiveRecord::Schema.define(:version => 20120330144057) do
     t.string   "unprocessed_image"
     t.string   "status_message_guid"
     t.integer  "comments_count"
+    t.integer  "height"
+    t.integer  "width"
   end
 
   add_index "photos", ["status_message_guid"], :name => "index_photos_on_status_message_guid"
@@ -338,6 +340,7 @@ ActiveRecord::Schema.define(:version => 20120330144057) do
     t.integer  "reshares_count",                      :default => 0
     t.datetime "interacted_at"
     t.string   "frame_name"
+    t.boolean  "favorite",                            :default => false
   end
 
   add_index "posts", ["author_id", "root_guid"], :name => "index_posts_on_author_id_and_root_guid", :unique => true
@@ -371,6 +374,26 @@ ActiveRecord::Schema.define(:version => 20120330144057) do
   add_index "profiles", ["full_name", "searchable"], :name => "index_profiles_on_full_name_and_searchable"
   add_index "profiles", ["full_name"], :name => "index_profiles_on_full_name"
   add_index "profiles", ["person_id"], :name => "index_profiles_on_person_id"
+
+  create_table "rails_admin_histories", :force => true do |t|
+    t.text     "message"
+    t.string   "username"
+    t.integer  "item"
+    t.string   "table"
+    t.integer  "month",      :limit => 2
+    t.integer  "year",       :limit => 8
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "rails_admin_histories", ["item", "table", "month", "year"], :name => "index_rails_admin_histories"
+
+  create_table "roles", :force => true do |t|
+    t.integer  "person_id"
+    t.string   "name"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "service_users", :force => true do |t|
     t.string   "uid",                          :null => false

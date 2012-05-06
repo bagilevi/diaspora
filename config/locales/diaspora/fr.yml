@@ -44,12 +44,20 @@ fr:
     admin_bar:
       correlations: "Corrélations"
       pages: "Pages"
-      pod_stats: "Statistiques du \"pod\""
+      pod_stats: "Statistiques du pod"
       resque_overview: "Vue d'ensemble des tâches"
       user_search: "Chercher un utilisateur"
       weekly_user_stats: "Statistiques hebdomadaires"
     correlations:
       correlations_count: "Corrélations avec le nombre d'inscrits :"
+    user_search:
+      add_invites: "ajouter des invitations"
+      email_to: "Adresse e-mail de la personne à inviter"
+      users:
+        one: "%{count} utilisateur trouvé"
+        other: "%{count} utilisateurs trouvés"
+        zero: "aucun utilisateur trouvé"
+      you_currently: "Il vous reste actuellement %{user_invitation} invitations %{link}"
   ago: "Il y a %{time}"
   all_aspects: "Tous les aspects"
   application:
@@ -127,7 +135,8 @@ fr:
         tag_question: "question"
         tutorials_wiki_and_forum: "%{tutorial} & %{wiki} & %{forum}: Tutoriels créés par la communauté, astuces, et infos"
       introduce_yourself: "Ceci est votre flux. Rejoignez-nous et présentez-vous."
-      keep_us_running: "Permettez à %{pod} de fonctionner rapidement et achetez une dose de café par mois à nos serveurs !"
+      keep_diaspora_running: "Participez à un développement rapide de Diaspora avec un don mensuel !"
+      keep_pod_running: "Permettez à %{pod} de fonctionner rapidement et offrez une dose de café mensuelle à nos serveurs !"
       new_here:
         follow: "Suivez %{link} et souhaitez la bienvenue aux nouveaux utilisateurs de Diaspora*!"
         learn_more: "En savoir plus"
@@ -179,6 +188,10 @@ fr:
     index:
       no_applications: "Vous n'avez pas encore enregistré d'application."
       revoke_access: "Révoquer l'accès"
+    new:
+      authorize: "Autoriser"
+      cubbies_will: "Cubbies pourra poster des photos en votre nom"
+      nope: "Non"
   back: "Retour"
   blocks:
     create:
@@ -318,7 +331,7 @@ fr:
         one: "Plus qu'une invitation disponible avec ce code."
         other: "Encore %{count} invitations disponibles avec ce code."
         zero: "Plus d'invitation disponible avec ce code."
-      comma_seperated_plz: "Vous pouvez entrer plusieurs adresses de courrier électronique séparées par des virgules."
+      comma_separated_plz: "Vous pouvez entrer plusieurs adresses de courrier électronique séparées par des virgules."
       if_they_accept_info: "s'ils acceptent, ils seront ajoutés à l'aspect dans lequel vous les avez invités."
       invite_someone_to_join: "Inviter quelqu'un à rejoindre Diaspora !"
       language: "Langue"
@@ -495,7 +508,7 @@ fr:
 
           Bien le bonjour chez vous,
 
-          Le robot-courriel de Diaspora*
+          Le robot de courriel de Diaspora*
     invited_you: "%{name} vous a invité(e) sur Diaspora*"
     liked:
       liked: "%{name} a épinglé votre message"

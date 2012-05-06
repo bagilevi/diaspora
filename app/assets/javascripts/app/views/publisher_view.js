@@ -40,7 +40,7 @@ app.views.Publisher = Backbone.View.extend({
         }
         if(app.stream) {
           statusMessage.set({"user_participation": new app.models.Participation});
-          app.stream.posts.add(statusMessage.toJSON());
+          app.stream.items.add(statusMessage.toJSON());
         }
       }
     });
@@ -68,7 +68,6 @@ app.views.Publisher = Backbone.View.extend({
   open : function() {
     $(this.el).removeClass('closed');
     this.$("#publisher_textarea_wrapper").addClass('active');
-    this.$("textarea").css('height', '42px');
 
     return this;
   },

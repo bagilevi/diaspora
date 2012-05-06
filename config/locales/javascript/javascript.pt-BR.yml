@@ -51,6 +51,8 @@ pt-BR:
       no_more: "Não há mais postagem."
     my_activity: "Minhas Atividades"
     my_stream: "Fluxo"
+    people:
+      not_found: "e ninguém foi encontrado..."
     photo_uploader:
       looking_good: "OMG, veja você é incrível!"
     publisher:
@@ -59,6 +61,8 @@ pt-BR:
       public: "Pública - a sua postagem será totalmente visível na web e poderá ser encontrada pelos mecanismos de buscas, Google, Bing e etc..."
     reshares:
       duplicate: "Você já compartilhou essa postagem."
+      post: "Compartilhar o post <%= name %>?"
+      successful: "O post foi compartilhado com sucesso!"
     search_for: "Procurar por {{name}}"
     show_more: "mostrar mais"
     stream:

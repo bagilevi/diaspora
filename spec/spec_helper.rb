@@ -12,6 +12,9 @@ Spork.prefork do
   # if you change any configuration or code from libraries loaded here, you'll
   # need to restart spork for it take effect.
 
+  #require "rails/application"
+  #Spork.trap_method(Rails::Application::RoutesReloader, :reload!)
+
   ENV["RAILS_ENV"] ||= 'test'
   require File.join(File.dirname(__FILE__), '..', 'config', 'environment') unless defined?(Rails)
   require 'helper_methods'
@@ -100,4 +103,14 @@ Spork.each_run do
   # This code will be run each time you run your specs.
   AppConfig.load!
   AppConfig.setup!
+end
+
+# https://makandracards.com/makandra/950-speed-up-rspec-by-deferring-garbage-collection
+RSpec.configure do |config|
+  config.before(:all) do
+    DeferredGarbageCollection.start
+  end
+  config.after(:all) do
+    DeferredGarbageCollection.reconsider 
+  end
 end

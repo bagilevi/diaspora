@@ -90,6 +90,19 @@ en:
       resque_overview: "Resque Overview"
     correlations:
       correlations_count: "Correlations with Sign In Count:"
+    user_search:
+      you_currently: "you currently have %{user_invitation} invites left %{link}"
+      add_invites: "add invites"
+      email_to: "Email to Invite"
+      users: 
+        zero: "%{count} users found"
+        one: "%{count} user found"
+        two: "%{count} users found"
+        few: "%{count} users found"
+        many: "%{count} users found"
+        other: "%{count} users found"
+    stats:
+      go: go
   application:
     helper:
       unknown_person: "unknown person"
@@ -167,7 +180,8 @@ en:
       friends: "Friends"
     index:
       donate: "Donate"
-      keep_us_running: "Keep %{pod} running fast and buy servers their coffee fix with a monthly donation!"
+      keep_pod_running: "Keep %{pod} running fast and buy servers their coffee fix with a monthly donation!"
+      keep_diaspora_running: "Keep Diaspora development fast with a monthly donation!"
       no_tags: "+ Find a tag to follow"
       unfollow_tag: "Stop following #%{tag}"
       handle_explanation: "This is your Diaspora ID. Like an email address, you can give this to people to reach you."
@@ -342,7 +356,7 @@ en:
       language: "Language"
       invite_someone_to_join: "Invite someone to join Diaspora!"
       if_they_accept_info: "if they accept, they will be added to the aspect you invited them."
-      comma_seperated_plz: "You can enter multiple email addresses separated by commas."
+      comma_separated_plz: "You can enter multiple email addresses separated by commas."
       check_out_diaspora: "Hey! You should check out Diaspora*"
       to: "To"
       personal_message: "Personal message"
@@ -551,7 +565,6 @@ en:
         Click this link to get started
         
         %{invite_url}
-        <%= invite_code_url(@invitation_code)%>
         
         
         Love,
@@ -708,7 +721,7 @@ en:
 
       enter_email: "Enter an email"
       enter_username: "Pick a username (only letters, numbers, and underscores)"
-      enter_password: "Enter a password"
+      enter_password: "Enter a password (six character minimum)"
       enter_password_again: "Enter the same password as before"
     create:
       success: "You've joined Diaspora!"
@@ -938,6 +951,10 @@ en:
     index:
       revoke_access: "Revoke Access"
       no_applications: "You haven't registered any applications yet."
+    new:
+      cubbies_will: "Cubbies will be able to post photos on your behalf"
+      authorize: "Authorize"
+      nope: "No"
 
   streams:
     community_spotlight_stream: "Community Spotlight"
@@ -982,13 +999,6 @@ en:
     activity:
       title: "My Activity"
   users:
-    logged_out:
-      signed_out: "You've signed out of Diaspora*"
-      go_mobile: "Now go mobile."
-      simply_visit: "Simply visit"
-      on_your_mobile_device: "on your mobile device to access Diaspora* mobile."
-      works_on_modern: "Works on all modern smartphones"
-
     edit:
       export_data: "Export Data"
       photo_export_unavailable: "Photo exporting currently unavailable"
